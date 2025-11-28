@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { db } from './firebase';
 import { ref, onValue, set, update, remove, runTransaction } from 'firebase/database';
 import { ReturnRecord } from './types';
+import { MOCK_RETURN_HISTORY, MOCK_NCR_HISTORY } from './constants';
 
 // Interface for NCR Item (the product list inside an NCR)
 export interface NCRItem {
@@ -135,12 +136,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const returnRef = ref(db, 'return_records');
     const unsubReturn = onValue(returnRef, (snapshot) => {
       const data = snapshot.val();
-      const loadedItems = data ? Object.values(data) as ReturnRecord[] : [];
+      const loadedItems = data ? Object.values(data).filter(Boolean) as ReturnRecord[] : [];
       setItems(loadedItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
       setLoading(false);
       console.log(`✅ RTDB Connected: Loaded ${loadedItems.length} Return Records`);
     }, (error) => {
-      console.warn("⚠️ RTDB Permission/Connection Error (Returns):", error.message);
+      console.warn("⚠️ RTDB Permission/Connection Error (Returns). Falling back to mock data.", error.message);
+      setItems(MOCK_RETURN_HISTORY);
       setLoading(false);
     });
 
@@ -148,11 +150,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const ncrRef = ref(db, 'ncr_reports');
     const unsubNCR = onValue(ncrRef, (snapshot) => {
       const data = snapshot.val();
-      const loadedReports = data ? Object.values(data) as NCRRecord[] : [];
+      const loadedReports = data ? Object.values(data).filter(Boolean) as NCRRecord[] : [];
       setNcrReports(loadedReports.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
       console.log(`✅ RTDB Connected: Loaded ${loadedReports.length} NCR Reports`);
     }, (error) => {
-      console.warn("⚠️ RTDB Permission/Connection Error (NCR):", error.message);
+      console.warn("⚠️ RTDB Permission/Connection Error (NCR). Falling back to mock data.", error.message);
+      setNcrReports(MOCK_NCR_HISTORY);
     });
 
     return () => {
@@ -168,7 +171,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: any) {
       if (error.code === 'PERMISSION_DENIED') {
           console.warn("⚠️ Write Permission Denied: Cannot save return record.");
-          alert("Access Denied: Check Firebase Realtime Database Rules.");
+          alert("Access Denied: Check Firebase Realtime Database Rules. Developer tip: Set rules to 'allow read, write: if true;' for testing.");
       } else {
           console.error("Error adding return record:", error);
           alert("Failed to save record.");
@@ -200,7 +203,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: any) {
       if (error.code === 'PERMISSION_DENIED') {
           console.warn("⚠️ Write Permission Denied: Cannot save NCR report.");
-          alert("Access Denied: Check Firebase Realtime Database Rules.");
+          alert("Access Denied: Check Firebase Realtime Database Rules. Developer tip: Set rules to 'allow read, write: if true;' for testing.");
       } else {
           console.error("Error adding NCR report:", error);
           alert("Failed to save NCR report.");
