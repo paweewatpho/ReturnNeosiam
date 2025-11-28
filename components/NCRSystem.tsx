@@ -314,15 +314,18 @@ const NCRSystem: React.FC = () => {
                           <div><label className="block text-xs font-bold text-slate-500 mb-1">เลขที่เอกสารอ้างอิง</label><input type="text" className="w-full border border-slate-300 rounded p-2 text-sm" value={newItem.refNo} onChange={e => setNewItem({...newItem, refNo: e.target.value})} /></div>
                           <div><label className="block text-xs font-bold text-slate-500 mb-1">เลขที่เอกสาร Neo Siam</label><input type="text" className="w-full border border-slate-300 rounded p-2 text-sm" value={newItem.neoRefNo} onChange={e => setNewItem({...newItem, neoRefNo: e.target.value})} /></div>
                           <div className="grid grid-cols-3 gap-2 col-span-2">
-                              <div><label className="block text-xs font-bold text-slate-500 mb-1">จำนวน</label><input type="number" className="w-full border border-slate-300 rounded p-2 text-sm" value={newItem.quantity} onChange={e => setNewItem({...newItem, quantity: e.target.value})} /></div>
+{/* FIX: Parse input value to number for quantity */}
+                              <div><label className="block text-xs font-bold text-slate-500 mb-1">จำนวน</label><input type="number" className="w-full border border-slate-300 rounded p-2 text-sm" value={newItem.quantity || ''} onChange={e => setNewItem({...newItem, quantity: parseInt(e.target.value, 10) || 0})} /></div>
                               <div><label className="block text-xs font-bold text-slate-500 mb-1">หน่วย</label><input type="text" className="w-full border border-slate-300 rounded p-2 text-sm" value={newItem.unit} onChange={e => setNewItem({...newItem, unit: e.target.value})} /></div>
                               <div><label className="block text-xs font-bold text-slate-500 mb-1">วันหมดอายุ</label><input type="date" className="w-full border border-slate-300 rounded p-2 text-sm" value={newItem.expiryDate} onChange={e => setNewItem({...newItem, expiryDate: e.target.value})} /></div>
                           </div>
-                          <div><label className="block text-xs font-bold text-slate-500 mb-1">ราคาหน้าบิล</label><input type="number" className="w-full border border-slate-300 rounded p-2 text-sm" value={newItem.priceBill} onChange={e => setNewItem({...newItem, priceBill: e.target.value})} /></div>
+{/* FIX: Parse input value to number for priceBill */}
+                          <div><label className="block text-xs font-bold text-slate-500 mb-1">ราคาหน้าบิล</label><input type="number" className="w-full border border-slate-300 rounded p-2 text-sm" value={newItem.priceBill || ''} onChange={e => setNewItem({...newItem, priceBill: parseFloat(e.target.value) || 0})} /></div>
                           <div className="flex items-center pt-6"><label className="flex items-center gap-2 cursor-pointer font-bold text-sm text-red-600"><input type="checkbox" checked={newItem.hasCost} onChange={e => setNewItem({...newItem, hasCost: e.target.checked})} /> มีค่าใช้จ่าย (Has Cost)</label></div>
                           {newItem.hasCost && (
                               <>
-                                <div><label className="block text-xs font-bold text-slate-500 mb-1">ค่าใช้จ่าย (บาท)</label><input type="number" className="w-full border border-red-300 bg-red-50 rounded p-2 text-sm" value={newItem.costAmount} onChange={e => setNewItem({...newItem, costAmount: e.target.value})} /></div>
+{/* FIX: Parse input value to number for costAmount */}
+                                <div><label className="block text-xs font-bold text-slate-500 mb-1">ค่าใช้จ่าย (บาท)</label><input type="number" className="w-full border border-red-300 bg-red-50 rounded p-2 text-sm" value={newItem.costAmount || ''} onChange={e => setNewItem({...newItem, costAmount: parseFloat(e.target.value) || 0})} /></div>
                                 <div><label className="block text-xs font-bold text-slate-500 mb-1">ผู้รับผิดชอบค่าใช้จ่าย</label><input type="text" className="w-full border border-red-300 bg-red-50 rounded p-2 text-sm" value={newItem.costResponsible} onChange={e => setNewItem({...newItem, costResponsible: e.target.value})} /></div>
                               </>
                           )}
