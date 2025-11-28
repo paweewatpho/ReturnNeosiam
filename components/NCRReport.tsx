@@ -436,39 +436,121 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                             <table className="w-full border-2 border-black mb-6 text-sm bg-white">
                                 <thead><tr className="bg-slate-50 print:bg-transparent border-b-2 border-black"><th colSpan={2} className="py-2 text-center font-bold text-slate-900">การดำเนินการ</th></tr></thead>
                                 <tbody className="divide-y divide-black border-b-2 border-black">
+                                    {/* Reject Row */}
                                     <tr>
-                                        <td className={`p-2 border-r border-black w-1/2 ${isEditMode && ncrFormItem.actionReject ? 'bg-amber-50' : ''}`}>
+                                        <td className={`p-2 border-r border-black w-1/2`}>
                                             <div className="flex items-center gap-2">
-                                                <input type="checkbox" checked={ncrFormItem.actionReject} onChange={(e) => isEditMode && handleInputChange('actionReject', e.target.checked)} disabled={!isEditMode} /> 
+                                                <input type="checkbox" checked={ncrFormItem.actionReject} onChange={(e) => isEditMode && handleInputChange('actionReject', e.target.checked)} disabled={!isEditMode} />
                                                 <span className="font-bold">ส่งคืน (Reject)</span>
-                                                <span className="ml-auto text-slate-600">จำนวน: {ncrFormItem.actionReject ? itemData.quantity : ''}</span>
+                                                {isEditMode ? (
+                                                    <>
+                                                        <span className="ml-auto text-slate-600">จำนวน:</span>
+                                                        <input type="number" className="w-20 border-b border-dotted border-black text-center bg-transparent outline-none disabled:bg-slate-100" value={ncrFormItem.actionRejectQty || 0} onChange={e => handleInputChange('actionRejectQty', parseInt(e.target.value))} disabled={!ncrFormItem.actionReject || !isEditMode} />
+                                                    </>
+                                                ) : (
+                                                    <span className="ml-auto text-slate-600">จำนวน: {ncrFormItem.actionRejectQty || '-'}</span>
+                                                )}
                                             </div>
                                         </td>
-                                        <td className={`p-2 w-1/2 ${isEditMode && ncrFormItem.actionRejectSort ? 'bg-amber-50' : ''}`}>
+                                        <td className={`p-2 w-1/2`}>
                                             <div className="flex items-center gap-2">
-                                                <input type="checkbox" checked={ncrFormItem.actionRejectSort} onChange={(e) => isEditMode && handleInputChange('actionRejectSort', e.target.checked)} disabled={!isEditMode} /> 
+                                                <input type="checkbox" checked={ncrFormItem.actionRejectSort} onChange={(e) => isEditMode && handleInputChange('actionRejectSort', e.target.checked)} disabled={!isEditMode} />
                                                 <span className="font-bold">คัดแยกของเสียเพื่อส่งคืน</span>
-                                                <span className="ml-auto text-slate-600">จำนวน: {ncrFormItem.actionRejectSort ? itemData.quantity : ''}</span>
+                                                {isEditMode ? (
+                                                    <>
+                                                        <span className="ml-auto text-slate-600">จำนวน:</span>
+                                                        <input type="number" className="w-20 border-b border-dotted border-black text-center bg-transparent outline-none disabled:bg-slate-100" value={ncrFormItem.actionRejectSortQty || 0} onChange={e => handleInputChange('actionRejectSortQty', parseInt(e.target.value))} disabled={!ncrFormItem.actionRejectSort || !isEditMode} />
+                                                    </>
+                                                ) : (
+                                                    <span className="ml-auto text-slate-600">จำนวน: {ncrFormItem.actionRejectSortQty || '-'}</span>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
+                                     {/* Rework Row */}
                                     <tr>
-                                        <td className="p-2 border-r border-black"><div className="flex items-center gap-2"><input type="checkbox" disabled /> <span className="font-bold">แก้ไข (Rework)</span><span className="ml-auto text-slate-600">จำนวน:</span></div></td>
-                                        <td className="p-2"><div className="flex items-center gap-2"><span className="font-bold">วิธีการแก้ไข</span><span className="border-b border-dotted border-black flex-1"></span></div></td>
-                                    </tr>
-                                    <tr>
-                                        <td className="p-2 border-r border-black"><div className="flex items-center gap-2"><input type="checkbox" disabled /> <span className="font-bold">ยอมรับกรณีพิเศษ</span><span className="ml-auto text-slate-600">จำนวน:</span></div></td>
-                                        <td className="p-2"><div className="flex items-center gap-2"><span className="font-bold">เหตุผลในการยอมรับ</span><span className="border-b border-dotted border-black flex-1"></span></div></td>
-                                    </tr>
-                                    <tr>
-                                        <td className={`p-2 border-r border-black ${isEditMode && ncrFormItem.actionScrap ? 'bg-amber-50' : ''}`}>
+                                        <td className="p-2 border-r border-black">
                                             <div className="flex items-center gap-2">
-                                                <input type="checkbox" checked={ncrFormItem.actionScrap} onChange={(e) => isEditMode && handleInputChange('actionScrap', e.target.checked)} disabled={!isEditMode} /> 
-                                                <span className="font-bold">ทำลาย (Scrap)</span>
-                                                <span className="ml-auto text-slate-600">จำนวน: {ncrFormItem.actionScrap ? itemData.quantity : ''}</span>
+                                                <input type="checkbox" checked={ncrFormItem.actionRework} onChange={(e) => isEditMode && handleInputChange('actionRework', e.target.checked)} disabled={!isEditMode} />
+                                                <span className="font-bold">แก้ไข (Rework)</span>
+                                                {isEditMode ? (
+                                                    <>
+                                                        <span className="ml-auto text-slate-600">จำนวน:</span>
+                                                        <input type="number" className="w-20 border-b border-dotted border-black text-center bg-transparent outline-none disabled:bg-slate-100" value={ncrFormItem.actionReworkQty || 0} onChange={e => handleInputChange('actionReworkQty', parseInt(e.target.value))} disabled={!ncrFormItem.actionRework || !isEditMode} />
+                                                    </>
+                                                ) : (
+                                                     <span className="ml-auto text-slate-600">จำนวน: {ncrFormItem.actionReworkQty || '-'}</span>
+                                                )}
                                             </div>
                                         </td>
-                                        <td className="p-2"><div className="flex items-center gap-2"><input type="checkbox" disabled /> <span className="font-bold">เปลี่ยนสินค้าใหม่</span><span className="ml-auto text-slate-600">จำนวน:</span></div></td>
+                                        <td className="p-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold">วิธีการแก้ไข</span>
+                                                {isEditMode ? (
+                                                    <input type="text" className="flex-1 border-b border-dotted border-black bg-transparent outline-none disabled:bg-slate-100" value={ncrFormItem.actionReworkMethod || ''} onChange={e => handleInputChange('actionReworkMethod', e.target.value)} disabled={!ncrFormItem.actionRework || !isEditMode} />
+                                                ) : (
+                                                    <span className="text-slate-700">{ncrFormItem.actionReworkMethod || '-'}</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {/* Special Acceptance Row */}
+                                    <tr>
+                                        <td className="p-2 border-r border-black">
+                                            <div className="flex items-center gap-2">
+                                                <input type="checkbox" checked={ncrFormItem.actionSpecialAccept} onChange={(e) => isEditMode && handleInputChange('actionSpecialAccept', e.target.checked)} disabled={!isEditMode} />
+                                                <span className="font-bold">ยอมรับกรณีพิเศษ</span>
+                                                {isEditMode ? (
+                                                    <>
+                                                        <span className="ml-auto text-slate-600">จำนวน:</span>
+                                                        <input type="number" className="w-20 border-b border-dotted border-black text-center bg-transparent outline-none disabled:bg-slate-100" value={ncrFormItem.actionSpecialAcceptQty || 0} onChange={e => handleInputChange('actionSpecialAcceptQty', parseInt(e.target.value))} disabled={!ncrFormItem.actionSpecialAccept || !isEditMode} />
+                                                    </>
+                                                ) : (
+                                                    <span className="ml-auto text-slate-600">จำนวน: {ncrFormItem.actionSpecialAcceptQty || '-'}</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="p-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold">เหตุผลในการยอมรับ</span>
+                                                {isEditMode ? (
+                                                     <input type="text" className="flex-1 border-b border-dotted border-black bg-transparent outline-none disabled:bg-slate-100" value={ncrFormItem.actionSpecialAcceptReason || ''} onChange={e => handleInputChange('actionSpecialAcceptReason', e.target.value)} disabled={!ncrFormItem.actionSpecialAccept || !isEditMode} />
+                                                ) : (
+                                                    <span className="text-slate-700">{ncrFormItem.actionSpecialAcceptReason || '-'}</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {/* Scrap Row */}
+                                    <tr>
+                                        <td className="p-2 border-r border-black">
+                                            <div className="flex items-center gap-2">
+                                                <input type="checkbox" checked={ncrFormItem.actionScrap} onChange={(e) => isEditMode && handleInputChange('actionScrap', e.target.checked)} disabled={!isEditMode} />
+                                                <span className="font-bold">ทำลาย (Scrap)</span>
+                                                {isEditMode ? (
+                                                     <>
+                                                        <span className="ml-auto text-slate-600">จำนวน:</span>
+                                                        <input type="number" className="w-20 border-b border-dotted border-black text-center bg-transparent outline-none disabled:bg-slate-100" value={ncrFormItem.actionScrapQty || 0} onChange={e => handleInputChange('actionScrapQty', parseInt(e.target.value))} disabled={!ncrFormItem.actionScrap || !isEditMode} />
+                                                    </>
+                                                ) : (
+                                                    <span className="ml-auto text-slate-600">จำนวน: {ncrFormItem.actionScrapQty || '-'}</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="p-2">
+                                            <div className="flex items-center gap-2">
+                                                <input type="checkbox" checked={ncrFormItem.actionReplace} onChange={(e) => isEditMode && handleInputChange('actionReplace', e.target.checked)} disabled={!isEditMode} />
+                                                <span className="font-bold">เปลี่ยนสินค้าใหม่</span>
+                                                {isEditMode ? (
+                                                    <>
+                                                        <span className="ml-auto text-slate-600">จำนวน:</span>
+                                                        <input type="number" className="w-20 border-b border-dotted border-black text-center bg-transparent outline-none disabled:bg-slate-100" value={ncrFormItem.actionReplaceQty || 0} onChange={e => handleInputChange('actionReplaceQty', parseInt(e.target.value))} disabled={!ncrFormItem.actionReplace || !isEditMode} />
+                                                    </>
+                                                ) : (
+                                                    <span className="ml-auto text-slate-600">จำนวน: {ncrFormItem.actionReplaceQty || '-'}</span>
+                                                )}
+                                            </div>
+                                        </td>
                                     </tr>
                                 </tbody>
                                 <tfoot>
