@@ -104,6 +104,7 @@ interface DataContextType {
   loading: boolean;
   addReturnRecord: (item: ReturnRecord) => Promise<boolean>;
   updateReturnRecord: (id: string, data: Partial<ReturnRecord>) => Promise<boolean>;
+  deleteReturnRecord: (id: string) => Promise<boolean>;
   addNCRReport: (item: NCRRecord) => Promise<boolean>;
   updateNCRReport: (id: string, data: Partial<NCRRecord>) => Promise<boolean>;
   deleteNCRReport: (id: string) => Promise<boolean>;
@@ -116,6 +117,7 @@ const DataContext = createContext<DataContextType>({
   loading: true,
   addReturnRecord: async () => false,
   updateReturnRecord: async () => false,
+  deleteReturnRecord: async () => false,
   addNCRReport: async () => false,
   updateNCRReport: async () => false,
   deleteNCRReport: async () => false,
@@ -191,6 +193,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
           console.error("Error updating return record:", error);
           alert("Failed to update record.");
+      }
+      return false;
+    }
+  };
+
+  const deleteReturnRecord = async (id: string): Promise<boolean> => {
+    try {
+      await remove(ref(db, 'return_records/' + id));
+      return true;
+    } catch (error: any) {
+      if (error.code === 'PERMISSION_DENIED') {
+        console.warn("⚠️ Delete Permission Denied.");
+        alert("Access Denied: Cannot delete this return record.");
+      } else {
+        console.error("Error deleting return record:", error);
+        alert("Failed to delete this return record.");
       }
       return false;
     }
@@ -283,7 +301,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
   return (
-    <DataContext.Provider value={{ items, ncrReports, loading, addReturnRecord, updateReturnRecord, addNCRReport, updateNCRReport, deleteNCRReport, getNextNCRNumber }}>
+    <DataContext.Provider value={{ items, ncrReports, loading, addReturnRecord, updateReturnRecord, deleteReturnRecord, addNCRReport, updateNCRReport, deleteNCRReport, getNextNCRNumber }}>
       {children}
     </DataContext.Provider>
   );
