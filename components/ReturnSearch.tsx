@@ -11,7 +11,7 @@ interface ExtendedSearchFilters extends SearchFilters {
 }
 
 const ReturnSearch: React.FC = () => {
-  const { items, deleteReturnRecord, updateReturnRecord } = useData(); 
+  const { items, deleteReturnRecord, updateReturnRecord, addReturnRecord } = useData(); 
   const [filters, setFilters] = useState<ExtendedSearchFilters>({
     startDate: '',
     endDate: '',
@@ -250,15 +250,25 @@ const ReturnSearch: React.FC = () => {
     }
     
     // Save all items to the system
+    let successCount = 0;
     for (const item of newReturnItems) {
-      // This would call addReturnRecord or similar function
-      // For now, we'll just add to the items list
-      // You may need to implement this in DataContext
+      try {
+        const success = await addReturnRecord(item);
+        if (success) {
+          successCount++;
+        }
+      } catch (error) {
+        console.error('Error saving item:', error);
+      }
     }
     
-    alert(`บันทึก ${newReturnItems.length} รายการสำเร็จ`);
-    setNewReturnItems([]);
-    setShowAddItemModal(false);
+    if (successCount > 0) {
+      alert(`บันทึก ${successCount} รายการสำเร็จ`);
+      setNewReturnItems([]);
+      setShowAddItemModal(false);
+    } else {
+      alert('ไม่สามารถบันทึกรายการได้ โปรดตรวจสอบการเชื่อมต่อ');
+    }
   };
 
 
