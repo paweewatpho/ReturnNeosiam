@@ -393,30 +393,31 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                  {filteredNcrReports.length === 0 ? (
                     <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-400 italic">ไม่พบรายการ NCR ที่ตรงกับเงื่อนไข</td></tr>
                  ) : (
-                    filteredNcrReports.map((report) => {
+                    filteredNcrReports.map((row) => {
                         // itemData is now provided from expanded rows
-                        const correspondingReturn = items.find(item => item.ncrNumber === report.ncrNo);
-                        const isCanceled = report.status === 'Canceled';
+                        const itemData = row.itemData;
+                        const correspondingReturn = items.find(item => item.ncrNumber === row.ncrNo);
+                        const isCanceled = row.status === 'Canceled';
 
                         return (
-                            <tr key={`${report.id}-${itemData.id}`} className={`hover:bg-slate-50 ${isCanceled ? 'line-through text-slate-400 bg-slate-50' : ''}`}>
+                            <tr key={`${row.id}-${itemData.id}`} className={`hover:bg-slate-50 ${isCanceled ? 'line-through text-slate-400 bg-slate-50' : ''}`}>
                                 <td className={`px-4 py-3 sticky left-0 border-r ${isCanceled ? 'bg-slate-100' : 'bg-white hover:bg-slate-50'}`}>
                                     <button 
-                                        onClick={() => handleViewNCRForm(report)}
+                                        onClick={() => handleViewNCRForm(row)}
                                         disabled={isCanceled}
                                         className="font-bold text-blue-600 hover:text-blue-800 hover:underline text-left flex items-center gap-1 disabled:text-slate-400 disabled:no-underline disabled:cursor-not-allowed"
                                         title="ดูใบแจ้งปัญหาระบบ (View NCR Form)"
                                     >
-                                        {report.ncrNo || report.id} <Eye className="w-3 h-3" />
+                                        {row.ncrNo || row.id} <Eye className="w-3 h-3" />
                                     </button>
-                                    <div className="text-xs">{report.date}</div>
+                                    <div className="text-xs">{row.date}</div>
                                     <div className="mt-1">
                                         {isCanceled ? (
                                             <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 font-bold bg-slate-200 px-1.5 py-0.5 rounded border border-slate-300"><XCircle className="w-3 h-3" /> ยกเลิก</span>
-                                        ) : report.status === 'Closed' ? (
+                                        ) : row.status === 'Closed' ? (
                                             <span className="inline-flex items-center gap-1 text-[10px] text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded border border-green-100"><CheckCircle className="w-3 h-3" /> Closed</span>
                                         ) : (
-                                            <span className="inline-flex items-center gap-1 text-[10px] text-amber-500 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100"><Clock className="w-3 h-3" /> {report.status || 'Open'}</span>
+                                            <span className="inline-flex items-center gap-1 text-[10px] text-amber-500 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100"><Clock className="w-3 h-3" /> {row.status || 'Open'}</span>
                                         )}
                                     </div>
                                 </td>
@@ -441,7 +442,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                                     </div>
                                 </td>
                                 <td className="px-4 py-3 max-w-[250px] whitespace-normal">
-                                    <div className={`text-xs font-bold ${isCanceled ? '' : 'text-slate-700'} mb-0.5`}>{report.problemDetail}</div>
+                                    <div className={`text-xs font-bold ${isCanceled ? '' : 'text-slate-700'} mb-0.5`}>{row.problemDetail}</div>
                                     <div className={`text-[10px] p-1 rounded border ${isCanceled ? 'bg-slate-100' : 'bg-slate-100 border-slate-200'}`}>
                                         Source: {itemData.problemSource}
                                     </div>
@@ -459,9 +460,9 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                                     )}
                                 </td>
                                 <td className="px-4 py-3 text-center">
-                                {report.actionReject || report.actionRejectSort ? (
+                                {row.actionReject || row.actionRejectSort ? (
                                     <span className={`inline-block px-2 py-1 rounded text-[10px] font-bold border ${isCanceled ? 'bg-slate-200' : 'bg-red-100 text-red-700 border-red-200'}`}>Reject</span>
-                                ) : report.actionScrap ? (
+                                ) : row.actionScrap ? (
                                     <span className={`inline-block px-2 py-1 rounded text-[10px] font-bold border ${isCanceled ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-slate-200 text-slate-700 border-slate-300'}`}>Scrap</span>
                                 ) : (
                                     <span className="text-xs">-</span>
@@ -475,10 +476,10 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                                         <button onClick={() => handleOpenPrint(report)} disabled={isCanceled} className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="พิมพ์ใบส่งคืน (Print Return Note)">
                                             <Printer className="w-4 h-4" />
                                         </button>
-                                        <button onClick={() => handleEditClick(report)} disabled={isCanceled} className="p-1.5 text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="แก้ไข (Edit)">
+                                        <button onClick={() => handleEditClick(row)} disabled={isCanceled} className="p-1.5 text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="แก้ไข (Edit)">
                                             <Edit className="w-4 h-4" />
                                         </button>
-                                        <button onClick={() => handleDeleteClick(report.id)} disabled={isCanceled} className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="ยกเลิก (Cancel)">
+                                        <button onClick={() => handleDeleteClick(row.id)} disabled={isCanceled} className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="ยกเลิก (Cancel)">
                                             <Trash2 className="w-4 h-4" />
                                         </button>
                                         
@@ -491,7 +492,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                                                 <CheckCircle className="w-3 h-3" /> ส่งคืนแล้ว
                                             </span>
                                         ) : (
-                                            (report.actionReject || report.actionScrap || report.actionRejectSort) && (
+                                            (row.actionReject || row.actionScrap || row.actionRejectSort) && (
                                                 <button onClick={() => handleCreateReturn(report)} className="inline-flex items-center gap-1 bg-orange-500 hover:bg-orange-600 text-white px-2 py-1.5 rounded shadow-sm transition-all transform hover:scale-105 text-[10px] font-bold" title="สร้างคำขอคืนสินค้าอัตโนมัติ">
                                                     ส่งคืน <ArrowRight className="w-3 h-3" />
                                                 </button>
