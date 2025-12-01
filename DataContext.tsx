@@ -309,31 +309,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const ncrSnapshot = await get(ref(db, 'ncr_reports/' + ncrNo));
       const ncrData = ncrSnapshot.val() as NCRRecord;
 
-      if (ncrData && ncrData.items) {
-        // 3. Update the status of all associated ReturnRecords to 'Canceled'
-        const updates: { [key: string]: Partial<ReturnRecord> } = {};
+      if (ncrData && ncrData.items && ncrData.items.length > 0) {
+        // 3. Get all return records and find matches
+        const returnRecordsSnapshot = await get(ref(db, 'return_records'));
+        const allReturnRecords = returnRecordsSnapshot.val() || {};
+
+        // 4. Update the status of all associated ReturnRecords to 'Canceled'
+        const updates: { [key: string]: any } = {};
+        
         ncrData.items.forEach(item => {
-          // Assuming item.refNo is the ReturnRecord ID (or a key that can be used to find it)
-          // Based on the structure, the ReturnRecord ID is likely the refNo or neoRefNo, 
-          // but the most reliable ID is the one used in the return_records path.
-          // Let's assume the ReturnRecord ID is stored in the NCRItem as 'refNo' for now, 
-          // but we should use the original ReturnRecord ID if available.
-          // Since NCRItem has refNo and neoRefNo, let's assume refNo is the key.
-          // A more robust solution would be to store the original ReturnRecord ID in NCRItem.
-          // For now, we'll use refNo as the key to update the ReturnRecord.
-          // NOTE: The original ReturnRecord ID is `id` in ReturnRecord, which is often a barcode or unique identifier.
-          // In NCRItem, the `refNo` is the reference number, which might not be the unique ID.
-          // However, without a clear link, we must rely on the existing fields.
-          // Let's use `refNo` as the key for now, as it's the most likely candidate for a unique reference.
-          // If the user meant the original ReturnRecord ID, we need to ask.
-          // For now, we'll use the `refNo` as the key to update the ReturnRecord.
-          // A better approach is to use the `id` from the ReturnRecord, which is stored in the NCRItem as `refNo`.
-          // Let's assume `refNo` is the key for the ReturnRecord.
-          updates[`return_records/${item.refNo}/status`] = 'Canceled';
+          // Search for matching ReturnRecord by comparing refNo or neoRefNo
+          Object.entries(allReturnRecords).forEach(([recordId, record]: [string, any]) => {
+            if (record && (
+              record.refNo === item.refNo || 
+              record.neoRefNo === item.neoRefNo ||
+              record.productCode === item.productCode
+            )) {
+              // Found a matching return record, mark it as Canceled
+              updates[`return_records/${recordId}/status`] = 'Canceled';
+            }
+          });
         });
 
         if (Object.keys(updates).length > 0) {
           await update(ref(db), updates);
+          console.log(`✅ Successfully canceled ${Object.keys(updates).length} return records`);
         }
       }
 

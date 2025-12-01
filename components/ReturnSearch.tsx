@@ -435,11 +435,7 @@ const ReturnSearch: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
-  );
-};
 
-export default ReturnSearch;
       {/* ADD MULTIPLE ITEMS MODAL */}
       {showAddItemModal && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
@@ -537,3 +533,8 @@ export default ReturnSearch;
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+export default ReturnSearch;
