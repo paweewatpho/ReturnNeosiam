@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useData, NCRRecord, NCRItem } from '../DataContext';
 import { FileText, AlertTriangle, ArrowRight, CheckCircle, Clock, MapPin, DollarSign, Package, User, Printer, X, Save, Eye, Edit, Lock, Trash2, CheckSquare, Search, Filter, Download, XCircle } from 'lucide-react';
@@ -24,15 +23,14 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
   const [showDeletePasswordModal, setShowDeletePasswordModal] = useState(false);
   const [pendingDeleteItemId, setPendingDeleteItemId] = useState<string | null>(null);
 
-  // New Filters State
+  // New Filters State with Date Range
   const [filters, setFilters] = useState({
     query: '',
-    ncrNumber: '', // New: Direct NCR Number search
-    startDate: '', // New: Start Date
-    endDate: '', // New: End Date
     action: 'All',
     returnStatus: 'All',
     hasCost: false,
+    startDate: '',
+    endDate: '',
   });
 
   const filteredNcrReports = useMemo(() => {
@@ -41,22 +39,13 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
       const correspondingReturn = items.find(item => item.ncrNumber === report.ncrNo);
 
       // Date Range Filter
-      if (filters.startDate && report.date < filters.startDate) {
-        return false;
-      }
-      if (filters.endDate && report.date > filters.endDate) {
-        return false;
-      }
+      if (filters.startDate && report.date < filters.startDate) return false;
+      if (filters.endDate && report.date > filters.endDate) return false;
 
-      // NCR Number Filter
-      const ncrNumberLower = filters.ncrNumber.toLowerCase();
-      if (ncrNumberLower && !report.ncrNo?.toLowerCase().includes(ncrNumberLower)) {
-        return false;
-      }
-
-      // Text Query Filter (General Search)
+      // Text Query Filter including NCR Number
       const queryLower = filters.query.toLowerCase();
       if (queryLower && 
+          !report.ncrNo?.toLowerCase().includes(queryLower) &&
           !itemData.customerName?.toLowerCase().includes(queryLower) &&
           !itemData.productName?.toLowerCase().includes(queryLower) &&
           !itemData.productCode?.toLowerCase().includes(queryLower) &&
@@ -284,7 +273,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
     }[status];
 
     if (!config) {
-        return <span className="px-2 py-1 text-[10px] font-bold rounded bg-slate-100 text-slate-600">{status}</span>;
+        return <span className={`px-2 py-1 text-[10px] font-bold rounded bg-slate-100 text-slate-600`}>{status}</span>;
     }
     return <span className={`px-2 py-1 text-[10px] font-bold rounded ${config.color}`}>{config.text}</span>;
   };
@@ -303,48 +292,35 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
       </div>
 
       {/* FILTERS TOOLBAR */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap gap-4 print:hidden">
-        {/* NCR Number Filter */}
-        <div className="relative w-full md:w-auto flex-grow">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input 
-            type="text" 
-            placeholder="ค้นหาเลขที่ NCR"
-            value={filters.ncrNumber}
-            onChange={e => setFilters({...filters, ncrNumber: e.target.value})}
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-          />
-        </div>
-        
-        {/* Date Range Filter */}
-        <div className="flex gap-2 w-full md:w-auto">
-          <input 
-            type="date" 
-            value={filters.startDate}
-            onChange={e => setFilters({...filters, startDate: e.target.value})}
-            className="w-full md:w-auto p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
-            title="วันที่เริ่มต้น"
-          />
-          <input 
-            type="date" 
-            value={filters.endDate}
-            onChange={e => setFilters({...filters, endDate: e.target.value})}
-            className="w-full md:w-auto p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
-            title="วันที่สิ้นสุด"
-          />
-        </div>
-
-        {/* General Query Filter */}
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 print:hidden">
         <div className="relative flex-grow">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             type="text" 
-            placeholder="ค้นหา ลูกค้า, สินค้า, ปลายทาง, ปัญหา..."
+            placeholder="ค้นหา เลขที่ NCR, ลูกค้า, สินค้า..."
             value={filters.query}
             onChange={e => setFilters({...filters, query: e.target.value})}
             className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
           />
         </div>
+        
+        <div className="flex gap-2">
+            <input 
+              type="date" 
+              value={filters.startDate}
+              onChange={e => setFilters({...filters, startDate: e.target.value})}
+              className="bg-slate-50 border border-slate-200 rounded-lg text-sm p-2 outline-none focus:ring-2 focus:ring-blue-500"
+              title="Start Date"
+            />
+            <input 
+              type="date" 
+              value={filters.endDate}
+              onChange={e => setFilters({...filters, endDate: e.target.value})}
+              className="bg-slate-50 border border-slate-200 rounded-lg text-sm p-2 outline-none focus:ring-2 focus:ring-blue-500"
+              title="End Date"
+            />
+        </div>
+
         <select value={filters.action} onChange={e => setFilters({...filters, action: e.target.value})} className="bg-slate-50 border border-slate-200 rounded-lg text-sm p-2 outline-none focus:ring-2 focus:ring-blue-500">
           <option value="All">การดำเนินการทั้งหมด</option>
           <option value="Reject">ส่งคืน (Reject)</option>
@@ -506,8 +482,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
             </table>
         </div>
       </div>
-
-       {/* All Modals (Print, Password, Form View/Edit) remain unchanged */}
+       {/* ... Modals ... */}
     </div>
   );
 };

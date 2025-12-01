@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { useData } from '../DataContext';
 import { DispositionAction, ReturnRecord } from '../types';
-import { Box, RotateCcw, ShieldCheck, Home, Trash2, ArrowUpCircle, ArrowDownCircle, History, Search, Download } from 'lucide-react';
+import { Box, RotateCcw, ShieldCheck, Home, Trash2, ArrowUpCircle, ArrowDownCircle, History, Search, Download, Truck } from 'lucide-react';
 
 interface StockAggregate {
   stats: {
@@ -17,8 +17,6 @@ interface LedgerEntry extends ReturnRecord {
     movementDate?: string;
 }
 
-const RTV_DISPOSITION: DispositionAction = 'ReturnToVendor';
-
 const Inventory: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'Ledger' | DispositionAction>('Ledger');
   const { items, loading } = useData();
@@ -32,7 +30,6 @@ const Inventory: React.FC = () => {
 
   const inventoryData = useMemo(() => {
     const fullLedger: LedgerEntry[] = [];
-    const rtvItems: ReturnRecord[] = [];
 
     items.forEach(item => {
       // Create an IN entry if the item has been graded
@@ -50,11 +47,6 @@ const Inventory: React.FC = () => {
           movementType: 'OUT',
           movementDate: item.dateDocumented || item.dateCompleted,
         });
-      }
-
-      // Collect RTV items (assuming RTV items are those with disposition 'ReturnToVendor' and not yet completed)
-      if (item.disposition === RTV_DISPOSITION && !item.dateCompleted) {
-        rtvItems.push(item);
       }
     });
 
@@ -98,27 +90,13 @@ const Inventory: React.FC = () => {
       };
     };
 
-    const calculateRTVStats = (): StockAggregate['stats'] => {
-      const totalIn = rtvItems.reduce((sum, item) => sum + item.quantity, 0);
-      // RTV items are considered 'on hand' until they are completed (dateCompleted is set)
-      const totalOut = items
-        .filter(item => item.disposition === RTV_DISPOSITION && item.dateCompleted)
-        .reduce((sum, item) => sum + item.quantity, 0);
-
-      return {
-        totalIn: totalIn,
-        totalOut: totalOut,
-        onHand: totalIn - totalOut,
-      };
-    };
-
     return {
       fullLedger,
       sellableStock: { stats: calculateStats('Restock') },
+      rtvStock: { stats: calculateStats('RTV') },
       claimStock: { stats: calculateStats('Claim') },
       internalStock: { stats: calculateStats('InternalUse') },
       scrapStock: { stats: calculateStats('Recycle') },
-      rtvStock: { stats: calculateRTVStats() },
     };
   }, [items]);
   
@@ -191,10 +169,10 @@ const Inventory: React.FC = () => {
   const tabs = [
     { id: 'Ledger', label: '1. ประวัติทั้งหมด (Full Ledger)', icon: History, stats: null },
     { id: 'Restock', label: '2. สินค้าสำหรับขาย (Sellable)', icon: RotateCcw, stats: inventoryData.sellableStock.stats },
-    { id: 'Claim', label: '3. สินค้าสำหรับเคลม (Claim)', icon: ShieldCheck, stats: inventoryData.claimStock.stats },
-    { id: 'InternalUse', label: '4. สินค้าใช้ภายใน (Internal)', icon: Home, stats: inventoryData.internalStock.stats },
-    { id: 'Recycle', label: '5. สินค้าสำหรับทำลาย (Scrap)', icon: Trash2, stats: inventoryData.scrapStock.stats },
-    { id: RTV_DISPOSITION, label: '6. สินค้าสำหรับคืน (RTV)', icon: ArrowUpCircle, stats: inventoryData.rtvStock.stats },
+    { id: 'RTV', label: '3. สินค้าสำหรับคืน (RTV)', icon: Truck, stats: inventoryData.rtvStock.stats },
+    { id: 'Claim', label: '4. สินค้าสำหรับเคลม (Claim)', icon: ShieldCheck, stats: inventoryData.claimStock.stats },
+    { id: 'InternalUse', label: '5. สินค้าใช้ภายใน (Internal)', icon: Home, stats: inventoryData.internalStock.stats },
+    { id: 'Recycle', label: '6. สินค้าสำหรับทำลาย (Scrap)', icon: Trash2, stats: inventoryData.scrapStock.stats },
   ];
 
   const currentTab = tabs.find(t => t.id === activeTab);

@@ -8,10 +8,6 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
-        allowedHosts: true, // Allow all hosts for sandbox environment
-        hmr: {
-          clientPort: 443, // Use 443 for HMR over HTTPS proxy
-        },
       },
       plugins: [react()],
       define: {
