@@ -9,7 +9,7 @@ interface NCRReportProps {
 }
 
 const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
-  const { ncrReports, items, updateNCRReport, deleteNCRReport } = useData();
+  const { ncrReports, items, updateNCRReport, deleteNCRReport, updateReturnRecord } = useData();
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [printItem, setPrintItem] = useState<NCRRecord | null>(null);
   
@@ -215,8 +215,31 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
   const handleSaveChanges = async () => {
       if (!ncrFormItem) return;
       
+      // Update the NCR report
       const success = await updateNCRReport(ncrFormItem.id, ncrFormItem);
       if(success){
+        // Also update the associated ReturnRecords with the new data
+        if (ncrFormItem.items && ncrFormItem.items.length > 0) {
+          const updatePromises = ncrFormItem.items.map(item => {
+            // Find the corresponding ReturnRecord and update it
+            const correspondingReturn = items.find(r => r.refNo === item.refNo || r.neoRefNo === item.neoRefNo);
+            if (correspondingReturn) {
+              return updateReturnRecord(correspondingReturn.id, {
+                productCode: item.productCode,
+                productName: item.productName,
+                quantity: item.quantity,
+                unit: item.unit,
+                priceBill: item.priceBill,
+                customerName: item.customerName,
+                destinationCustomer: item.destinationCustomer,
+              });
+            }
+            return Promise.resolve(false);
+          });
+          
+          await Promise.all(updatePromises);
+        }
+        
         alert('บันทึกการแก้ไขเรียบร้อย');
         setShowNCRFormModal(false);
         setIsEditMode(false);
