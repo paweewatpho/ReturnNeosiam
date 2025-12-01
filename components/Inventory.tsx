@@ -32,6 +32,11 @@ const Inventory: React.FC = () => {
     const fullLedger: LedgerEntry[] = [];
 
     items.forEach(item => {
+      // Skip items with 'Canceled' status
+      if (item.status === 'Canceled') {
+        return;
+      }
+
       // Create an IN entry if the item has been graded
       if (item.dateGraded) {
         fullLedger.push({

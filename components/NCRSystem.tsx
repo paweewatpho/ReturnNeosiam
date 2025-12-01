@@ -113,28 +113,20 @@ const NCRSystem: React.FC = () => {
         return;
     }
 
-    let successCount = 0;
-
-    for (const item of ncrItems) {
-        const record: NCRRecord = {
-            ...formData,
-            id: `${newNcrNo}-${item.id}`,
-            ncrNo: newNcrNo,
-            item: item,
-            status: formData.qaAccept ? 'Closed' : 'Open',
-        };
-        
-        const success = await addNCRReport(record);
-        if (success) {
-            successCount++;
-        } else {
-            break; 
-        }
-    }
+    // Create a single NCR record with all items
+    const record: NCRRecord = {
+        ...formData,
+        id: newNcrNo,
+        ncrNo: newNcrNo,
+        items: ncrItems,
+        status: formData.qaAccept ? 'Closed' : 'Open',
+    };
+    
+    const success = await addNCRReport(record);
 
     setIsSaving(false);
 
-    if (successCount === ncrItems.length) {
+    if (success) {
         setSaveResult({ success: true, message: `บันทึกข้อมูลสำเร็จ`, ncrNo: newNcrNo });
     } else {
         setSaveResult({ success: false, message: `บันทึกข้อมูลไม่สำเร็จ!\nกรุณาตรวจสอบสิทธิ์การใช้งาน (Permission Denied)` });

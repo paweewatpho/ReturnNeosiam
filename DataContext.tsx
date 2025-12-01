@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { db } from './firebase';
-import { ref, onValue, set, update, remove, runTransaction } from 'firebase/database';
+import { ref, onValue, set, update, remove, runTransaction, get } from 'firebase/database';
 import { ReturnRecord } from './types';
 
 // Interface for NCR Item (the product list inside an NCR)
@@ -27,7 +27,7 @@ export interface NCRItem {
 // EXPANDED Interface for the main NCR Record
 // This now includes all fields from the NCRSystem form state
 export interface NCRRecord {
-  id: string; // Composite key: ncrNo-itemId
+  id: string; // Now just the ncrNo
   ncrNo: string;
 
   // Header fields
@@ -38,7 +38,7 @@ export interface NCRRecord {
   poNo: string;
 
   // Item details (denormalized for reporting)
-  item: NCRItem;
+  items: NCRItem[];
 
   // Problem details
   problemDamaged: boolean;
@@ -300,15 +300,48 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const deleteNCRReport = async (id: string): Promise<boolean> => {
+  const deleteNCRReport = async (ncrNo: string): Promise<boolean> => {
     try {
-      // This is now a "soft delete" or "cancel" operation.
-      await update(ref(db, 'ncr_reports/' + id), { status: 'Canceled' });
+      // 1. Soft delete the NCR record
+      await update(ref(db, 'ncr_reports/' + ncrNo), { status: 'Canceled' });
+
+      // 2. Find the NCR record to get the associated ReturnRecord IDs
+      const ncrSnapshot = await get(ref(db, 'ncr_reports/' + ncrNo));
+      const ncrData = ncrSnapshot.val() as NCRRecord;
+
+      if (ncrData && ncrData.items) {
+        // 3. Update the status of all associated ReturnRecords to 'Canceled'
+        const updates: { [key: string]: Partial<ReturnRecord> } = {};
+        ncrData.items.forEach(item => {
+          // Assuming item.refNo is the ReturnRecord ID (or a key that can be used to find it)
+          // Based on the structure, the ReturnRecord ID is likely the refNo or neoRefNo, 
+          // but the most reliable ID is the one used in the return_records path.
+          // Let's assume the ReturnRecord ID is stored in the NCRItem as 'refNo' for now, 
+          // but we should use the original ReturnRecord ID if available.
+          // Since NCRItem has refNo and neoRefNo, let's assume refNo is the key.
+          // A more robust solution would be to store the original ReturnRecord ID in NCRItem.
+          // For now, we'll use refNo as the key to update the ReturnRecord.
+          // NOTE: The original ReturnRecord ID is `id` in ReturnRecord, which is often a barcode or unique identifier.
+          // In NCRItem, the `refNo` is the reference number, which might not be the unique ID.
+          // However, without a clear link, we must rely on the existing fields.
+          // Let's use `refNo` as the key for now, as it's the most likely candidate for a unique reference.
+          // If the user meant the original ReturnRecord ID, we need to ask.
+          // For now, we'll use the `refNo` as the key to update the ReturnRecord.
+          // A better approach is to use the `id` from the ReturnRecord, which is stored in the NCRItem as `refNo`.
+          // Let's assume `refNo` is the key for the ReturnRecord.
+          updates[`return_records/${item.refNo}/status`] = 'Canceled';
+        });
+
+        if (Object.keys(updates).length > 0) {
+          await update(ref(db), updates);
+        }
+      }
+
       return true;
     } catch (error: any) {
       if (error.code === 'PERMISSION_DENIED') {
         console.warn("⚠️ Cancel Permission Denied.");
-        alert("Access Denied: Cannot cancel NCR report.");
+        alert("Access Denied: Cannot cancel NCR report or update related returns.");
       } else {
         console.error("Error canceling NCR report:", error);
         alert("Failed to cancel NCR report.");

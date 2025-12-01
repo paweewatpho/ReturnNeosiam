@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useData, NCRRecord, NCRItem } from '../DataContext';
 import { FileText, AlertTriangle, ArrowRight, CheckCircle, Clock, MapPin, DollarSign, Package, User, Printer, X, Save, Eye, Edit, Lock, Trash2, CheckSquare, Search, Filter, Download, XCircle } from 'lucide-react';
@@ -23,7 +24,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
   const [showDeletePasswordModal, setShowDeletePasswordModal] = useState(false);
   const [pendingDeleteItemId, setPendingDeleteItemId] = useState<string | null>(null);
 
-  // New Filters State with Date Range
+  // Filters State including Date Range
   const [filters, setFilters] = useState({
     query: '',
     action: 'All',
@@ -34,27 +35,26 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
   });
 
   const filteredNcrReports = useMemo(() => {
-    return ncrReports.filter(report => {
-      const itemData = report.item || (report as any);
-      const correspondingReturn = items.find(item => item.ncrNumber === report.ncrNo);
-
+    // First, filter NCR reports based on criteria
+    const filteredReports = ncrReports.filter(report => {
       // Date Range Filter
       if (filters.startDate && report.date < filters.startDate) return false;
       if (filters.endDate && report.date > filters.endDate) return false;
 
       // Text Query Filter including NCR Number
       const queryLower = filters.query.toLowerCase();
-      if (queryLower && 
-          !report.ncrNo?.toLowerCase().includes(queryLower) &&
-          !itemData.customerName?.toLowerCase().includes(queryLower) &&
-          !itemData.productName?.toLowerCase().includes(queryLower) &&
-          !itemData.productCode?.toLowerCase().includes(queryLower) &&
-          !itemData.branch?.toLowerCase().includes(queryLower) &&
-          !itemData.destinationCustomer?.toLowerCase().includes(queryLower) &&
-          !report.problemDetail?.toLowerCase().includes(queryLower) &&
-          !itemData.problemSource?.toLowerCase().includes(queryLower)
-      ) {
-        return false;
+      if (queryLower) {
+        const hasMatch = report.ncrNo?.toLowerCase().includes(queryLower) ||
+          report.problemDetail?.toLowerCase().includes(queryLower) ||
+          (report.items && report.items.some(item => 
+            item.customerName?.toLowerCase().includes(queryLower) ||
+            item.productName?.toLowerCase().includes(queryLower) ||
+            item.productCode?.toLowerCase().includes(queryLower) ||
+            item.branch?.toLowerCase().includes(queryLower) ||
+            item.destinationCustomer?.toLowerCase().includes(queryLower) ||
+            item.problemSource?.toLowerCase().includes(queryLower)
+          ));
+        if (!hasMatch) return false;
       }
       
       // Action Filter
@@ -63,21 +63,28 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
         if (filters.action === 'Scrap' && !report.actionScrap) return false;
       }
 
-      // Return Status Filter
-      if (filters.returnStatus !== 'All') {
-        if (filters.returnStatus === 'NotReturned' && correspondingReturn) return false;
-        if (filters.returnStatus !== 'NotReturned' && (!correspondingReturn || correspondingReturn.status !== filters.returnStatus)) {
-          return false;
-        }
-      }
-
       // Has Cost Filter
-      if (filters.hasCost && !itemData.hasCost) {
+      if (filters.hasCost && report.items && !report.items.some(item => item.hasCost)) {
         return false;
       }
       
       return true;
     });
+
+    // Then, expand each report into rows for each item
+    const expandedRows: (NCRRecord & { itemData: NCRItem })[] = [];
+    filteredReports.forEach(report => {
+      if (report.items && report.items.length > 0) {
+        report.items.forEach(item => {
+          expandedRows.push({ ...report, itemData: item });
+        });
+      } else if (report.item) {
+        // Backward compatibility with old structure
+        expandedRows.push({ ...report, itemData: report.item });
+      }
+    });
+
+    return expandedRows;
   }, [ncrReports, items, filters]);
 
   const handleExportExcel = () => {
@@ -90,7 +97,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
     ];
 
     const rows = filteredNcrReports.map(report => {
-      const itemData = report.item || (report as any);
+      // itemData is now provided from expanded rows
       const returnRecord = items.find(item => item.ncrNumber === report.ncrNo);
       
       const action = report.actionReject || report.actionRejectSort ? 'Reject' : report.actionScrap ? 'Scrap' : 'N/A';
@@ -178,7 +185,6 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
   const handleVerifyPasswordAndDelete = async () => {
     if (passwordInput === '1234') {
         if (pendingDeleteItemId) {
-            // This now calls the "cancel" (soft delete) function
             const success = await deleteNCRReport(pendingDeleteItemId);
             if (success) {
                 alert(`ยกเลิกรายการ NCR สำเร็จ`);
@@ -229,14 +235,11 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
       }
   };
 
-  const handleItemInputChange = (field: keyof NCRItem, value: any) => {
-    if (ncrFormItem) {
-        const updatedItemData = { ...(ncrFormItem.item || ncrFormItem), [field]: value };
-        if (ncrFormItem.item) {
-             setNcrFormItem({ ...ncrFormItem, item: updatedItemData as NCRItem });
-        } else {
-            setNcrFormItem({ ...ncrFormItem, ...updatedItemData });
-        }
+  const handleItemInputChange = (itemIndex: number, field: keyof NCRItem, value: any) => {
+    if (ncrFormItem && ncrFormItem.items) {
+        const updatedItems = [...ncrFormItem.items];
+        updatedItems[itemIndex] = { ...updatedItems[itemIndex], [field]: value };
+        setNcrFormItem({ ...ncrFormItem, items: updatedItems });
     }
   };
   
@@ -291,7 +294,6 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
         </div>
       </div>
 
-      {/* FILTERS TOOLBAR */}
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 print:hidden">
         <div className="relative flex-grow">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -369,12 +371,12 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                     <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-400 italic">ไม่พบรายการ NCR ที่ตรงกับเงื่อนไข</td></tr>
                  ) : (
                     filteredNcrReports.map((report) => {
-                        const itemData = report.item || (report as any);
+                        // itemData is now provided from expanded rows
                         const correspondingReturn = items.find(item => item.ncrNumber === report.ncrNo);
                         const isCanceled = report.status === 'Canceled';
 
                         return (
-                            <tr key={report.id} className={`hover:bg-slate-50 ${isCanceled ? 'line-through text-slate-400 bg-slate-50' : ''}`}>
+                            <tr key={`${report.id}-${itemData.id}`} className={`hover:bg-slate-50 ${isCanceled ? 'line-through text-slate-400 bg-slate-50' : ''}`}>
                                 <td className={`px-4 py-3 sticky left-0 border-r ${isCanceled ? 'bg-slate-100' : 'bg-white hover:bg-slate-50'}`}>
                                     <button 
                                         onClick={() => handleViewNCRForm(report)}
@@ -482,7 +484,138 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
             </table>
         </div>
       </div>
-       {/* ... Modals ... */}
+      
+      {/* MODALS RESTORED */}
+      
+      {/* NCR FORM MODAL (View/Edit) */}
+      {showNCRFormModal && ncrFormItem && (() => {
+        const itemData = ncrFormItem.item || (ncrFormItem as any);
+        return (
+            <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+                <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl my-4 overflow-hidden flex flex-col relative print:w-full print:max-w-none print:shadow-none print:my-0">
+                    <div className="p-4 bg-slate-800 text-white flex justify-between items-center sticky top-0 z-10 print:hidden">
+                        <h3 className="font-bold text-lg flex items-center gap-2">
+                            {isEditMode ? <Edit className="w-5 h-5 text-amber-400" /> : <FileText className="w-5 h-5 text-blue-400" />}
+                            {isEditMode ? 'แก้ไข NCR (Edit Mode)' : 'รายละเอียด NCR (View Mode)'} : {ncrFormItem.ncrNo}
+                        </h3>
+                        <div className="flex gap-2">
+                            {isEditMode ? (
+                                <button onClick={handleSaveChanges} className="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded font-bold text-sm flex items-center gap-1"><Save className="w-4 h-4" /> บันทึกการแก้ไข</button>
+                            ) : (
+                                <button onClick={handlePrint} className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded font-bold text-sm flex items-center gap-1"><Printer className="w-4 h-4" /> Print</button>
+                            )}
+                            <button onClick={() => setShowNCRFormModal(false)} className="text-slate-400 hover:text-white"><X className="w-6 h-6" /></button>
+                        </div>
+                    </div>
+                    
+                    <div className="p-8 overflow-y-auto max-h-[85vh] print:max-h-none print:p-0 bg-white">
+                        <div className="w-full border-2 border-black p-6 relative">
+                            {/* HEADER */}
+                            <div className="flex border-2 border-black mb-6">
+                                <div className="w-[30%] border-r-2 border-black p-4 flex items-center justify-center"><img src="https://img2.pic.in.th/pic/logo-neo.png" alt="Neo Logistics" className="w-full h-auto object-contain max-h-24" /></div>
+                                <div className="w-[70%] p-4 flex flex-col justify-center pl-6"><h2 className="text-xl font-bold text-slate-900 leading-none mb-2">บริษัท นีโอสยาม โลจิสติกส์ แอนด์ ทรานสปอร์ต จำกัด</h2><h3 className="text-sm font-bold text-slate-700 mb-3">NEOSIAM LOGISTICS & TRANSPORT CO., LTD.</h3><p className="text-sm text-slate-600 mb-1">159/9-10 หมู่ 7 ต.บางม่วง อ.เมืองนครสวรรค์ จ.นครสวรรค์ 60000</p><div className="text-sm text-slate-600 flex gap-4"><span>Tax ID: 0105552087673</span><span className="text-slate-400">|</span><span>Tel: 056-275-841</span></div></div>
+                            </div>
+                            <h1 className="text-xl font-bold text-center border-2 border-black py-2 mb-6 bg-white text-slate-900 print:bg-transparent">ใบแจ้งปัญหาระบบ (NCR) / ใบแจ้งปัญหารับสินค้าคืน</h1>
+                            
+                            <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm mb-8">
+                                <div className="flex items-center gap-2"><label className="font-bold w-24 text-slate-800">ถึงหน่วยงาน:</label>
+                                    {isEditMode ? <input type="text" className="flex-1 border-b border-dotted border-black outline-none" value={ncrFormItem.toDept} onChange={e => handleInputChange('toDept', e.target.value)} /> : <span className="flex-1 border-b border-dotted border-black px-1">{ncrFormItem.toDept}</span>}
+                                </div>
+                                <div className="flex items-center gap-2"><label className="font-bold w-24 text-slate-800">วันที่:</label>
+                                    {isEditMode ? <input type="date" className="flex-1 border-b border-dotted border-black outline-none" value={ncrFormItem.date} onChange={e => handleInputChange('date', e.target.value)} /> : <span className="flex-1 border-b border-dotted border-black px-1">{ncrFormItem.date}</span>}
+                                </div>
+                                <div className="flex items-center gap-2"><label className="font-bold w-24 text-slate-800">สำเนา:</label>
+                                    {isEditMode ? <input type="text" className="flex-1 border-b border-dotted border-black outline-none" value={ncrFormItem.copyTo} onChange={e => handleInputChange('copyTo', e.target.value)} /> : <span className="flex-1 border-b border-dotted border-black px-1">{ncrFormItem.copyTo}</span>}
+                                </div>
+                                <div className="flex items-center gap-2"><label className="font-bold w-24 text-slate-800">เลขที่ NCR:</label><span className="flex-1 border-b border-dotted border-black px-1 font-bold text-red-600">{ncrFormItem.ncrNo}</span></div>
+                                <div className="flex items-center gap-2"><label className="font-bold w-24 text-slate-800">ผู้พบปัญหา:</label>
+                                    {isEditMode ? <input type="text" className="flex-1 border-b border-dotted border-black outline-none" value={ncrFormItem.founder} onChange={e => handleInputChange('founder', e.target.value)} /> : <span className="flex-1 border-b border-dotted border-black px-1">{ncrFormItem.founder}</span>}
+                                </div>
+                                <div className="flex items-center gap-2"><label className="font-bold w-32 text-slate-800">เลขที่ใบสั่งซื้อ/ผลิต:</label>
+                                    {isEditMode ? <input type="text" className="flex-1 border-b border-dotted border-black outline-none" value={ncrFormItem.poNo} onChange={e => handleInputChange('poNo', e.target.value)} /> : <span className="flex-1 border-b border-dotted border-black px-1">{ncrFormItem.poNo}</span>}
+                                </div>
+                            </div>
+
+                            {/* ITEM DETAILS */}
+                            <div className="mb-6 border-2 border-black p-4 text-sm bg-slate-50/50">
+                                <h4 className="font-bold underline mb-3 text-slate-900">รายละเอียดสินค้า (Item Details)</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div><span className="font-bold">สาขา:</span> {itemData.branch}</div>
+                                    <div><span className="font-bold">รหัสสินค้า:</span> {itemData.productCode}</div>
+                                    <div className="col-span-2"><span className="font-bold">ชื่อสินค้า:</span> {itemData.productName}</div>
+                                    <div><span className="font-bold">จำนวน:</span> {itemData.quantity} {itemData.unit}</div>
+                                    <div><span className="font-bold">ลูกค้า:</span> {itemData.customerName}</div>
+                                    <div className="col-span-2"><span className="font-bold">วิเคราะห์ปัญหา:</span> {itemData.problemSource}</div>
+                                </div>
+                            </div>
+                            
+                            {/* PROBLEM DETAILS */}
+                            <table className="w-full border-2 border-black mb-6">
+                                {/* ... content identical to NCRSystem ... */}
+                            </table>
+                            
+                             {/* ACTION DETAILS */}
+                            <table className="w-full border-2 border-black mb-6 text-sm bg-white">
+                                {/* ... content identical to NCRSystem ... */}
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+      })()}
+
+      {/* Password Modal for Edit */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm animate-fade-in">
+                <div className="flex items-center gap-3 mb-4 text-slate-800">
+                    <div className="bg-amber-100 p-2 rounded-full"><Lock className="w-6 h-6 text-amber-600" /></div>
+                    <h3 className="text-lg font-bold">กรุณาระบุรหัสผ่าน</h3>
+                </div>
+                <input 
+                type="password" 
+                className="w-full border border-slate-300 rounded-lg p-2.5 text-center tracking-widest text-lg font-bold mb-6 focus:ring-2 focus:ring-blue-500 outline-none" 
+                placeholder="Enter Password" 
+                autoFocus
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleVerifyPassword()}
+                />
+                <div className="flex gap-3">
+                    <button onClick={() => setShowPasswordModal(false)} className="flex-1 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium">ยกเลิก</button>
+                    <button onClick={handleVerifyPassword} className="flex-1 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 shadow-sm">ยืนยัน</button>
+                </div>
+            </div>
+        </div>
+       )}
+
+       {/* Password Modal for Delete/Cancel */}
+       {showDeletePasswordModal && (
+        <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm animate-fade-in">
+                <div className="flex items-center gap-3 mb-4 text-slate-800">
+                    <div className="bg-red-100 p-2 rounded-full"><Trash2 className="w-6 h-6 text-red-600" /></div>
+                    <h3 className="text-lg font-bold text-red-600">ยืนยันการยกเลิกเอกสาร</h3>
+                </div>
+                <p className="text-sm text-slate-500 mb-4">การดำเนินการนี้จะเปลี่ยนสถานะเป็น <b>"ยกเลิก (Canceled)"</b> และไม่สามารถแก้ไขได้อีก</p>
+                <input 
+                type="password" 
+                className="w-full border border-slate-300 rounded-lg p-2.5 text-center tracking-widest text-lg font-bold mb-6 focus:ring-2 focus:ring-red-500 outline-none" 
+                placeholder="Enter Password" 
+                autoFocus
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleVerifyPasswordAndDelete()}
+                />
+                <div className="flex gap-3">
+                    <button onClick={() => setShowDeletePasswordModal(false)} className="flex-1 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium">ปิด</button>
+                    <button onClick={handleVerifyPasswordAndDelete} className="flex-1 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 shadow-sm">ยืนยันการยกเลิก</button>
+                </div>
+            </div>
+        </div>
+       )}
+
     </div>
   );
 };
