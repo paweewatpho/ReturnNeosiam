@@ -274,7 +274,23 @@ const ReturnSearch: React.FC = () => {
 
   return (
     <div className="p-6 h-full flex flex-col space-y-6 relative">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"><div><h2 className="text-2xl font-bold text-slate-800">ค้นหาและประวัติ (Search & History)</h2><p className="text-slate-500 text-sm">ตรวจสอบสถานะ ติดตาม NCR และดูรายละเอียดการจัดการสินค้าคืน</p></div><div className="flex gap-2"><button onClick={() => setShowAddItemModal(true)} className="flex items-center gap-2 text-sm font-bold bg-blue-600 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-blue-700 transition-colors"><Plus className="w-4 h-4" /> เพิ่มรายการ</button><button onClick={handleExportCSV} className="flex items-center gap-2 text-sm font-bold bg-green-600 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-green-700 transition-colors"><Download className="w-4 h-4" /> Export Excel</button><div className="text-slate-500 text-sm font-medium bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm">พบข้อมูล {filteredData.length} รายการ</div></div></div>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">ค้นหาและประวัติ (Search & History)</h2>
+          <p className="text-slate-500 text-sm">ตรวจสอบสถานะ ติดตาม NCR และดูรายละเอียดการจัดการสินค้าคืน</p>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => setShowAddItemModal(true)} className="flex items-center gap-2 text-sm font-bold bg-blue-600 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-blue-700 transition-colors">
+            <Plus className="w-4 h-4" /> เพิ่มรายการ
+          </button>
+          <button onClick={handleExportCSV} className="flex items-center gap-2 text-sm font-bold bg-green-600 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-green-700 transition-colors">
+            <Download className="w-4 h-4" /> Export Excel
+          </button>
+          <div className="text-slate-500 text-sm font-medium bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm">
+            พบข้อมูล {filteredData.length} รายการ
+          </div>
+        </div>
+      </div>
 
       <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
