@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useData } from '../DataContext';
 import { BRANCH_LIST } from '../constants';
 import { SearchFilters, ReturnStatus, ReturnRecord, DispositionAction } from '../types';
-import { Search, Filter, Calendar, AlertCircle, CheckCircle, Clock, XCircle, ChevronDown, MapPin, Eye, FileText, Truck, RotateCcw, Trash2, Home, ShieldCheck, AlertTriangle, User, Phone, Building2, Package, Activity, Download, ChevronLeft, ChevronRight, Lock, Edit, Plus, X } from 'lucide-react';
+import { Search, Filter, Calendar, AlertCircle, CheckCircle, Clock, XCircle, ChevronDown, MapPin, Eye, FileText, Truck, RotateCcw, Trash2, Home, ShieldCheck, AlertTriangle, User, Phone, Building2, Package, Activity, Download, ChevronLeft, ChevronRight, Lock, Edit } from 'lucide-react';
 
 interface ExtendedSearchFilters extends SearchFilters {
   branch: string;
@@ -11,7 +11,7 @@ interface ExtendedSearchFilters extends SearchFilters {
 }
 
 const ReturnSearch: React.FC = () => {
-  const { items, deleteReturnRecord, updateReturnRecord, addReturnRecord } = useData(); 
+  const { items, deleteReturnRecord, updateReturnRecord } = useData(); 
   const [filters, setFilters] = useState<ExtendedSearchFilters>({
     startDate: '',
     endDate: '',
@@ -32,26 +32,6 @@ const ReturnSearch: React.FC = () => {
   const [pendingDeleteItem, setPendingDeleteItem] = useState<ReturnRecord | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingItem, setEditingItem] = useState<ReturnRecord | null>(null);
-
-  // States for Multi-Item Return Request
-  const [showAddItemModal, setShowAddItemModal] = useState(false);
-  const [newReturnItems, setNewReturnItems] = useState<ReturnRecord[]>([]);
-  const [newItemData, setNewItemData] = useState<Partial<ReturnRecord>>({
-    date: new Date().toISOString().split('T')[0],
-    branch: 'สาย 3',
-    refNo: '',
-    ncrNumber: '',
-    productCode: '',
-    productName: '',
-    customerName: '',
-    quantity: 0,
-    unit: 'ชิ้น',
-    priceBill: 0,
-    condition: 'New',
-    disposition: 'Pending',
-    status: 'Pending'
-  });
-
 
   const filteredData = useMemo(() => {
     return items.filter(item => {
@@ -189,108 +169,9 @@ const ReturnSearch: React.FC = () => {
       </div>
   );
 
-
-  const handleAddNewItem = () => {
-    if (!newItemData.productCode || !newItemData.branch) {
-      alert('กรุณาระบุรหัสสินค้าและสาขา');
-      return;
-    }
-    
-    const item: ReturnRecord = {
-      id: `RET-${Date.now()}`,
-      date: newItemData.date || new Date().toISOString().split('T')[0],
-      branch: newItemData.branch || '',
-      refNo: newItemData.refNo || '',
-      ncrNumber: newItemData.ncrNumber || '',
-      productCode: newItemData.productCode || '',
-      productName: newItemData.productName || '',
-      customerName: newItemData.customerName || '',
-      destinationCustomer: newItemData.destinationCustomer || '',
-      quantity: Number(newItemData.quantity) || 0,
-      unit: newItemData.unit || 'ชิ้น',
-      priceBill: Number(newItemData.priceBill) || 0,
-      priceSell: Number(newItemData.priceSell) || 0,
-      amount: (Number(newItemData.priceBill) || 0) * (Number(newItemData.quantity) || 0),
-      expiryDate: newItemData.expiryDate || '',
-      condition: newItemData.condition || 'New',
-      disposition: newItemData.disposition || 'Pending',
-      status: newItemData.status || 'Pending',
-      notes: newItemData.notes || '',
-      problemType: newItemData.problemType || '',
-      rootCause: newItemData.rootCause || '',
-      reason: newItemData.reason || ''
-    };
-    
-    setNewReturnItems([...newReturnItems, item]);
-    setNewItemData({
-      date: new Date().toISOString().split('T')[0],
-      branch: 'สาย 3',
-      refNo: '',
-      ncrNumber: '',
-      productCode: '',
-      productName: '',
-      customerName: '',
-      quantity: 0,
-      unit: 'ชิ้น',
-      priceBill: 0,
-      condition: 'New',
-      disposition: 'Pending',
-      status: 'Pending'
-    });
-  };
-
-  const handleRemoveNewItem = (index: number) => {
-    setNewReturnItems(newReturnItems.filter((_, i) => i !== index));
-  };
-
-  const handleSaveMultipleItems = async () => {
-    if (newReturnItems.length === 0) {
-      alert('กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ');
-      return;
-    }
-    
-    // Save all items to the system
-    let successCount = 0;
-    for (const item of newReturnItems) {
-      try {
-        const success = await addReturnRecord(item);
-        if (success) {
-          successCount++;
-        }
-      } catch (error) {
-        console.error('Error saving item:', error);
-      }
-    }
-    
-    if (successCount > 0) {
-      alert(`บันทึก ${successCount} รายการสำเร็จ`);
-      setNewReturnItems([]);
-      setShowAddItemModal(false);
-    } else {
-      alert('ไม่สามารถบันทึกรายการได้ โปรดตรวจสอบการเชื่อมต่อ');
-    }
-  };
-
-
   return (
     <div className="p-6 h-full flex flex-col space-y-6 relative">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">ค้นหาและประวัติ (Search & History)</h2>
-          <p className="text-slate-500 text-sm">ตรวจสอบสถานะ ติดตาม NCR และดูรายละเอียดการจัดการสินค้าคืน</p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <button onClick={() => setShowAddItemModal(true)} className="flex items-center gap-2 text-sm font-bold bg-blue-600 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-blue-700 transition-colors">
-            <Plus className="w-4 h-4" /> เพิ่มรายการ
-          </button>
-          <button onClick={handleExportCSV} className="flex items-center gap-2 text-sm font-bold bg-green-600 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-green-700 transition-colors">
-            <Download className="w-4 h-4" /> Export Excel
-          </button>
-          <div className="text-slate-500 text-sm font-medium bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm">
-            พบข้อมูล {filteredData.length} รายการ
-          </div>
-        </div>
-      </div>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"><div><h2 className="text-2xl font-bold text-slate-800">ค้นหาและประวัติ (Search & History)</h2><p className="text-slate-500 text-sm">ตรวจสอบสถานะ ติดตาม NCR และดูรายละเอียดการจัดการสินค้าคืน</p></div><div className="flex gap-2"><button onClick={handleExportCSV} className="flex items-center gap-2 text-sm font-bold bg-green-600 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-green-700 transition-colors"><Download className="w-4 h-4" /> Export Excel</button><div className="text-slate-500 text-sm font-medium bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm">พบข้อมูล {filteredData.length} รายการ</div></div></div>
 
       <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -447,104 +328,6 @@ const ReturnSearch: React.FC = () => {
             <div className="p-4 border-t flex justify-end gap-2">
               <button onClick={() => setEditingItem(null)} className="px-4 py-2 border rounded">Cancel</button>
               <button onClick={handleSaveEdit} className="px-4 py-2 bg-blue-600 text-white rounded">Save Changes</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ADD MULTIPLE ITEMS MODAL */}
-      {showAddItemModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh] my-8">
-            <div className="p-4 bg-slate-800 text-white flex justify-between items-center shrink-0">
-              <h3 className="font-bold">เพิ่มรายการคืนสินค้า (Add Return Items)</h3>
-              <button onClick={() => setShowAddItemModal(false)} className="hover:bg-slate-700 p-1 rounded"><X className="w-5 h-5" /></button>
-            </div>
-            
-            <div className="p-6 overflow-y-auto space-y-5 flex-1">
-              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                <h4 className="font-bold text-slate-700 mb-4">ข้อมูลสินค้า</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">สาขา *</label>
-                    <select value={newItemData.branch || ''} onChange={e => setNewItemData({...newItemData, branch: e.target.value})} className="w-full border border-slate-300 rounded p-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none">
-                      <option value="">-- เลือกสาขา --</option>
-                      {BRANCH_LIST.map(b => <option key={b} value={b}>{b}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">รหัสสินค้า *</label>
-                    <input type="text" value={newItemData.productCode || ''} onChange={e => setNewItemData({...newItemData, productCode: e.target.value})} className="w-full border border-slate-300 rounded p-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none" placeholder="เช่น SKU001" />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-xs font-bold text-slate-500 mb-1">ชื่อสินค้า</label>
-                    <input type="text" value={newItemData.productName || ''} onChange={e => setNewItemData({...newItemData, productName: e.target.value})} className="w-full border border-slate-300 rounded p-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">ลูกค้า</label>
-                    <input type="text" value={newItemData.customerName || ''} onChange={e => setNewItemData({...newItemData, customerName: e.target.value})} className="w-full border border-slate-300 rounded p-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">เลขที่ NCR</label>
-                    <input type="text" value={newItemData.ncrNumber || ''} onChange={e => setNewItemData({...newItemData, ncrNumber: e.target.value})} className="w-full border border-slate-300 rounded p-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">จำนวน</label>
-                    <input type="number" value={newItemData.quantity || 0} onChange={e => setNewItemData({...newItemData, quantity: parseInt(e.target.value) || 0})} className="w-full border border-slate-300 rounded p-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">หน่วย</label>
-                    <input type="text" value={newItemData.unit || ''} onChange={e => setNewItemData({...newItemData, unit: e.target.value})} className="w-full border border-slate-300 rounded p-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none" placeholder="เช่น ชิ้น, กล่อง" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">ราคาหน้าบิล</label>
-                    <input type="number" value={newItemData.priceBill || 0} onChange={e => setNewItemData({...newItemData, priceBill: parseFloat(e.target.value) || 0})} className="w-full border border-slate-300 rounded p-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">สภาพสินค้า</label>
-                    <select value={newItemData.condition || 'New'} onChange={e => setNewItemData({...newItemData, condition: e.target.value})} className="w-full border border-slate-300 rounded p-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none">
-                      <option value="New">สภาพดี (New)</option>
-                      <option value="BoxDamage">มีตำหนิ/บุบ (Box Damage)</option>
-                      <option value="Expired">หมดอายุ (Expired)</option>
-                      <option value="Damaged">เสียหาย (Damaged)</option>
-                      <option value="Defective">ชำรุด (Defective)</option>
-                    </select>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-xs font-bold text-slate-500 mb-1">หมายเหตุ</label>
-                    <textarea value={newItemData.notes || ''} onChange={e => setNewItemData({...newItemData, notes: e.target.value})} className="w-full border border-slate-300 rounded p-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none" rows={2} />
-                  </div>
-                </div>
-                <button onClick={handleAddNewItem} className="mt-4 w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 flex items-center justify-center gap-2 transition-colors">
-                  <Plus className="w-4 h-4" /> เพิ่มรายการ
-                </button>
-              </div>
-
-              {newReturnItems.length > 0 && (
-                <div className="bg-white border border-slate-200 rounded-lg p-4">
-                  <h4 className="font-bold text-slate-700 mb-3">รายการที่เพิ่มแล้ว ({newReturnItems.length})</h4>
-                  <div className="space-y-2 max-h-[250px] overflow-y-auto">
-                    {newReturnItems.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-center bg-slate-50 p-3 rounded border border-slate-200 hover:bg-slate-100 transition-colors">
-                        <div className="flex-1">
-                          <p className="font-bold text-slate-800">{item.productCode} - {item.productName || '(ไม่ระบุ)'}</p>
-                          <p className="text-xs text-slate-500">จำนวน: {item.quantity} {item.unit} | ราคา: ฿{(item.priceBill || 0).toLocaleString()}</p>
-                        </div>
-                        <button onClick={() => handleRemoveNewItem(idx)} className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded transition-colors ml-2">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="p-4 border-t flex justify-end gap-2 bg-slate-50 shrink-0">
-              <button onClick={() => setShowAddItemModal(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded font-medium transition-colors">ยกเลิก</button>
-              <button onClick={handleSaveMultipleItems} disabled={newReturnItems.length === 0} className="px-4 py-2 bg-green-600 text-white font-bold rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                บันทึก ({newReturnItems.length})
-              </button>
             </div>
           </div>
         </div>

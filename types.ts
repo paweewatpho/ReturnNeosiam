@@ -1,11 +1,12 @@
 
+
 export interface ProcessStep {
   id: number;
   title: string;
   description: string;
   role: string;
   duties: string;
-  branches?: string[]; // For step 2 (regions) and step 6 (routes)
+  branches?: string[];
   isBranchParent?: boolean;
 }
 
@@ -31,96 +32,153 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
-// Updated Status Flow: Requested -> Received -> Graded -> Documented -> Completed
 export type ReturnStatus = 'Pending' | 'Requested' | 'Received' | 'Approved' | 'Graded' | 'Documented' | 'Completed' | 'Rejected' | 'Canceled';
 
-// Operational Types
-// Expanded to include specific imperfections under 'Good' category
 export type ItemCondition = 
   | 'New' 
   | 'OpenBox' 
   | 'Damaged' 
   | 'Defective' 
-  | 'Expired'     // หมดอายุ
+  | 'Expired'
   | 'Unknown' 
-  | 'BoxDamage'   // มีตำหนิ/บุบ
-  | 'WetBox'      // ลังเปียก
-  | 'LabelDefect' // ฉลากลอก
-  | string;       // Custom/Other
+  | 'BoxDamage'
+  | 'WetBox'
+  | 'LabelDefect'
+  | string;
 
 export type DispositionAction = 'Restock' | 'RTV' | 'InternalUse' | 'Recycle' | 'Claim' | 'Pending';
 export type BranchName = 'พิษณุโลก' | 'กำแพงเพชร' | 'แม่สอด' | 'เชียงใหม่' | 'EKP ลำปาง' | 'นครสวรรค์';
 
 export interface ReturnRecord {
-  id: string; // Used as Return ID or Barcode
-  refNo: string; // เลขที่อ้างอิง
-  branch: BranchName | string; // สาขาต้นทาง
-  customerName: string; // Or Dealer Name
-  productCode: string; // รหัสสินค้า
-  productName: string; // รายการสินค้า
+  id: string;
+  refNo: string;
+  branch: BranchName | string;
+  customerName: string;
+  productCode: string;
+  productName: string;
   category: string;
-  date: string; // ISO Date string YYYY-MM-DD (General/Initial Date)
-  amount: number; // Qty * Price (Total Value)
-  
-  // NEW: Fields for detailed tracking
-  neoRefNo?: string; // เลขที่เอกสาร Neo Siam
-  destinationCustomer?: string; // สถานที่ส่ง (ลูกค้าปลายทาง)
-
-  // Status Timestamps (Timeline)
-  dateRequested?: string;   // 1. แจ้งคืนสินค้า
-  dateReceived?: string;    // 2. รับสินค้าเข้า
-  dateGraded?: string;      // 3. ตรวจสอบคุณภาพ
-  dateDocumented?: string;  // 4. ออกเอกสาร
-  dateCompleted?: string;   // 5. ปิดงาน
-
-  // New Intake Fields
-  quantity: number; // จำนวน
-  unit: string; // หน่วย
-  priceBill: number; // ราคาหน้าบิล
-  priceSell: number; // ราคาขาย
-  expiryDate?: string; // วันหมดอายุ
-  
+  date: string;
+  amount: number;
+  neoRefNo?: string;
+  destinationCustomer?: string;
+  dateRequested?: string;
+  dateReceived?: string;
+  dateGraded?: string;
+  dateDocumented?: string;
+  dateCompleted?: string;
+  quantity: number;
+  unit: string;
+  priceBill: number;
+  priceSell: number;
+  expiryDate?: string;
   status: ReturnStatus;
   reason: string;
-  // Extended fields for Operations
   condition?: ItemCondition;
   disposition?: DispositionAction;
-  notes?: string; // หมายเหตุ
-
-  // Problem Details (Intake)
-  problemType?: string; // พบปัญหาที่กระบวนการ
-  rootCause?: string;   // สาเหตุเกิดจาก
-  ncrNumber?: string;   // เลขที่ NCR
-
-  // Initial Actions (Intake) - การดำเนินการ
-  actionReject?: boolean;         // ส่งคืน (Reject)
+  notes?: string;
+  problemType?: string;
+  rootCause?: string;
+  ncrNumber?: string;
+  actionReject?: boolean;
   actionRejectQty?: number;
-  actionRejectSort?: boolean;     // คัดแยกของเสียเพื่อส่งคืน
+  actionRejectSort?: boolean;
   actionRejectSortQty?: number;
-  
-  actionRework?: boolean;         // แก้ไข (Rework)
+  actionRework?: boolean;
   actionReworkQty?: number;
-  actionReworkMethod?: string;    // วิธีการแก้ไข
-  
-  actionSpecialAcceptance?: boolean;      // ยอมรับกรณีพิเศษ
+  actionReworkMethod?: string;
+  actionSpecialAcceptance?: boolean;
   actionSpecialAcceptanceQty?: number;
-  actionSpecialAcceptanceReason?: string; // เหตุผลในการยอมรับ
-  
-  actionScrap?: boolean;          // ทำลาย (Scrap)
+  actionSpecialAcceptanceReason?: string;
+  actionScrap?: boolean;
   actionScrapQty?: number;
-  actionScrapReplace?: boolean;   // เปลี่ยนสินค้าใหม่
+  actionScrapReplace?: boolean;
   actionScrapReplaceQty?: number;
+  dispositionRoute?: string;
+  sellerName?: string;
+  contactPhone?: string;
+  internalUseDetail?: string;
+  claimCompany?: string;
+  claimCoordinator?: string;
+  claimPhone?: string;
+}
 
-  // Disposition Details
-  dispositionRoute?: string; // For RTV: สาย 3, Sino, Neo
-  sellerName?: string;       // For Sell/Restock
-  contactPhone?: string;     // For Sell/Restock
-  internalUseDetail?: string; // For InternalUse: Department/Person
-  
-  // Claim Details
-  claimCompany?: string;      // ชื่อบริษัทประกัน
-  claimCoordinator?: string;  // ผู้ประสานงาน
-  claimPhone?: string;        // เบอร์โทรศัพท์ (เคลม)
+// Fix: Add and export NCRItem interface for use throughout the application.
+export interface NCRItem {
+  id: string;
+  branch: string;
+  refNo: string;
+  neoRefNo: string;
+  productCode: string;
+  productName: string;
+  customerName: string;
+  destinationCustomer: string;
+  quantity: number;
+  unit: string;
+  priceBill: number;
+  expiryDate: string;
+  hasCost: boolean;
+  costAmount: number;
+  costResponsible: string;
+  problemSource: string;
+}
+
+// Fix: Add and export NCRRecord interface for use throughout the application.
+export interface NCRRecord {
+  id: string;
+  ncrNo: string;
+  date: string;
+  status: 'Open' | 'Closed' | 'Canceled';
+  toDept: string;
+  copyTo: string;
+  founder: string;
+  poNo: string;
+  items: Record<string, NCRItem>;
+  problemDetail: string;
+  problemDamaged?: boolean;
+  problemLost?: boolean;
+  problemMixed?: boolean;
+  problemWrongInv?: boolean;
+  problemLate?: boolean;
+  problemDuplicate?: boolean;
+  problemWrong?: boolean;
+  problemIncomplete?: boolean;
+  problemOver?: boolean;
+  problemWrongInfo?: boolean;
+  problemShortExpiry?: boolean;
+  problemTransportDamage?: boolean;
+  problemAccident?: boolean;
+  problemOther?: boolean;
+  problemOtherText?: string;
+  actionReject?: boolean;
+  actionRejectQty?: number;
+  actionRejectSort?: boolean;
+  actionRejectSortQty?: number;
+  actionRework?: boolean;
+  actionReworkQty?: number;
+  actionReworkMethod?: string;
+  actionSpecialAccept?: boolean;
+  actionSpecialAcceptQty?: number;
+  actionSpecialAcceptReason?: string;
+  actionScrap?: boolean;
+  actionScrapQty?: number;
+  actionReplace?: boolean;
+  actionReplaceQty?: number;
+  dueDate?: string;
+  approver?: string;
+  approverPosition?: string;
+  approverDate?: string;
+  causePackaging?: boolean;
+  causeTransport?: boolean;
+  causeOperation?: boolean;
+  causeEnv?: boolean;
+  causeDetail?: string;
+  preventionDetail?: string;
+  preventionDueDate?: string;
+  responsiblePerson?: string;
+  responsiblePosition?: string;
+  qaAccept?: boolean;
+  qaReject?: boolean;
+  qaReason?: string;
 }
 
 export interface SearchFilters {

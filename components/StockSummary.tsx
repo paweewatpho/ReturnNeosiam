@@ -28,11 +28,10 @@ const StockSummary: React.FC = () => {
       priceBill: number;
       disposition: DispositionAction;
     }>();
+    
+    const activeItems = items.filter(item => item.status !== 'Canceled');
 
-    items.forEach(item => {
-      // Skip items with 'Canceled' status
-      if (item.status === 'Canceled') return;
-      
+    activeItems.forEach(item => {
       if (!item.productCode || !item.disposition || item.disposition === 'Pending') return;
 
       const key = `${item.productCode}-${item.disposition}`;
@@ -220,7 +219,7 @@ const StockSummary: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col">
-        <div className="overflow-auto flex-1">
+        <div className="overflow-y-scroll flex-1">
           <table className="w-full text-left">
             <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10 shadow-sm text-xs uppercase text-slate-500 font-bold">
                 <tr className="whitespace-nowrap">

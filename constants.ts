@@ -1,6 +1,8 @@
 
-import { ProcessStep, ReturnRecord, BranchName } from './types';
-import { NCRRecord } from './DataContext';
+
+
+// Fix: Changed import for NCRRecord from DataContext to the centralized types file.
+import { ProcessStep, ReturnRecord, BranchName, NCRRecord } from './types';
 
 export const RETURN_PROCESS_STEPS: ProcessStep[] = [
   {
@@ -164,7 +166,8 @@ export const MOCK_RETURN_HISTORY: ReturnRecord[] = [
 // CORRECTED MOCK DATA STRUCTURE
 export const MOCK_NCR_HISTORY: NCRRecord[] = [
   {
-    id: 'NCR-2024-001-item1',
+// Fix: Corrected mock data to match NCRRecord interface. Changed `item` to `items` and updated `id` to match `ncrNo`.
+    id: 'NCR-2024-001',
     ncrNo: 'NCR-2024-001',
     date: getDate(1),
     status: 'Open',
@@ -172,23 +175,25 @@ export const MOCK_NCR_HISTORY: NCRRecord[] = [
     copyTo: 'คลังสินค้า',
     founder: 'สมชาย ใจดี',
     poNo: 'PO-CNX-111',
-    item: {
-      id: 'item-1',
-      branch: 'เชียงใหม่',
-      productName: 'ขนมปัง ฟาร์มเฮ้าส์',
-      productCode: 'BRD-FH-001',
-      customerName: 'มินิบิ๊กซี สาขา 2',
-      quantity: 50,
-      unit: 'แถว',
-      refNo: 'INV-CNX-003',
-      neoRefNo: '',
-      destinationCustomer: 'เซเว่น สาขาตลาดต้นพยอม',
-      problemSource: 'คลังสินค้า (WH)',
-      hasCost: true,
-      costAmount: 500,
-      costResponsible: 'คลังสินค้า',
-      priceBill: 10,
-      expiryDate: '2024-12-01',
+    items: {
+      'item-1': {
+        id: 'item-1',
+        branch: 'เชียงใหม่',
+        productName: 'ขนมปัง ฟาร์มเฮ้าส์',
+        productCode: 'BRD-FH-001',
+        customerName: 'มินิบิ๊กซี สาขา 2',
+        quantity: 50,
+        unit: 'แถว',
+        refNo: 'INV-CNX-003',
+        neoRefNo: '',
+        destinationCustomer: 'เซเว่น สาขาตลาดต้นพยอม',
+        problemSource: 'คลังสินค้า (WH)',
+        hasCost: true,
+        costAmount: 500,
+        costResponsible: 'คลังสินค้า',
+        priceBill: 10,
+        expiryDate: '2024-12-01',
+      }
     },
     problemDetail: 'สินค้าอายุสั้นกว่ากำหนด',
     problemShortExpiry: true,
@@ -202,7 +207,8 @@ export const MOCK_NCR_HISTORY: NCRRecord[] = [
     qaAccept: false, qaReject: false, qaReason: ''
   },
   {
-    id: 'NCR-2024-002-item1',
+// Fix: Corrected mock data to match NCRRecord interface. Changed `item` to `items` and updated `id` to match `ncrNo`.
+    id: 'NCR-2024-002',
     ncrNo: 'NCR-2024-002',
     date: getDate(2),
     status: 'Closed',
@@ -210,23 +216,25 @@ export const MOCK_NCR_HISTORY: NCRRecord[] = [
     copyTo: 'ขนส่ง',
     founder: 'สมศรี มีสุข',
     poNo: 'PO-PHS-222',
-    item: {
-      id: 'item-2',
-      branch: 'พิษณุโลก',
-      productName: 'น้ำดื่ม นีโอ',
-      productCode: 'WTR-NEO-600',
-      customerName: 'ร้านป้าแจ่ม',
-      quantity: 10,
-      unit: 'แพ็ค',
-      refNo: 'INV-PHS-005',
-      neoRefNo: '',
-      destinationCustomer: '',
-      problemSource: 'ระหว่างขนส่ง - พนักงานขับรถบริษัท (นายดำ, 1กข-1234)',
-      hasCost: false,
-      costAmount: 0,
-      costResponsible: '',
-      priceBill: 35,
-      expiryDate: '',
+    items: {
+      'item-2': {
+        id: 'item-2',
+        branch: 'พิษณุโลก',
+        productName: 'น้ำดื่ม นีโอ',
+        productCode: 'WTR-NEO-600',
+        customerName: 'ร้านป้าแจ่ม',
+        quantity: 10,
+        unit: 'แพ็ค',
+        refNo: 'INV-PHS-005',
+        neoRefNo: '',
+        destinationCustomer: '',
+        problemSource: 'ระหว่างขนส่ง - พนักงานขับรถบริษัท (นายดำ, 1กข-1234)',
+        hasCost: false,
+        costAmount: 0,
+        costResponsible: '',
+        priceBill: 35,
+        expiryDate: '',
+      }
     },
     problemDetail: 'ขวดบุบเสียหายจากการขนส่ง',
     problemTransportDamage: true,
