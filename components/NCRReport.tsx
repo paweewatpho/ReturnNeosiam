@@ -275,6 +275,41 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
     });
   };
 
+  const handleProblemSelection = (field: keyof NCRRecord) => {
+    setNcrFormItem(prev => {
+      if (!prev) return null;
+      const isCurrentlyChecked = prev[field] as boolean;
+      const newValue = !isCurrentlyChecked;
+
+      if (newValue) {
+        return {
+          ...prev,
+          problemDamaged: false,
+          problemDamagedInBox: false,
+          problemLost: false,
+          problemMixed: false,
+          problemWrongInv: false,
+          problemLate: false,
+          problemDuplicate: false,
+          problemWrong: false,
+          problemIncomplete: false,
+          problemOver: false,
+          problemWrongInfo: false,
+          problemShortExpiry: false,
+          problemTransportDamage: false,
+          problemAccident: false,
+          problemPOExpired: false,
+          problemNoBarcode: false,
+          problemNotOrdered: false,
+          problemOther: false,
+          [field]: true
+        };
+      } else {
+        return { ...prev, [field]: false };
+      }
+    });
+  };
+
   const handleSaveChanges = async () => {
     if (!ncrFormItem) return;
 
@@ -811,6 +846,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                         <div className="mb-2 font-bold underline text-slate-900">พบปัญหาที่กระบวนการ</div>
                         <div className="grid grid-cols-2 gap-2 mb-4 text-slate-700">
                           <div className="flex items-center gap-2"><input type="checkbox" readOnly checked={printItem.problemDamaged} /> ชำรุด</div>
+                          <div className="flex items-center gap-2"><input type="checkbox" readOnly checked={printItem.problemDamagedInBox} /> ชำรุดในกล่อง</div>
                           <div className="flex items-center gap-2"><input type="checkbox" readOnly checked={printItem.problemLost} /> สูญหาย</div>
                           <div className="flex items-center gap-2"><input type="checkbox" readOnly checked={printItem.problemMixed} /> สินค้าสลับ</div>
                           <div className="flex items-center gap-2"><input type="checkbox" readOnly checked={printItem.problemWrongInv} /> สินค้าไม่ตรง INV.</div>
@@ -823,6 +859,9 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                           <div className="flex items-center gap-2"><input type="checkbox" readOnly checked={printItem.problemShortExpiry} /> สินค้าอายุสั้น</div>
                           <div className="flex items-center gap-2"><input type="checkbox" readOnly checked={printItem.problemTransportDamage} /> สินค้าเสียหายบนรถขนส่ง</div>
                           <div className="flex items-center gap-2"><input type="checkbox" readOnly checked={printItem.problemAccident} /> อุบัติเหตุ</div>
+                          <div className="flex items-center gap-2"><input type="checkbox" readOnly checked={printItem.problemPOExpired} /> PO. หมดอายุ</div>
+                          <div className="flex items-center gap-2"><input type="checkbox" readOnly checked={printItem.problemNoBarcode} /> บาร์โค๊ตไม่ขึ้น</div>
+                          <div className="flex items-center gap-2"><input type="checkbox" readOnly checked={printItem.problemNotOrdered} /> ลูกค้าไม่ได้สั่งสินค้า</div>
                           <div className="flex items-center gap-2 col-span-2">
                             <input type="checkbox" readOnly checked={printItem.problemOther} />
                             <span>อื่นๆ: {printItem.problemOtherText || '-'}</span>
@@ -1088,23 +1127,26 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
 
                 {/* SECTION 1: PROBLEM */}
                 <table className="w-full border-2 border-black mb-6"><thead><tr className="border-b-2 border-black bg-slate-50"><th className="border-r-2 border-black w-1/3 py-2 text-slate-900">รูปภาพ / เอกสาร</th><th className="py-2 text-slate-900">รายละเอียดของปัญหาที่พบ (ผู้พบปัญหา)</th></tr></thead><tbody><tr><td className="border-r-2 border-black p-4 text-center align-middle h-64 relative bg-white"><div className="flex flex-col items-center justify-center text-red-500 opacity-50"><h2 className="text-3xl font-bold mb-2">รูปภาพ / เอกสาร</h2><h2 className="text-3xl font-bold">ตามแนบ</h2><ImageIcon className="w-16 h-16 mt-4" /></div></td><td className="p-4 align-top text-sm bg-white"><div className="mb-2 font-bold underline text-slate-900">พบปัญหาที่กระบวนการ <span className="text-red-500">*</span></div><div className="grid grid-cols-2 gap-2 mb-4 text-slate-700">
-                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemDamaged} onChange={e => handleInputChange('problemDamaged', e.target.checked)} /> ชำรุด</label>
-                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemDamagedInBox} onChange={e => handleInputChange('problemDamagedInBox', e.target.checked)} /> ชำรุดในกล่อง</label>
-                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemLost} onChange={e => handleInputChange('problemLost', e.target.checked)} /> สูญหาย</label>
-                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemMixed} onChange={e => handleInputChange('problemMixed', e.target.checked)} /> สินค้าสลับ</label>
-                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemWrongInv} onChange={e => handleInputChange('problemWrongInv', e.target.checked)} /> สินค้าไม่ตรง INV.</label>
+                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemDamaged} onChange={() => handleProblemSelection('problemDamaged')} /> ชำรุด</label>
+                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemDamagedInBox} onChange={() => handleProblemSelection('problemDamagedInBox')} /> ชำรุดในกล่อง</label>
+                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemLost} onChange={() => handleProblemSelection('problemLost')} /> สูญหาย</label>
+                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemMixed} onChange={() => handleProblemSelection('problemMixed')} /> สินค้าสลับ</label>
+                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemWrongInv} onChange={() => handleProblemSelection('problemWrongInv')} /> สินค้าไม่ตรง INV.</label>
 
-                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemLate} onChange={e => handleInputChange('problemLate', e.target.checked)} /> ส่งช้า</label>
-                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemDuplicate} onChange={e => handleInputChange('problemDuplicate', e.target.checked)} /> ส่งซ้ำ</label>
-                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemWrong} onChange={e => handleInputChange('problemWrong', e.target.checked)} /> ส่งผิด</label>
-                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemIncomplete} onChange={e => handleInputChange('problemIncomplete', e.target.checked)} /> ส่งของไม่ครบ</label>
-                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemOver} onChange={e => handleInputChange('problemOver', e.target.checked)} /> ส่งของเกิน</label>
-                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemWrongInfo} onChange={e => handleInputChange('problemWrongInfo', e.target.checked)} /> ข้อมูลผิด</label>
-                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemShortExpiry} onChange={e => handleInputChange('problemShortExpiry', e.target.checked)} /> สินค้าอายุสั้น</label>
-                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemTransportDamage} onChange={e => handleInputChange('problemTransportDamage', e.target.checked)} /> สินค้าเสียหายบนรถขนส่ง</label>
-                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemAccident} onChange={e => handleInputChange('problemAccident', e.target.checked)} /> อุบัติเหตุ</label>
+                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemLate} onChange={() => handleProblemSelection('problemLate')} /> ส่งช้า</label>
+                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemDuplicate} onChange={() => handleProblemSelection('problemDuplicate')} /> ส่งซ้ำ</label>
+                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemWrong} onChange={() => handleProblemSelection('problemWrong')} /> ส่งผิด</label>
+                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemIncomplete} onChange={() => handleProblemSelection('problemIncomplete')} /> ส่งของไม่ครบ</label>
+                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemOver} onChange={() => handleProblemSelection('problemOver')} /> ส่งของเกิน</label>
+                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemWrongInfo} onChange={() => handleProblemSelection('problemWrongInfo')} /> ข้อมูลผิด</label>
+                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemShortExpiry} onChange={() => handleProblemSelection('problemShortExpiry')} /> สินค้าอายุสั้น</label>
+                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemTransportDamage} onChange={() => handleProblemSelection('problemTransportDamage')} /> สินค้าเสียหายบนรถขนส่ง</label>
+                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemAccident} onChange={() => handleProblemSelection('problemAccident')} /> อุบัติเหตุ</label>
+                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemPOExpired} onChange={() => handleProblemSelection('problemPOExpired')} /> PO. หมดอายุ</label>
+                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemNoBarcode} onChange={() => handleProblemSelection('problemNoBarcode')} /> บาร์โค๊ตไม่ขึ้น</label>
+                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemNotOrdered} onChange={() => handleProblemSelection('problemNotOrdered')} /> ลูกค้าไม่ได้สั่งสินค้า</label>
 
-                  <div className="flex items-center gap-2 p-1 col-span-2"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemOther} onChange={e => handleInputChange('problemOther', e.target.checked)} /> <span>อื่นๆ</span><input type="text" disabled={!isEditMode} className="border-b border-dotted border-slate-400 bg-transparent outline-none w-full text-slate-700" value={ncrFormItem.problemOtherText || ''} onChange={e => handleInputChange('problemOtherText', e.target.value)} /></div>
+                  <div className="flex items-center gap-2 p-1 col-span-2"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemOther} onChange={() => handleProblemSelection('problemOther')} /> <span>อื่นๆ</span><input type="text" disabled={!isEditMode} className="border-b border-dotted border-slate-400 bg-transparent outline-none w-full text-slate-700" value={ncrFormItem.problemOtherText || ''} onChange={e => handleInputChange('problemOtherText', e.target.value)} /></div>
                 </div><div className="font-bold underline mb-1 text-slate-900">รายละเอียด:</div><textarea disabled={!isEditMode} className="w-full h-32 border border-slate-200 bg-slate-50 p-2 text-sm resize-none focus:ring-1 focus:ring-blue-500 outline-none text-slate-700" value={ncrFormItem.problemDetail} onChange={e => handleInputChange('problemDetail', e.target.value)}></textarea></td></tr></tbody></table>
 
                 {/* SECTION 2: ACTION (GRID LAYOUT) */}
