@@ -68,11 +68,30 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, icon:
                                     }`}>{item.condition}</span>
                             </div>
                         </div>
-                        <div className="text-xs text-slate-500 space-y-1">
-                            <div className="flex justify-between"><span>QTY:</span> <span className="font-bold text-slate-800">{item.quantity} {item.unit}</span></div>
-                            <div className="flex justify-between"><span>Branch:</span> <span>{item.branch}</span></div>
-                            {status === 'RTV' && (
-                                <div className="text-[10px] text-amber-600 bg-amber-50 p-1 rounded mt-1">Route: {item.dispositionDetails?.route || '-'}</div>
+                        <div className="text-xs text-slate-500 space-y-1 mt-2 border-t pt-2 border-slate-100">
+                            <div className="grid grid-cols-2 gap-1">
+                                <div className="flex flex-col"><span className="text-[10px] text-slate-400">สาขาต้นทาง</span><span className="font-bold text-slate-700 truncate">{item.branch}</span></div>
+                                <div className="flex flex-col"><span className="text-[10px] text-slate-400">วันที่แจ้ง</span><span className="font-bold text-slate-700 truncate">{item.date}</span></div>
+                            </div>
+
+                            {(item.neoRefNo || item.ncrNumber) && (
+                                <div className="grid grid-cols-2 gap-1">
+                                    {item.neoRefNo && <div className="flex flex-col"><span className="text-[10px] text-slate-400">เลขที่เอกสาร Neo</span><span className="font-medium text-slate-700 truncate" title={item.neoRefNo}>{item.neoRefNo}</span></div>}
+                                    {item.ncrNumber && <div className="flex flex-col"><span className="text-[10px] text-slate-400 text-red-500">เลขที่ NCR</span><span className="font-bold text-red-600 truncate" title={item.ncrNumber}>{item.ncrNumber}</span></div>}
+                                </div>
+                            )}
+
+                            <div className="flex flex-col"><span className="text-[10px] text-slate-400">ชื่อลูกค้า</span><span className="font-medium text-slate-700 truncate" title={item.customerName}>{item.customerName || '-'}</span></div>
+                            <div className="flex flex-col"><span className="text-[10px] text-slate-400">ผู้พบปัญหา</span><span className="font-medium text-slate-700 truncate" title={item.founder}>{item.founder || '-'}</span></div>
+                            <div className="flex flex-col"><span className="text-[10px] text-slate-400">สถานที่ส่ง (ปลายทาง)</span><span className="font-medium text-slate-700 truncate" title={item.destinationCustomer}>{item.destinationCustomer || '-'}</span></div>
+
+                            <div className="flex justify-between items-center bg-slate-50 p-1.5 rounded mt-1">
+                                <span className="text-slate-500">จำนวน:</span>
+                                <span className="font-bold text-slate-800 text-sm">{item.quantity} {item.unit}</span>
+                            </div>
+
+                            {status === 'RTV' && item.dispositionDetails?.route && (
+                                <div className="text-[10px] text-amber-600 bg-amber-50 p-1 rounded mt-1">Route: {item.dispositionDetails.route}</div>
                             )}
                         </div>
                     </div>

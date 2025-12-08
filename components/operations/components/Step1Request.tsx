@@ -168,7 +168,10 @@ export const Step1Request: React.FC<Step1RequestProps> = ({
                         <div><label className="block text-sm font-medium text-slate-700 mb-1">วันที่แจ้ง</label><input type="date" required value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm" /></div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div><label className="block text-sm font-medium text-slate-700 mb-1">เลขที่เอกสาร Neo Siam</label><input type="text" value={formData.neoRefNo} onChange={e => setFormData({ ...formData, neoRefNo: e.target.value })} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm" /></div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div><label className="block text-sm font-medium text-slate-700 mb-1">เลขที่ NCR</label><input type="text" value={formData.ncrNumber || ''} onChange={e => setFormData({ ...formData, ncrNumber: e.target.value })} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm" placeholder="ระบุเลข NCR..." /></div>
+                            <div><label className="block text-sm font-medium text-slate-700 mb-1">เลขที่เอกสาร Neo Siam</label><input type="text" value={formData.neoRefNo} onChange={e => setFormData({ ...formData, neoRefNo: e.target.value })} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm" /></div>
+                        </div>
                         <div className="">
                             <AutocompleteInput
                                 label="ชื่อลูกค้า"
@@ -272,7 +275,7 @@ export const Step1Request: React.FC<Step1RequestProps> = ({
                                         <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemAccident} onChange={() => handleProblemSelection('problemAccident')} /> อุบัติเหตุ</label>
                                         <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemPOExpired} onChange={() => handleProblemSelection('problemPOExpired')} /> PO. หมดอายุ</label>
                                         <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemNoBarcode} onChange={() => handleProblemSelection('problemNoBarcode')} /> บาร์โค๊ตไม่ขึ้น</label>
-                                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemNotOrdered} onChange={() => handleProblemSelection('problemNotOrdered')} /> ลูกค้าไม่ได้สั่งสินค้า</label>
+                                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemNotOrdered} onChange={() => handleProblemSelection('problemNotOrdered')} /> ไม่ได้สั่งสินค้า</label>
                                         <div className="flex items-center gap-2 p-1 col-span-2"><input type="checkbox" checked={formData.problemOther} onChange={() => handleProblemSelection('problemOther')} /> <span>อื่นๆ</span><input type="text" className="border-b border-dotted border-slate-400 bg-transparent outline-none flex-1 text-slate-700" value={formData.problemOtherText || ''} onChange={e => setFormData({ ...formData, problemOtherText: e.target.value })} /></div>
                                     </div>
                                     <div>
@@ -437,7 +440,14 @@ export const Step1Request: React.FC<Step1RequestProps> = ({
                                         checked={formData.problemAnalysis === 'Customer'}
                                         onChange={() => setFormData({ ...formData, problemAnalysis: 'Customer', problemAnalysisSub: '', problemAnalysisCause: '', problemAnalysisDetail: '' })}
                                         className="w-4 h-4 text-indigo-600" />
-                                    <span className="font-bold text-slate-700">ลูกค้า (Customer)</span>
+                                    <span className="font-bold text-slate-700">ลูกค้าต้นทาง (Source Customer)</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer p-2 hover:bg-slate-50 rounded border border-transparent hover:border-slate-200">
+                                    <input type="radio" name="problemAnalysis"
+                                        checked={formData.problemAnalysis === 'DestinationCustomer'}
+                                        onChange={() => setFormData({ ...formData, problemAnalysis: 'DestinationCustomer', problemAnalysisSub: '', problemAnalysisCause: '', problemAnalysisDetail: '' })}
+                                        className="w-4 h-4 text-indigo-600" />
+                                    <span className="font-bold text-slate-700">ลูกค้าปลายทาง (Destination Customer)</span>
                                 </label>
                                 <label className="flex items-center gap-2 cursor-pointer p-2 hover:bg-slate-50 rounded border border-transparent hover:border-slate-200">
                                     <input type="radio" name="problemAnalysis"

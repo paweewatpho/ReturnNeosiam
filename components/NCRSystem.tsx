@@ -63,7 +63,8 @@ const NCRSystem: React.FC = () => {
         if (!newItem.productCode || !newItem.branch) { alert("กรุณาระบุรหัสสินค้าและสาขา"); return; }
         let formattedSource = '';
         const s = sourceSelection;
-        if (s.category === 'Customer') formattedSource = 'ลูกค้า';
+        if (s.category === 'Customer') formattedSource = 'ลูกค้าต้นทาง';
+        else if (s.category === 'DestinationCustomer') formattedSource = 'ลูกค้าปลายทาง';
         else if (s.category === 'Accounting') formattedSource = 'บัญชี';
         else if (s.category === 'Keying') formattedSource = 'พนักงานคีย์ข้อมูลผิด';
         else if (s.category === 'Warehouse') {
@@ -82,10 +83,14 @@ const NCRSystem: React.FC = () => {
             formattedSource = `อื่นๆ: ${s.otherText}`;
         }
 
-        // Use newItem.problemSource (from Cost Dropdown) if available, otherwise formattedSource
-        // formattedSource is stored in rootCause for reference if problemSource is used for Cost Tracking
-        const finalProblemSource = newItem.problemSource || formattedSource || '-';
-        const finalRootCause = newItem.problemSource ? formattedSource : (newItem.problemSource || '-');
+        // Combine Problem Analysis (formattedSource) and Cost Source (newItem.problemSource)
+        const parts = [];
+        if (formattedSource) parts.push(formattedSource);
+        if (newItem.problemSource) parts.push(newItem.problemSource);
+        const finalProblemSource = parts.join(' / ') || '-';
+
+        // formattedSource is stored in rootCause for reference
+        const finalRootCause = formattedSource || '-';
 
         const item: NCRItem = {
             ...newItem as NCRItem,
@@ -389,7 +394,7 @@ const NCRSystem: React.FC = () => {
                     <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemAccident} onChange={() => handleProblemSelection('problemAccident')} /> อุบัติเหตุ</label>
                     <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemPOExpired} onChange={() => handleProblemSelection('problemPOExpired')} /> PO. หมดอายุ</label>
                     <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemNoBarcode} onChange={() => handleProblemSelection('problemNoBarcode')} /> บาร์โค๊ตไม่ขึ้น</label>
-                    <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemNotOrdered} onChange={() => handleProblemSelection('problemNotOrdered')} /> ลูกค้าไม่ได้สั่งสินค้า</label>
+                    <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemNotOrdered} onChange={() => handleProblemSelection('problemNotOrdered')} /> ไม่ได้สั่งสินค้า</label>
 
                     <div className="flex items-center gap-2 p-1 col-span-2"><input type="checkbox" checked={formData.problemOther} onChange={() => handleProblemSelection('problemOther')} /> <span>อื่นๆ</span><input type="text" className="border-b border-dotted border-slate-400 bg-transparent outline-none w-full text-slate-700 print:border-none" value={formData.problemOtherText} onChange={e => setFormData({ ...formData, problemOtherText: e.target.value })} /></div>
                 </div><div className="font-bold underline mb-1 text-slate-900">รายละเอียด:</div><textarea className="w-full h-32 border border-slate-200 bg-slate-50 p-2 text-sm resize-none focus:ring-1 focus:ring-blue-500 outline-none text-slate-700 print:border-none" value={formData.problemDetail} onChange={e => setFormData({ ...formData, problemDetail: e.target.value })}></textarea></td></tr></tbody></table>
@@ -586,7 +591,8 @@ const NCRSystem: React.FC = () => {
                             <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                                 <label className="block text-sm font-bold text-slate-700 mb-3 border-b border-slate-200 pb-1">วิเคราะห์ปัญหาเกิดจาก</label>
                                 <div className="flex flex-wrap gap-4 mb-4 text-sm">
-                                    <label className="flex items-center gap-1 cursor-pointer"><input type="radio" name="sourceCat" checked={sourceSelection.category === 'Customer'} onChange={() => setSourceSelection({ ...sourceSelection, category: 'Customer', problemScenario: '' })} /> ลูกค้า (Customer)</label>
+                                    <label className="flex items-center gap-1 cursor-pointer"><input type="radio" name="sourceCat" checked={sourceSelection.category === 'Customer'} onChange={() => setSourceSelection({ ...sourceSelection, category: 'Customer', problemScenario: '' })} /> ลูกค้าต้นทาง (Source Customer)</label>
+                                    <label className="flex items-center gap-1 cursor-pointer"><input type="radio" name="sourceCat" checked={sourceSelection.category === 'DestinationCustomer'} onChange={() => setSourceSelection({ ...sourceSelection, category: 'DestinationCustomer', problemScenario: '' })} /> ลูกค้าปลายทาง (Destination Customer)</label>
                                     <label className="flex items-center gap-1 cursor-pointer"><input type="radio" name="sourceCat" checked={sourceSelection.category === 'Accounting'} onChange={() => setSourceSelection({ ...sourceSelection, category: 'Accounting', problemScenario: '' })} /> บัญชี (Accounting)</label>
                                     <label className="flex items-center gap-1 cursor-pointer"><input type="radio" name="sourceCat" checked={sourceSelection.category === 'Keying'} onChange={() => setSourceSelection({ ...sourceSelection, category: 'Keying', problemScenario: '' })} /> พนักงานคีย์ข้อมูลผิด (Keying)</label>
                                     <label className="flex items-center gap-1 cursor-pointer"><input type="radio" name="sourceCat" checked={sourceSelection.category === 'Warehouse'} onChange={() => setSourceSelection({ ...sourceSelection, category: 'Warehouse', problemScenario: '' })} /> ภายในคลังสินค้า (Warehouse)</label>

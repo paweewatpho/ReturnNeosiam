@@ -112,7 +112,18 @@ const Dashboard: React.FC = () => {
     const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
     return Object.entries(counts)
-      .map(([name, value]) => ({ name, value }))
+      .map(([name, value]) => {
+        const labels: Record<string, string> = {
+          'Customer': 'ลูกค้าต้นทาง',
+          'DestinationCustomer': 'ลูกค้าปลายทาง',
+          'Accounting': 'บัญชี',
+          'Keying': 'คีย์ข้อมูลผิด',
+          'Warehouse': 'คลังสินค้า',
+          'Transport': 'ขนส่ง',
+          'Other': 'อื่นๆ'
+        };
+        return { name: labels[name] || name, value };
+      })
       .sort((a, b) => b.value - a.value);
   }, [items]);
 

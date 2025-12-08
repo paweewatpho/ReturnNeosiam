@@ -76,7 +76,7 @@ export interface ReturnRecord {
   problemSource?: string; // Source of problem for automated responsibility mapping
 
   // Problem Analysis
-  problemAnalysis?: 'Customer' | 'Accounting' | 'Keying' | 'Warehouse' | 'Transport' | 'Other';
+  problemAnalysis?: 'Customer' | 'DestinationCustomer' | 'Accounting' | 'Keying' | 'Warehouse' | 'Transport' | 'Other';
   problemAnalysisSub?: string;
   problemAnalysisCause?: string;
   problemAnalysisDetail?: string;

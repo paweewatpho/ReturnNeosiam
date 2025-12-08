@@ -861,7 +861,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                           <div className="flex items-center gap-2"><input type="checkbox" readOnly checked={printItem.problemAccident} /> อุบัติเหตุ</div>
                           <div className="flex items-center gap-2"><input type="checkbox" readOnly checked={printItem.problemPOExpired} /> PO. หมดอายุ</div>
                           <div className="flex items-center gap-2"><input type="checkbox" readOnly checked={printItem.problemNoBarcode} /> บาร์โค๊ตไม่ขึ้น</div>
-                          <div className="flex items-center gap-2"><input type="checkbox" readOnly checked={printItem.problemNotOrdered} /> ลูกค้าไม่ได้สั่งสินค้า</div>
+                          <div className="flex items-center gap-2"><input type="checkbox" readOnly checked={printItem.problemNotOrdered} /> ไม่ได้สั่งสินค้า</div>
                           <div className="flex items-center gap-2 col-span-2">
                             <input type="checkbox" readOnly checked={printItem.problemOther} />
                             <span>อื่นๆ: {printItem.problemOtherText || '-'}</span>
@@ -1144,7 +1144,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                   <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemAccident} onChange={() => handleProblemSelection('problemAccident')} /> อุบัติเหตุ</label>
                   <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemPOExpired} onChange={() => handleProblemSelection('problemPOExpired')} /> PO. หมดอายุ</label>
                   <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemNoBarcode} onChange={() => handleProblemSelection('problemNoBarcode')} /> บาร์โค๊ตไม่ขึ้น</label>
-                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemNotOrdered} onChange={() => handleProblemSelection('problemNotOrdered')} /> ลูกค้าไม่ได้สั่งสินค้า</label>
+                  <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemNotOrdered} onChange={() => handleProblemSelection('problemNotOrdered')} /> ไม่ได้สั่งสินค้า</label>
 
                   <div className="flex items-center gap-2 p-1 col-span-2"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemOther} onChange={() => handleProblemSelection('problemOther')} /> <span>อื่นๆ</span><input type="text" disabled={!isEditMode} className="border-b border-dotted border-slate-400 bg-transparent outline-none w-full text-slate-700" value={ncrFormItem.problemOtherText || ''} onChange={e => handleInputChange('problemOtherText', e.target.value)} /></div>
                 </div><div className="font-bold underline mb-1 text-slate-900">รายละเอียด:</div><textarea disabled={!isEditMode} className="w-full h-32 border border-slate-200 bg-slate-50 p-2 text-sm resize-none focus:ring-1 focus:ring-blue-500 outline-none text-slate-700" value={ncrFormItem.problemDetail} onChange={e => handleInputChange('problemDetail', e.target.value)}></textarea></td></tr></tbody></table>
