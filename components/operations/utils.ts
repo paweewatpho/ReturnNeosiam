@@ -124,9 +124,11 @@ export const RESPONSIBLE_MAPPING: Record<string, string> = {
     'สินค้าเสียหายจากแมลง': 'เคลม สาขา'
 };
 
-export const calculateTotal = (items: ReturnRecord[], hasVat: boolean, vatRate: number = 7) => {
+export const calculateTotal = (items: ReturnRecord[], hasVat: boolean, vatRate: number = 7, discountRate: number = 0) => {
     const subtotal = items.reduce((acc, item) => acc + ((item.priceBill || 0) * item.quantity), 0);
-    const vat = hasVat ? subtotal * (vatRate / 100) : 0;
-    const net = subtotal + vat;
-    return { subtotal, vat, net };
+    const discount = subtotal * (discountRate / 100);
+    const afterDiscount = subtotal - discount;
+    const vat = hasVat ? afterDiscount * (vatRate / 100) : 0;
+    const net = afterDiscount + vat;
+    return { subtotal, discount, afterDiscount, vat, net };
 };

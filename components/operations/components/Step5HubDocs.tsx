@@ -6,7 +6,7 @@ import { KanbanColumn } from './KanbanColumn';
 
 interface Step4DocsProps {
     processedItems: ReturnRecord[];
-    onPrintClick: (status: DispositionAction) => void;
+    onPrintClick: (status: DispositionAction, list: ReturnRecord[]) => void;
     onSplitClick: (item: ReturnRecord) => void; // New prop
 }
 

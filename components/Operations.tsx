@@ -46,6 +46,7 @@ export const Operations: React.FC<OperationsProps> = ({ initialData, onClearInit
             isCustomBranch={state.isCustomBranch}
             uniqueCustomers={derived.uniqueCustomers}
             uniqueDestinations={derived.uniqueDestinations}
+            uniqueFounders={derived.uniqueFounders}
             uniqueProductCodes={derived.uniqueProductCodes}
             uniqueProductNames={derived.uniqueProductNames}
             setFormData={actions.setFormData}
@@ -223,11 +224,12 @@ export const Operations: React.FC<OperationsProps> = ({ initialData, onClearInit
         <SelectionModal
           isOpen={state.showSelectionModal}
           onClose={() => actions.setShowSelectionModal(false)}
-          items={state.selectionItems}
-          selectedIds={state.selectedItemIds}
-          onToggle={actions.toggleSelection}
-          onConfirm={actions.handleGenerateDoc}
-          status={state.selectionStatus}
+          selectionItems={state.selectionItems}
+          selectedItemIds={state.selectedItemIds}
+          toggleSelection={actions.toggleSelection}
+          handleGenerateDoc={actions.handleGenerateDoc}
+          selectionStatus={state.selectionStatus}
+          onSplit={actions.handleDocItemClick}
         />
       )}
 
@@ -240,9 +242,11 @@ export const Operations: React.FC<OperationsProps> = ({ initialData, onClearInit
           setDocConfig={actions.setDocConfig}
           includeVat={state.includeVat}
           vatRate={state.vatRate}
+          discountRate={state.discountRate}
           isDocEditable={state.isDocEditable}
           setIncludeVat={actions.setIncludeVat}
           setVatRate={actions.setVatRate}
+          setDiscountRate={actions.setDiscountRate}
           setIsDocEditable={actions.setIsDocEditable}
           handleConfirmDocGeneration={actions.handleConfirmDocGeneration}
         />

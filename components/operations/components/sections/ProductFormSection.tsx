@@ -101,8 +101,10 @@ export const ProductFormSection: React.FC<ProductFormSectionProps> = ({
                     <div className="relative">
                         <input
                             type="number"
+                            step="0.01"
                             value={formData.priceBill}
                             onChange={e => updateField('priceBill', parseFloat(e.target.value))}
+                            onBlur={e => updateField('priceBill', parseFloat(parseFloat(e.target.value).toFixed(2)))}
                             className="w-full p-2.5 pl-9 bg-slate-50 border border-slate-300 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                             placeholder="0.00"
                         />
@@ -114,8 +116,10 @@ export const ProductFormSection: React.FC<ProductFormSectionProps> = ({
                     <div className="relative">
                         <input
                             type="number"
+                            step="0.01"
                             value={formData.priceSell}
                             onChange={e => updateField('priceSell', parseFloat(e.target.value))}
+                            onBlur={e => updateField('priceSell', parseFloat(parseFloat(e.target.value).toFixed(2)))}
                             className="w-full p-2.5 pl-9 bg-slate-50 border border-slate-300 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                             placeholder="0.00"
                         />

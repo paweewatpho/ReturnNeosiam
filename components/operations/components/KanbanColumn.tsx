@@ -8,7 +8,7 @@ interface KanbanColumnProps {
     icon: any;
     color: string;
     items: ReturnRecord[];
-    onPrintClick: (status: DispositionAction) => void;
+    onPrintClick: (status: DispositionAction, list: ReturnRecord[]) => void;
     onItemClick?: (item: ReturnRecord) => void;
     onSplitClick?: (item: ReturnRecord) => void;
 }
@@ -99,7 +99,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, icon:
             </div>
 
             {columnItems.length > 0 && (
-                <button onClick={() => onPrintClick(status)} className="mt-4 w-full py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center justify-center gap-2 transition-colors">
+                <button onClick={() => (onPrintClick as any)(status, columnItems)} className="mt-4 w-full py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center justify-center gap-2 transition-colors">
                     <Printer className="w-4 h-4" /> ออกเอกสาร ({columnItems.length})
                 </button>
             )}

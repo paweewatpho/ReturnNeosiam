@@ -38,7 +38,7 @@ const StockSummary: React.FC = () => {
         totalIn: 0,
         totalOut: 0,
         lastIntakeDate: '1970-01-01',
-        priceBill: item.priceBill,
+        priceBill: Number(item.priceBill) || 0,
         disposition: item.disposition,
       };
 
@@ -51,10 +51,10 @@ const StockSummary: React.FC = () => {
       if (item.dateDocumented || item.dateCompleted) {
         existing.totalOut += item.quantity;
       }
-      
+
       productMap.set(key, existing);
     });
-    
+
     const summaryList: StockSummaryItem[] = [];
     productMap.forEach((data, key) => {
       const onHandQuantity = data.totalIn - data.totalOut;
@@ -71,20 +71,20 @@ const StockSummary: React.FC = () => {
       }
     });
 
-    return summaryList.sort((a,b) => a.productName.localeCompare(b.productName));
+    return summaryList.sort((a, b) => a.productName.localeCompare(b.productName));
 
   }, [items]);
 
   const filteredData = useMemo(() => {
     let data = summarizedData;
-    
+
     if (activeTab !== 'All') {
       data = data.filter(item => item.disposition === activeTab);
     }
-    
+
     const queryLower = query.toLowerCase();
     if (queryLower) {
-      data = data.filter(item => 
+      data = data.filter(item =>
         item.productName.toLowerCase().includes(queryLower) ||
         item.productCode.toLowerCase().includes(queryLower)
       );
@@ -125,7 +125,7 @@ const StockSummary: React.FC = () => {
     link.click();
     document.body.removeChild(link);
   };
-  
+
   const tabs = [
     { id: 'All', label: 'ทั้งหมด (All On-Hand)', icon: Box },
     { id: 'Restock', label: 'สินค้าสำหรับขาย (Sellable)', icon: RotateCcw },
@@ -168,34 +168,34 @@ const StockSummary: React.FC = () => {
       {/* SUMMARY STATS CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-fade-in">
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">มูลค่ารวม (Total Value)</p>
-                <h3 className="text-2xl font-bold text-slate-800">฿{stats.totalValue.toLocaleString()}</h3>
-            </div>
-            <div className="p-3 bg-green-50 text-green-600 rounded-lg">
-                <DollarSign className="w-6 h-6" />
-            </div>
+          <div>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">มูลค่ารวม (Total Value)</p>
+            <h3 className="text-2xl font-bold text-slate-800">฿{stats.totalValue.toLocaleString()}</h3>
+          </div>
+          <div className="p-3 bg-green-50 text-green-600 rounded-lg">
+            <DollarSign className="w-6 h-6" />
+          </div>
         </div>
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">จำนวนรวม (Total Qty)</p>
-                <h3 className="text-2xl font-bold text-slate-800">{stats.totalQty.toLocaleString()} <span className="text-sm font-normal text-slate-400">ชิ้น</span></h3>
-            </div>
-            <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
-                <Package className="w-6 h-6" />
-            </div>
+          <div>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">จำนวนรวม (Total Qty)</p>
+            <h3 className="text-2xl font-bold text-slate-800">{stats.totalQty.toLocaleString()} <span className="text-sm font-normal text-slate-400">ชิ้น</span></h3>
+          </div>
+          <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
+            <Package className="w-6 h-6" />
+          </div>
         </div>
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">รายการสินค้า (SKUs)</p>
-                <h3 className="text-2xl font-bold text-slate-800">{stats.skuCount.toLocaleString()} <span className="text-sm font-normal text-slate-400">รายการ</span></h3>
-            </div>
-            <div className="p-3 bg-purple-50 text-purple-600 rounded-lg">
-                <Layers className="w-6 h-6" />
-            </div>
+          <div>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">รายการสินค้า (SKUs)</p>
+            <h3 className="text-2xl font-bold text-slate-800">{stats.skuCount.toLocaleString()} <span className="text-sm font-normal text-slate-400">รายการ</span></h3>
+          </div>
+          <div className="p-3 bg-purple-50 text-purple-600 rounded-lg">
+            <Layers className="w-6 h-6" />
+          </div>
         </div>
       </div>
-      
+
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4">
         <div className="relative flex-grow">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -208,11 +208,11 @@ const StockSummary: React.FC = () => {
           />
         </div>
         <button
-            onClick={handleExportExcel}
-            className="bg-green-600 text-white font-bold px-4 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-green-700 transition-colors shadow-sm"
+          onClick={handleExportExcel}
+          className="bg-green-600 text-white font-bold px-4 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-green-700 transition-colors shadow-sm"
         >
-            <Download className="w-4 h-4" />
-            Export Excel
+          <Download className="w-4 h-4" />
+          Export Excel
         </button>
       </div>
 
@@ -220,16 +220,16 @@ const StockSummary: React.FC = () => {
         <div className="overflow-auto flex-1">
           <table className="w-full text-left">
             <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10 shadow-sm text-xs uppercase text-slate-500 font-bold">
-                <tr className="whitespace-nowrap">
-                  <th className="px-4 py-3">สินค้า (Product)</th>
-                  <th className="px-4 py-3 text-right">ยอดคงเหลือ (On-Hand Qty)</th>
-                  <th className="px-4 py-3 text-right">มูลค่ารวม (Total Value)</th>
-                  <th className="px-4 py-3">วันที่รับเข้าล่าสุด</th>
-                </tr>
+              <tr className="whitespace-nowrap">
+                <th className="px-4 py-3">สินค้า (Product)</th>
+                <th className="px-4 py-3 text-right">ยอดคงเหลือ (On-Hand Qty)</th>
+                <th className="px-4 py-3 text-right">มูลค่ารวม (Total Value)</th>
+                <th className="px-4 py-3">วันที่รับเข้าล่าสุด</th>
+              </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                 <tr><td colSpan={4} className="p-8 text-center text-slate-400">Loading data...</td></tr>
+                <tr><td colSpan={4} className="p-8 text-center text-slate-400">Loading data...</td></tr>
               ) : filteredData.length === 0 ? (
                 <tr><td colSpan={4} className="p-8 text-center text-slate-400 italic">ไม่พบข้อมูลสต็อกคงเหลือที่ตรงกับเงื่อนไข</td></tr>
               ) : (

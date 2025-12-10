@@ -43,6 +43,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
     const [docData, setDocData] = useState<{ type: DispositionAction, items: ReturnRecord[] } | null>(null);
     const [includeVat, setIncludeVat] = useState(true);
     const [vatRate, setVatRate] = useState(7);
+    const [discountRate, setDiscountRate] = useState(0);
     const [isDocEditable, setIsDocEditable] = useState(false);
     const [docConfig, setDocConfig] = useState({
         companyNameTH: 'บริษัท นีโอสยาม โลจิสติกส์ แอนด์ ทรานสปอร์ต จำกัด',
@@ -156,6 +157,12 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
     const uniqueDestinations = React.useMemo(() => {
         const dbValues = items.map(i => i.destinationCustomer).filter(Boolean);
         const localValues = requestItems.map(i => i.destinationCustomer).filter(Boolean);
+        return Array.from(new Set([...dbValues, ...localValues])).sort();
+    }, [items, requestItems]);
+
+    const uniqueFounders = React.useMemo(() => {
+        const dbValues = items.map(i => i.founder).filter(Boolean);
+        const localValues = requestItems.map(i => i.founder).filter(Boolean);
         return Array.from(new Set([...dbValues, ...localValues])).sort();
     }, [items, requestItems]);
 
@@ -462,7 +469,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                 status: newStatus,
                 notes: transportNote,
                 dispositionRoute: destination,
-                disposition: undefined
+                disposition: null as any // Reset disposition when moving to Hub
             });
             if (success) successCount++;
         }
@@ -611,7 +618,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
     };
 
     const handlePrintClick = (status: DispositionAction, list: ReturnRecord[]) => {
-        if (list.length === 0) {
+        if (!list || list.length === 0) {
             alert('ไม่พบรายการสินค้าในสถานะนี้');
             return;
         }
@@ -689,13 +696,13 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             activeStep, isCustomBranch, qcSelectedItem, customInputType,
             showSplitMode, splitQty, splitCondition, isBreakdownUnit, conversionRate, newUnitName, splitDisposition,
             selectedDisposition, dispositionDetails, isCustomRoute,
-            showDocModal, docData, includeVat, vatRate, isDocEditable, docConfig,
+            showDocModal, docData, includeVat, vatRate, discountRate, isDocEditable, docConfig,
             showSelectionModal, selectionStatus, selectionItems, selectedItemIds,
             formData, requestItems, customProblemType, customRootCause,
             docSelectedItem, showStep4SplitModal
         },
         derived: {
-            uniqueCustomers, uniqueDestinations, uniqueProductCodes, uniqueProductNames,
+            uniqueCustomers, uniqueDestinations, uniqueProductCodes, uniqueProductNames, uniqueFounders,
             logisticItems,
             hubReceiveItems,
             hubQCItems,
@@ -706,7 +713,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             requestedItems,
             receivedItems,
             gradedItems,
-            getDocumentedItems: () => [], // Deprecated in favor of hubDocItems
+            docItems: hubDocItems,
             processedItems: hubDocItems
         },
         actions: {
@@ -720,7 +727,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             setShowSplitMode, setIsBreakdownUnit, setConversionRate, setNewUnitName, setSplitQty, setSplitCondition, setSplitDisposition, handleSplitSubmit,
             toggleSplitMode,
             handlePrintClick, toggleSelection, setShowSelectionModal,
-            handleGenerateDoc, setIncludeVat, setVatRate, setIsDocEditable, setDocConfig, setShowDocModal,
+            handleGenerateDoc, setIncludeVat, setVatRate, setDiscountRate, setIsDocEditable, setDocConfig, setShowDocModal,
             handleConfirmDocGeneration,
 
             // Step 4 Split Actions

@@ -20,6 +20,7 @@ interface Step1RequestProps {
     isCustomBranch: boolean;
     uniqueCustomers: string[];
     uniqueDestinations: string[];
+    uniqueFounders: string[];
     uniqueProductCodes: string[];
     uniqueProductNames: string[];
     initialData?: Partial<ReturnRecord> | null;
@@ -35,7 +36,7 @@ interface Step1RequestProps {
 
 export const Step1Request: React.FC<Step1RequestProps> = ({
     formData, requestItems, isCustomBranch,
-    uniqueCustomers, uniqueDestinations, uniqueProductCodes, uniqueProductNames,
+    uniqueCustomers, uniqueDestinations, uniqueFounders, uniqueProductCodes, uniqueProductNames,
     initialData,
     setFormData, setIsCustomBranch, setRequestItems,
     handleAddItem, handleRemoveItem, handleImageUpload, handleRemoveImage, handleRequestSubmit
@@ -158,6 +159,7 @@ export const Step1Request: React.FC<Step1RequestProps> = ({
                             updateField={updateField}
                             uniqueCustomers={uniqueCustomers}
                             uniqueDestinations={uniqueDestinations}
+                            uniqueFounders={uniqueFounders}
                         />
 
                         {/* 3. Product Entry Form */}

@@ -499,8 +499,10 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
                                                 <label className="block text-sm font-bold text-slate-700 mb-1">ค่าใช้จ่าย (บาท)</label>
                                                 <input
                                                     type="number"
+                                                    step="0.01"
                                                     value={formData.costAmount || ''}
                                                     onChange={e => setFormData({ ...formData, costAmount: Number(e.target.value) })}
+                                                    onBlur={e => setFormData({ ...formData, costAmount: parseFloat(parseFloat(e.target.value).toFixed(2)) })}
                                                     className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                                                     placeholder="0.00"
                                                 />

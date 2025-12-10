@@ -253,10 +253,10 @@ const Dashboard: React.FC = () => {
           <DollarSign className="w-4 h-4" /> ประสิทธิภาพทางการเงิน (Financial Impact)
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total Intake" value={`฿${financials.totalIntakeValue.toLocaleString()}`} subText="มูลค่ารับเข้าทั้งระบบ" icon={Package} color="bg-slate-700" />
-          <StatCard title="Recovery Value" value={`฿${financials.recoveryValue.toLocaleString()}`} subText="รายได้จากการขายคืน (Restock)" icon={TrendingUp} color="bg-green-600" />
-          <StatCard title="RTV Credit" value={`฿${financials.rtvValue.toLocaleString()}`} subText="เครดิตจากการส่งคืน (RTV)" icon={Truck} color="bg-amber-500" />
-          <StatCard title="Cost Impact" value={`฿${financials.ncrCost.toLocaleString()}`} subText="มูลค่าความเสียหาย (NCR & Costs)" icon={AlertOctagon} color="bg-red-500" isAlert />
+          <StatCard title="Total Intake" value={`฿${financials.totalIntakeValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} subText="มูลค่ารับเข้าทั้งระบบ" icon={Package} color="bg-slate-700" />
+          <StatCard title="Recovery Value" value={`฿${financials.recoveryValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} subText="รายได้จากการขายคืน (Restock)" icon={TrendingUp} color="bg-green-600" />
+          <StatCard title="RTV Credit" value={`฿${financials.rtvValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} subText="เครดิตจากการส่งคืน (RTV)" icon={Truck} color="bg-amber-500" />
+          <StatCard title="Cost Impact" value={`฿${financials.ncrCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} subText="มูลค่าความเสียหาย (NCR & Costs)" icon={AlertOctagon} color="bg-red-500" isAlert />
         </div>
       </div>
 
@@ -329,7 +329,7 @@ const Dashboard: React.FC = () => {
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                     <XAxis type="number" hide />
                     <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11 }} />
-                    <Tooltip formatter={(val: number) => `฿${val.toLocaleString()}`} />
+                    <Tooltip formatter={(val: number) => `฿${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
                     <Bar dataKey="value" fill="#ef4444" radius={[0, 4, 4, 0]} barSize={20} />
                   </BarChart>
                 </ResponsiveContainer>

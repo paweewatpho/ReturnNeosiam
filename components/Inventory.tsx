@@ -32,21 +32,34 @@ const Inventory: React.FC = () => {
     const fullLedger: LedgerEntry[] = [];
 
     items.forEach(item => {
-      // Create an IN entry if the item has been graded
-      if (item.dateGraded) {
+      // Determine effective IN Date
+      // Priority: 1. Grading Date (Standard Flow)
+      // 2. If no grading date but has disposition (Direct/Skip), use Receipt Date
+      // 3. Fallback to Documented Date if checked out but no IN date found (Safety)
+      let effectiveInDate = item.dateGraded;
+      if (!effectiveInDate && item.disposition) {
+        effectiveInDate = item.date;
+      }
+      if (!effectiveInDate && (item.dateDocumented || item.dateCompleted)) {
+        effectiveInDate = item.dateDocumented || item.dateCompleted;
+      }
+
+      // Add IN Entry
+      if (effectiveInDate) {
         fullLedger.push({
           ...item,
           movementType: 'IN',
-          movementDate: item.dateGraded,
+          movementDate: effectiveInDate,
         });
-      }
-      // Create an OUT entry if the item has been documented or completed
-      if (item.dateDocumented || item.dateCompleted) {
-        fullLedger.push({
-          ...item,
-          movementType: 'OUT',
-          movementDate: item.dateDocumented || item.dateCompleted,
-        });
+
+        // Add OUT Entry (Only if IN exists to prevent negative balance)
+        if (item.dateDocumented || item.dateCompleted) {
+          fullLedger.push({
+            ...item,
+            movementType: 'OUT',
+            movementDate: item.dateDocumented || item.dateCompleted,
+          });
+        }
       }
     });
 

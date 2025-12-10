@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { FileText, Edit3, Printer, CheckCircle, X } from 'lucide-react';
+import { FileText, Edit3, Printer, CheckCircle, X, FileSpreadsheet } from 'lucide-react';
 import { ThaiBahtText, getISODetails, calculateTotal } from '../utils';
 
 interface DocumentPreviewModalProps {
@@ -15,6 +14,8 @@ interface DocumentPreviewModalProps {
     setIncludeVat: (val: boolean) => void;
     vatRate: number;
     setVatRate: (val: number) => void;
+    discountRate: number;
+    setDiscountRate: (val: number) => void;
     handleConfirmDocGeneration: () => void;
 }
 
@@ -22,9 +23,113 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     isOpen, onClose, docData, docConfig, setDocConfig,
     isDocEditable, setIsDocEditable,
     includeVat, setIncludeVat, vatRate, setVatRate,
+    discountRate, setDiscountRate,
     handleConfirmDocGeneration
 }) => {
     if (!isOpen || !docData) return null;
+
+    const totals = calculateTotal(docData.items, includeVat, vatRate, discountRate);
+
+    const handleExportExcel = () => {
+        const title = docConfig.titleTH || getISODetails(docData.type).th;
+        const company = docConfig.companyNameTH;
+        const details = getISODetails(docData.type);
+
+        let html = `
+            <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+            <head>
+                <meta charset="UTF-8">
+                <!--[if gte mso 9]>
+                <xml>
+                    <x:ExcelWorkbook>
+                        <x:ExcelWorksheets>
+                            <x:ExcelWorksheet>
+                                <x:Name>${title}</x:Name>
+                                <x:WorksheetOptions>
+                                    <x:DisplayGridlines/>
+                                </x:WorksheetOptions>
+                            </x:ExcelWorksheet>
+                        </x:ExcelWorksheets>
+                    </x:ExcelWorkbook>
+                </xml>
+                <![endif]-->
+                <style>
+                    th { font-weight: bold; background-color: #f0f0f0; border: 1px solid #000; padding: 5px; }
+                    td { border: 1px solid #000; padding: 5px; }
+                    .num { text-align: right; }
+                    .center { text-align: center; }
+                </style>
+            </head>
+            <body>
+                <h2>${company}</h2>
+                <h3>${title}</h3>
+                <p>Document No: ${details.code} (${details.rev})</p>
+                <p>Date: ${new Date().toLocaleDateString('th-TH')}</p>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>รหัสสินค้า</th>
+                            <th>รายการสินค้า</th>
+                            <th>จำนวน</th>
+                            <th>หน่วย</th>
+                            <th>ราคา/หน่วย</th>
+                            <th>รวมเงิน</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${docData.items.map((item: any, i: number) => `
+                            <tr>
+                                <td class="center">${i + 1}</td>
+                                <td style="mso-number-format:'\@'">${item.productCode}</td>
+                                <td>${item.productName}</td>
+                                <td class="center">${item.quantity}</td>
+                                <td class="center">${item.unit}</td>
+                                <td class="num">${(item.priceBill || 0).toFixed(2)}</td>
+                                <td class="num">${((item.priceBill || 0) * item.quantity).toFixed(2)}</td>
+                            </tr>
+                        `).join('')}
+                        <tr>
+                            <td colspan="6" class="num" style="font-weight:bold;">รวมเป็นเงิน (Subtotal)</td>
+                            <td class="num" style="font-weight:bold;">${totals.subtotal.toFixed(2)}</td>
+                        </tr>
+                        ${discountRate > 0 ? `
+                        <tr>
+                            <td colspan="6" class="num">ส่วนลด (Discount ${discountRate}%)</td>
+                            <td class="num" style="color:red;">-${totals.discount.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="6" class="num" style="font-weight:bold;">ยอดหลังหักส่วนลด (After Discount)</td>
+                            <td class="num" style="font-weight:bold;">${totals.afterDiscount.toFixed(2)}</td>
+                        </tr>
+                        ` : ''}
+                        ${includeVat ? `
+                        <tr>
+                            <td colspan="6" class="num">ภาษีมูลค่าเพิ่ม (VAT ${vatRate}%)</td>
+                            <td class="num">${totals.vat.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="6" class="num" style="font-weight:bold;">ยอดสุทธิ (Net Total)</td>
+                            <td class="num" style="font-weight:bold;">${totals.net.toFixed(2)}</td>
+                        </tr>
+                        ` : ''}
+                    </tbody>
+                </table>
+            </body>
+            </html>
+        `;
+
+        const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${details.code}_${new Date().toISOString().split('T')[0]}.xls`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
 
     return (
         <div className="fixed inset-0 bg-black/60 z-50 flex flex-col animate-fade-in text-slate-900 overflow-hidden">
@@ -34,6 +139,20 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                     <FileText className="w-5 h-5 text-blue-400" /> ตัวอย่างเอกสาร (Print Preview)
                 </h3>
                 <div className="flex items-center gap-3">
+                    {/* Discount Controls */}
+                    <div className="flex items-center gap-2 bg-slate-700 rounded-lg px-2 py-1 border border-slate-600">
+                        <span className="text-xs text-white">ส่วนลด</span>
+                        <input
+                            type="number"
+                            value={discountRate}
+                            onChange={e => setDiscountRate(Number(e.target.value))}
+                            className="w-12 bg-slate-800 border border-slate-500 rounded px-1 text-center text-xs text-white focus:ring-1 focus:ring-blue-500 outline-none"
+                            min="0" max="100"
+                        />
+                        <span className="text-xs text-slate-400">%</span>
+                    </div>
+
+                    {/* VAT Controls */}
                     <div className="flex items-center gap-2 bg-slate-700 rounded-lg px-2 py-1 border border-slate-600">
                         <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
                             <input type="checkbox" checked={includeVat} onChange={e => setIncludeVat(e.target.checked)} className="rounded text-blue-500 focus:ring-blue-500 bg-slate-600 border-slate-500" />
@@ -52,16 +171,25 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                             </div>
                         )}
                     </div>
+
+                    <div className="h-6 w-px bg-slate-600 mx-2"></div>
+
                     <button onClick={() => setIsDocEditable(!isDocEditable)} className={`px-3 py-1.5 text-xs font-bold rounded-lg border flex items-center gap-1 transition-all ${isDocEditable ? 'bg-amber-500 border-amber-500 text-white' : 'bg-transparent border-slate-600 text-slate-300 hover:border-slate-400'}`}>
                         <Edit3 className="w-3 h-3" /> {isDocEditable ? 'Editing Mode' : 'Edit Header'}
                     </button>
-                    <div className="h-6 w-px bg-slate-600 mx-2"></div>
+
+                    <button onClick={handleExportExcel} className="px-3 py-2 bg-green-700 text-white rounded-lg hover:bg-green-600 font-bold text-sm flex items-center gap-2">
+                        <FileSpreadsheet className="w-4 h-4" /> Excel
+                    </button>
+
                     <button onClick={() => window.print()} className="px-4 py-2 bg-white text-slate-900 rounded-lg hover:bg-slate-100 font-bold text-sm flex items-center gap-2">
-                        <Printer className="w-4 h-4" /> พิมพ์ (Print)
+                        <Printer className="w-4 h-4" /> พิมพ์
                     </button>
-                    <button onClick={handleConfirmDocGeneration} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold text-sm flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4" /> บันทึกและไประดับถัดไป
+
+                    <button onClick={handleConfirmDocGeneration} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold text-sm flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4" /> บันทึก
                     </button>
+
                     <button onClick={onClose} className="ml-2 p-2 hover:bg-slate-700 rounded-full">
                         <X className="w-5 h-5" />
                     </button>
@@ -115,7 +243,6 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
 
                     {/* Info Block */}
                     <div className="mb-6 text-sm">
-                        {/* To / Via Section - Standard Document Format */}
                         <div className="p-4 border rounded-lg print:border-none print:p-0">
                             <div className="grid grid-cols-1 gap-4 leading-loose">
                                 <div className="flex items-end border-b border-dotted border-slate-400 pb-1">
@@ -156,30 +283,44 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                                     <td className="border border-slate-800 p-2 text-center font-bold">{item.quantity}</td>
                                     <td className="border border-slate-800 p-2 text-center">{item.unit}</td>
                                     <td className="border border-slate-800 p-2 text-center text-xs">{item.condition}</td>
-                                    <td className="border border-slate-800 p-2 text-right">{item.priceBill?.toLocaleString()}</td>
-                                    <td className="border border-slate-800 p-2 text-right">{((item.priceBill || 0) * item.quantity).toLocaleString()}</td>
+                                    <td className="border border-slate-800 p-2 text-right">{item.priceBill?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td className="border border-slate-800 p-2 text-right">{((item.priceBill || 0) * item.quantity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 </tr>
                             ))}
                             {/* Summary Rows */}
                             <tr className="font-bold bg-slate-50 print:bg-transparent">
-                                <td colSpan={6} rowSpan={3} className="border border-slate-800 p-4 text-center align-middle text-lg italic bg-slate-50 text-slate-600 print:hidden">
-                                    ({ThaiBahtText(calculateTotal(docData.items, includeVat, vatRate).net)})
+                                <td colSpan={6} rowSpan={discountRate > 0 ? (includeVat ? 5 : 3) : (includeVat ? 3 : 1)} className="border border-slate-800 p-4 text-center align-middle text-lg italic bg-slate-50 text-slate-600 print:hidden">
+                                    ({ThaiBahtText(totals.net)})
                                 </td>
-                                <td colSpan={6} rowSpan={includeVat ? 1 : 3} className="border border-slate-800 p-4 text-center align-middle text-lg italic bg-slate-50 text-slate-600 hidden print:table-cell">
-                                    ({ThaiBahtText(calculateTotal(docData.items, includeVat, vatRate).net)})
+                                <td colSpan={6} rowSpan={discountRate > 0 ? (includeVat ? 5 : 3) : (includeVat ? 3 : 1)} className="border border-slate-800 p-4 text-center align-middle text-lg italic bg-slate-50 text-slate-600 hidden print:table-cell">
+                                    ({ThaiBahtText(totals.net)})
                                 </td>
                                 <td className="border border-slate-800 p-2 text-right">รวมเป็นเงิน</td>
-                                <td className="border border-slate-800 p-2 text-right">{calculateTotal(docData.items, includeVat, vatRate).subtotal.toLocaleString()}</td>
+                                <td className="border border-slate-800 p-2 text-right">{totals.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             </tr>
+
+                            {discountRate > 0 && (
+                                <>
+                                    <tr className="font-bold bg-slate-50 print:bg-transparent">
+                                        <td className="border border-slate-800 p-2 text-right text-red-600">ส่วนลด {discountRate}%</td>
+                                        <td className="border border-slate-800 p-2 text-right text-red-600">-{totals.discount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    </tr>
+                                    <tr className="font-bold bg-slate-50 print:bg-transparent">
+                                        <td className="border border-slate-800 p-2 text-right">ยอดหลังหักส่วนลด</td>
+                                        <td className="border border-slate-800 p-2 text-right">{totals.afterDiscount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    </tr>
+                                </>
+                            )}
+
                             {includeVat && (
                                 <>
                                     <tr className="font-bold bg-slate-50 print:bg-transparent">
-                                        <td className="border border-slate-800 p-2 text-right">VAT 7%</td>
-                                        <td className="border border-slate-800 p-2 text-right">{calculateTotal(docData.items, includeVat, vatRate).vat.toLocaleString([], { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td className="border border-slate-800 p-2 text-right">VAT {vatRate}%</td>
+                                        <td className="border border-slate-800 p-2 text-right">{totals.vat.toLocaleString([], { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     </tr>
                                     <tr className="font-bold bg-slate-100 print:bg-slate-200">
                                         <td className="border border-slate-800 p-2 text-right text-black">ยอดสุทธิ</td>
-                                        <td className="border border-slate-800 p-2 text-right text-black">{calculateTotal(docData.items, includeVat, vatRate).net.toLocaleString([], { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td className="border border-slate-800 p-2 text-right text-black">{totals.net.toLocaleString([], { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     </tr>
                                 </>
                             )}
