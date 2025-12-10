@@ -113,6 +113,7 @@ interface DataContextType {
   updateNCRReport: (id: string, data: Partial<NCRRecord>) => Promise<boolean>;
   deleteNCRReport: (id: string) => Promise<boolean>; // This will now be a "cancel" operation
   getNextNCRNumber: () => Promise<string>;
+  getNextReturnNumber: () => Promise<string>;
 }
 
 const DataContext = createContext<DataContextType>({
@@ -126,6 +127,7 @@ const DataContext = createContext<DataContextType>({
   updateNCRReport: async () => false,
   deleteNCRReport: async () => false,
   getNextNCRNumber: async () => 'NCR-ERROR-0000',
+  getNextReturnNumber: async () => 'RT-ERROR-0000',
 });
 
 export const useData = () => useContext(DataContext);
@@ -145,12 +147,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // FIX: Add robust filtering to prevent crashes from malformed data
       const loadedItems = data
         ? (Object.values(data) as any[])
+          .map((item: any) => ({
+            ...item,
+            // Fix for Missing Date: Fallback to today if missing
+            date: item.date || new Date().toISOString().split('T')[0],
+            // Fix for Missing Product Name: Default value
+            productName: item.productName || "ไม่พบข้อมูลสินค้า"
+          }))
           .filter((item): item is ReturnRecord => {
             // 1. Basic Object Check
             if (!item || typeof item !== 'object') return false;
 
             // 2. Strict Type Checking for crucial fields required by Operations UI
-            const requiredStrings = ['id', 'date', 'status', 'branch', 'customerName', 'productName', 'productCode'];
+            // removed 'productName' from strict check as we defaulted it above
+            const requiredStrings = ['id', 'date', 'status', 'branch', 'customerName', 'productCode'];
             for (const field of requiredStrings) {
               if (typeof (item as any)[field] !== 'string') {
                 console.warn(`🛡️ Data Hardening: Filtering out invalid ReturnRecord (missing/bad ${field})`, item);
@@ -332,19 +342,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { committed, snapshot } = await runTransaction(counterRef, (currentData) => {
         if (currentData === null) {
-          // If counter doesn't exist, create it.
           return { year: currentYear, lastNumber: 1 };
         }
-
         if (currentData.year === currentYear) {
-          // Same year, increment number.
           currentData.lastNumber++;
         } else {
-          // New year, reset number.
           currentData.year = currentYear;
           currentData.lastNumber = 1;
         }
-
         return currentData;
       });
 
@@ -353,18 +358,47 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const paddedNumber = String(data.lastNumber).padStart(4, '0');
         return `NCR-${data.year}-${paddedNumber}`;
       } else {
-        // Transaction aborted, throw error
         throw new Error("Failed to get next NCR number, transaction aborted.");
       }
     } catch (error) {
       console.error("Error getting next NCR number:", error);
-      // Fallback to a less reliable method if transaction fails, to avoid blocking user.
       return `NCR-${currentYear}-ERR${Math.floor(Math.random() * 100)}`;
     }
   };
 
+  const getNextReturnNumber = async (): Promise<string> => {
+    const counterRef = ref(db, 'counters/return_counter');
+    const currentYear = new Date().getFullYear();
+
+    try {
+      const { committed, snapshot } = await runTransaction(counterRef, (currentData) => {
+        if (currentData === null) {
+          return { year: currentYear, lastNumber: 1 };
+        }
+        if (currentData.year === currentYear) {
+          currentData.lastNumber++;
+        } else {
+          currentData.year = currentYear;
+          currentData.lastNumber = 1;
+        }
+        return currentData;
+      });
+
+      if (committed) {
+        const data = snapshot.val();
+        const paddedNumber = String(data.lastNumber).padStart(4, '0'); // 4 digits to match user request (0001)
+        return `RT-${data.year}-${paddedNumber}`;
+      } else {
+        throw new Error("Failed to get next Return number, transaction aborted.");
+      }
+    } catch (error) {
+      console.error("Error getting next Return number:", error);
+      return `RT-${currentYear}-ERR${Math.floor(Math.random() * 100)}`;
+    }
+  };
+
   return (
-    <DataContext.Provider value={{ items, ncrReports, loading, addReturnRecord, updateReturnRecord, deleteReturnRecord, addNCRReport, updateNCRReport, deleteNCRReport, getNextNCRNumber }}>
+    <DataContext.Provider value={{ items, ncrReports, loading, addReturnRecord, updateReturnRecord, deleteReturnRecord, addNCRReport, updateNCRReport, deleteNCRReport, getNextNCRNumber, getNextReturnNumber }}>
       {children}
     </DataContext.Provider>
   );

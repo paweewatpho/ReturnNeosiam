@@ -31,8 +31,22 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
-// Updated Status Flow: Requested -> Received -> Graded -> Documented -> Completed
-export type ReturnStatus = 'Pending' | 'Requested' | 'Received' | 'Approved' | 'Graded' | 'Documented' | 'Completed' | 'Rejected';
+// Updated Status Flow for 6-Step Workflow
+export type ReturnStatus =
+  | 'Draft'             // Step 1: Created
+  | 'Requested'         // Legacy
+  | 'InTransitHub'      // Step 2 (Route A): On way to Hub
+  | 'ReturnToSupplier'  // Step 2 (Route B) OR Step 5 (Route A)
+  | 'ReceivedAtHub'     // Step 3 (Route A): Arrived at Hub
+  | 'QCPassed'          // Step 4 (Route A)
+  | 'QCFailed'          // Step 4 (Route A)
+  | 'Documented'        // Step 5 (Route A) - Legacy Name, effectively ReturnToSupplier preparation
+  | 'Completed'         // Step 6: Closed
+  | 'Received'          // Legacy
+  | 'Graded'            // Legacy
+  | 'Approved'          // Legacy
+  | 'Rejected'          // Legacy
+  | 'Pending';
 
 // Operational Types
 // Expanded to include specific imperfections under 'Good' category
@@ -63,6 +77,10 @@ export interface ReturnRecord {
   amount: number; // Qty * Price (Total Value)
   images?: string[]; // Array of image URLs or Base64 strings
   parentId?: string; // ID of the parent item if this was split
+
+  // New: Preliminary Decision (Step 1)
+  preliminaryDecision?: 'Return' | 'Sell' | 'Scrap' | 'Internal' | 'Claim' | null;
+  preliminaryRoute?: string; // e.g., "สาย 3", "Sino", "NEO", "อื่นๆ"
 
   // NEW: Fields for detailed tracking
   neoRefNo?: string; // เลขที่เอกสาร Neo Siam

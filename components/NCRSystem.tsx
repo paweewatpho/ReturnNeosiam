@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useData, NCRRecord, NCRItem } from '../DataContext';
+import { ReturnRecord } from '../types';
 import { Save, Printer, Image as ImageIcon, AlertTriangle, Plus, Trash2, X, Loader, CheckCircle, XCircle, HelpCircle } from 'lucide-react';
 import { RESPONSIBLE_MAPPING } from './operations/utils';
 
@@ -249,9 +250,10 @@ const NCRSystem: React.FC = () => {
             const success = await addNCRReport(record);
             if (success) {
                 // BIDIRECTIONAL SYNC: Create Return Record for Operations Hub (Step 2: Intake)
-                const returnRecord: any = { // Using any to avoid strict type issues locally, but structure matches ReturnRecord
+                const returnRecord: ReturnRecord = { // STRICT TYPING
                     id: `RT-${new Date().getFullYear()}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-                    date: formData.date || new Date().toISOString().split('T')[0], // REQUIRED for DataContext validation
+                    refNo: item.refNo || '-',
+                    date: formData.date || new Date().toISOString().split('T')[0],
                     dateRequested: formData.date || new Date().toISOString().split('T')[0],
                     productName: item.productName || 'Unknown Product',
                     productCode: item.productCode || 'N/A',
@@ -260,13 +262,14 @@ const NCRSystem: React.FC = () => {
                     customerName: item.customerName || 'Unknown Customer',
                     destinationCustomer: item.destinationCustomer || '',
                     branch: item.branch || 'Head Office',
-                    ncrNumber: newNcrNo, // Link back
-                    status: 'Requested', // Shows in Step 2 (Intake)
+                    category: 'General', // Added required field
+                    ncrNumber: newNcrNo,
+                    status: 'Requested',
                     disposition: 'Pending',
-                    problemType: formData.problemDetail || 'NCR Report',
-                    rootCause: item.problemSource || 'NCR',
-                    reason: `Created via NCR System (${formData.problemDetail})`,
-                    amount: 0, // Default
+                    reason: `Created via NCR System (${formData.problemDetail || 'No Detail'})`,
+                    amount: (item.quantity || 0) * (item.priceBill || 0), // Calculated Amount
+                    priceBill: item.priceBill || 0,
+                    priceSell: 0, // Default
                     neoRefNo: item.neoRefNo || '-',
                     // Pass Problem Boolean Flags to ReturnRecord
                     problemDamaged: formData.problemDamaged,
@@ -288,10 +291,25 @@ const NCRSystem: React.FC = () => {
                     problemNotOrdered: formData.problemNotOrdered,
                     problemOther: formData.problemOther,
                     problemOtherText: formData.problemOtherText,
-                    problemDetail: formData.problemDetail
+                    problemDetail: formData.problemDetail,
+
+                    // Root Cause Mapping
+                    rootCause: item.problemSource || 'NCR',
+                    problemSource: item.problemSource,
+                    hasCost: item.hasCost,
+                    costAmount: item.costAmount,
+                    costResponsible: item.costResponsible,
+                    founder: formData.founder // Sync Founder to Operations Hub
                 };
 
-                await addReturnRecord(returnRecord);
+                console.log("🔄 Syncing to Operations Hub:", returnRecord);
+
+                const syncSuccess = await addReturnRecord(returnRecord);
+
+                if (!syncSuccess) {
+                    console.error("❌ Failed to sync record to Operations Hub", returnRecord);
+                    alert(`แจ้งเตือน: บันทึก NCR สำเร็จ แต่ไม่สามารถส่งข้อมูลไปยัง Hub ได้ (Item: ${item.productCode})`);
+                }
 
                 successCount++;
             } else {

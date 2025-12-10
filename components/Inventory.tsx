@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { useData } from '../DataContext';
 import { DispositionAction, ReturnRecord } from '../types';
-import { Box, RotateCcw, ShieldCheck, Home, Trash2, ArrowUpCircle, ArrowDownCircle, History, Search, Download, Truck } from 'lucide-react';
+import { Box, RotateCcw, ShieldCheck, Home, Trash2, CircleArrowUp, CircleArrowDown, History, Search, Download, Truck } from 'lucide-react';
 
 interface StockAggregate {
   stats: {
@@ -300,9 +300,9 @@ const Inventory: React.FC = () => {
                     <td className="px-4 py-3">
                       <div>{item.movementDate || '-'}</div>
                       {item.movementType === 'IN' ? (
-                        <span className="inline-flex items-center gap-1 text-green-600 font-bold text-xs"><ArrowUpCircle className="w-4 h-4" /> รับเข้า</span>
+                        <span className="inline-flex items-center gap-1 text-green-600 font-bold text-xs"><CircleArrowUp className="w-4 h-4" /> รับเข้า</span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-red-600 font-bold text-xs"><ArrowDownCircle className="w-4 h-4" /> จ่ายออก</span>
+                        <span className="inline-flex items-center gap-1 text-red-600 font-bold text-xs"><CircleArrowDown className="w-4 h-4" /> จ่ายออก</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -321,7 +321,7 @@ const Inventory: React.FC = () => {
                       <div className="text-slate-500">Neo: {item.neoRefNo || '-'}</div>
                     </td>
                     <td className="px-4 py-3 text-right font-mono">{item.quantity} {item.unit}</td>
-                    <td className="px-4 py-3 text-right font-mono">฿{item.priceBill.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right font-mono">฿{(item.priceBill || 0).toLocaleString()}</td>
                     <td className="px-4 py-3 text-xs text-red-600 font-medium">{item.expiryDate || '-'}</td>
                     <td className="px-4 py-3 text-xs text-slate-500">
                       <div>{item.disposition}</div>

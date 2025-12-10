@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../../../DataContext';
-import { ReturnRecord, ItemCondition, DispositionAction } from '../../../types';
+import { ReturnRecord, ItemCondition, DispositionAction, ReturnStatus } from '../../../types';
 import { getISODetails, RESPONSIBLE_MAPPING } from '../utils';
 
 export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, onClearInitialData?: () => void) => {
-    const { items, addReturnRecord, updateReturnRecord, addNCRReport, getNextNCRNumber } = useData();
+    const { items, addReturnRecord, updateReturnRecord, addNCRReport, getNextNCRNumber, getNextReturnNumber } = useData();
 
     // Workflow State
-    const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+    const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
     const [isCustomBranch, setIsCustomBranch] = useState(false);
 
     // QC State
@@ -68,6 +68,12 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
     const [docSelectedItem, setDocSelectedItem] = useState<ReturnRecord | null>(null);
     const [showStep4SplitModal, setShowStep4SplitModal] = useState(false);
 
+    // Pending State for Direct Return (Step 2)
+    const [pendingDirectReturn, setPendingDirectReturn] = useState<{
+        ids: string[];
+        updatePayload: Partial<ReturnRecord>;
+    } | null>(null);
+
     // Manual Intake Form State
     const initialFormState: Partial<ReturnRecord> = {
         branch: 'พิษณุโลก',
@@ -76,10 +82,11 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         unit: 'ชิ้น',
         priceBill: 0,
         priceSell: 0,
-        status: 'Requested',
+        status: 'Draft',
         disposition: 'Pending',
         condition: 'Unknown',
         productCode: '',
+        productName: '',
         expiryDate: '',
         notes: '',
         ncrNumber: '',
@@ -105,7 +112,9 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
 
         images: [],
         hasCost: false, costAmount: 0, costResponsible: '', problemSource: '',
-        problemAnalysis: undefined, problemAnalysisSub: '', problemAnalysisCause: '', problemAnalysisDetail: ''
+        problemAnalysis: undefined, problemAnalysisSub: '', problemAnalysisCause: '', problemAnalysisDetail: '',
+
+        preliminaryDecision: undefined, preliminaryRoute: ''
     };
     const [formData, setFormData] = useState<Partial<ReturnRecord>>(initialFormState);
     const [requestItems, setRequestItems] = useState<Partial<ReturnRecord>[]>([]);
@@ -113,12 +122,29 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
     const [customRootCause, setCustomRootCause] = useState('');
 
     // Derived Data (filtered items)
-    const requestedItems = items.filter(i => i.status === 'Requested');
-    const receivedItems = items.filter(i => i.status === 'Received');
-    const gradedItems = items.filter(i => i.status === 'Graded');
-    const documentedItems = items.filter(i => i.status === 'Documented');
+    // Step 2: Logistics - Items waiting for transport (Draft or Requested)
+    const logisticItems = items.filter(i => i.status === 'Draft' || i.status === 'Requested');
+
+    // Step 3: Hub Receive - Items In Transit to Hub
+    const hubReceiveItems = items.filter(i => i.status === 'InTransitHub');
+
+    // Step 4: Hub QC - Received at Hub
+    const hubQCItems = items.filter(i => i.status === 'ReceivedAtHub' || i.status === 'Received');
+
+    // Step 5: Hub Docs - Passed QC (Graded)
+    const hubDocItems = items.filter(i => i.status === 'QCPassed' || i.status === 'QCFailed' || i.status === 'Graded');
+
+    // Step 6: Closure - Waiting for Closure (ReturnToSupplier or Documented/Completed logic)
+    const closureItems = items.filter(i => i.status === 'ReturnToSupplier' || i.status === 'Documented');
+
+    // History
     const completedItems = items.filter(i => i.status === 'Completed');
-    const processedItems = items.filter(i => i.status === 'Graded');
+
+    // Mapped for Props Compatibility
+    const requestedItems = logisticItems;
+    const receivedItems = hubReceiveItems;
+    const gradedItems = hubQCItems;
+    const docItems = hubDocItems;
 
     // Autocomplete Data
     const uniqueCustomers = React.useMemo(() => {
@@ -217,22 +243,28 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         }));
     };
 
-    const handleAddItem = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!formData.productName || !formData.productCode || !formData.founder) {
-            alert("กรุณาระบุชื่อสินค้า, รหัสสินค้า และผู้พบปัญหา (Founder)");
+    const handleAddItem = (e: React.FormEvent | null, overrideData?: Partial<ReturnRecord>) => {
+        if (e) e.preventDefault();
+
+        const dataToUse = overrideData || formData;
+
+        if (!dataToUse.productName || !dataToUse.productCode || !dataToUse.founder || !dataToUse.problemAnalysis) {
+            alert("กรุณาระบุชื่อสินค้า, รหัสสินค้า, ผู้พบปัญหา (Founder) และสาเหตุ (Problem Source)");
             return;
         }
-        const newItem = { ...formData };
+        const newItem = { ...dataToUse };
+
         setRequestItems(prev => [...prev, newItem]);
         setFormData(prev => ({
             ...initialFormState,
+            founder: prev.founder, // Preserve founder for next item
             branch: prev.branch,
             date: prev.date,
             customerName: prev.customerName,
             destinationCustomer: prev.destinationCustomer,
             neoRefNo: prev.neoRefNo,
-            refNo: prev.refNo
+            refNo: prev.refNo,
+            problemAnalysis: prev.problemAnalysis // Keep Problem Source for batch entry
         }));
         setCustomProblemType('');
         setCustomRootCause('');
@@ -244,17 +276,6 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
 
     const handleRequestSubmit = async () => {
         let itemsToProcess = [...requestItems];
-        const currentFormIsFilled = formData.productName && formData.productCode && formData.quantity && (formData.quantity > 0);
-
-        if (currentFormIsFilled) {
-            const isDuplicate = requestItems.some(item =>
-                item.productCode === formData.productCode && item.quantity === formData.quantity && item.refNo === formData.refNo
-            );
-            if (requestItems.length === 0 || !isDuplicate) {
-                itemsToProcess.push(formData);
-            }
-        }
-
         if (itemsToProcess.length === 0) {
             alert("กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการก่อนยืนยัน");
             return;
@@ -272,14 +293,16 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                     finalNcrNumber = await getNextNCRNumber();
                 }
 
+                const runningId = await getNextReturnNumber();
                 const record: ReturnRecord = {
                     ...item as ReturnRecord,
-                    id: `RT-${new Date().getFullYear()}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                    id: runningId,
+                    refNo: runningId,
                     amount: (item.quantity || 0) * (item.priceBill || 0),
                     reason: item.problemDetail || item.notes || 'แจ้งคืนสินค้า',
-                    status: 'Requested',
+                    status: 'Draft',
                     dateRequested: item.date || new Date().toISOString().split('T')[0],
-                    disposition: 'Pending', // Initial defaults
+                    disposition: 'Pending',
                     condition: 'Unknown',
                     productName: item.productName || 'Unknown Product',
                     productCode: item.productCode || 'N/A',
@@ -291,13 +314,12 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                 const success = await addReturnRecord(record);
 
                 if (success) {
-                    // Create NCR Record if needed
                     const ncrRecord: any = {
                         id: finalNcrNumber + '-' + record.id,
                         ncrNo: finalNcrNumber,
                         date: record.dateRequested,
                         toDept: 'แผนกควบคุมคุณภาพ',
-                        founder: 'Operations Hub',
+                        founder: record.founder || 'Operations Hub', // FIXED: Use record founder
                         poNo: '', copyTo: '',
                         problemDamaged: record.problemDamaged,
                         problemDamagedInBox: record.problemDamagedInBox,
@@ -313,9 +335,16 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                         problemShortExpiry: record.problemShortExpiry,
                         problemTransportDamage: record.problemTransportDamage,
                         problemAccident: record.problemAccident,
+                        problemPOExpired: record.problemPOExpired,
+                        problemNoBarcode: record.problemNoBarcode,
+                        problemNotOrdered: record.problemNotOrdered,
                         problemOther: record.problemOther,
                         problemOtherText: record.problemOtherText,
                         problemDetail: record.problemDetail || record.reason || '',
+                        problemAnalysis: record.problemAnalysis, // Map Problem Source
+                        problemAnalysisSub: record.problemAnalysisSub,
+                        problemAnalysisCause: record.problemAnalysisCause,
+                        problemAnalysisDetail: record.problemAnalysisDetail,
                         item: {
                             id: record.id,
                             branch: record.branch,
@@ -329,7 +358,10 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                             unit: record.unit || 'PCS',
                             priceBill: record.priceBill,
                             expiryDate: record.expiryDate,
-                            hasCost: false, costAmount: 0, costResponsible: '', problemSource: '-'
+                            hasCost: record.hasCost,
+                            costAmount: record.costAmount,
+                            costResponsible: record.costResponsible,
+                            problemSource: record.problemSource || record.problemAnalysis || '-'
                         },
                         actionReject: record.actionReject,
                         actionRejectQty: record.actionRejectQty,
@@ -358,17 +390,14 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                     };
 
                     const ncrSuccess = await addNCRReport(ncrRecord);
-                    if (!ncrSuccess) {
-                        alert(`Warning: Failed to create NCR Record for ${record.id}`);
-                    }
+
                     successCount++;
                     if (finalNcrNumber) savedNcrNumbers.push(finalNcrNumber);
                 }
             }
 
             if (successCount > 0) {
-                const ncrListText = savedNcrNumbers.length > 0 ? `\n(NCR No: ${Array.from(new Set(savedNcrNumbers)).join(', ')})` : '';
-                alert(`บันทึกคำขอคืนเรียบร้อย ${successCount} รายการ! ${ncrListText} \nรายการจะไปรอที่ขั้นตอน "รับสินค้าเข้า"`);
+                alert(`บันทึกรายการเรียบร้อย! กรุณาไปที่ขั้นตอน "2. รวบรวมและระบุขนส่ง" เพื่อจัดการต่อ`);
                 setFormData(initialFormState);
                 setRequestItems([]);
                 setCustomProblemType('');
@@ -383,12 +412,73 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         }
     };
 
-    const handleIntakeReceive = async (id: string) => {
-        const today = new Date().toISOString().split('T')[0];
-        await updateReturnRecord(id, { status: 'Received', dateReceived: today });
+    // STEP 2: Handle Logistics Branching
+    const handleLogisticsSubmit = async (selectedIds: string[], routeType: 'Hub' | 'Direct', transportInfo: any) => {
+        const destination = transportInfo.destination || (routeType === 'Hub' ? 'Hub (Nakhon Sawan)' : 'Unknown');
+        const confirmMsg = routeType === 'Hub'
+            ? `ยืนยันส่ง ${selectedIds.length} รายการ เข้า Hub นครสวรรค์?`
+            : `ยืนยันส่ง ${selectedIds.length} รายการ ตรงไป "${destination}" (Direct Return)?`;
+
+        // REMOVED REDUNDANT CONFIRMATION:
+        // window.confirm is already handled in Step2Logistics.tsx. 
+        // Calling it again here causes a "Double Confirm" issue where users might click Cancel on the 2nd one.
+
+        console.log(`[Logistics] Saving ${selectedIds.length} items. Route: ${routeType}, Dest: ${destination}`);
+
+        const transportNote = `[Transport] Driver: ${transportInfo.driverName}, Plate: ${transportInfo.plateNumber}, Company: ${transportInfo.transportCompany} | Dest: ${destination}`;
+
+        if (routeType === 'Direct') {
+            // New logic for Direct Return: Prepare payload and open PDF generator
+            const updatePayload: Partial<ReturnRecord> = {
+                status: 'ReturnToSupplier',
+                notes: transportNote,
+                dispositionRoute: destination,
+                disposition: 'RTV'
+            };
+
+            const selectedItems = logisticItems.filter(i => selectedIds.includes(i.id));
+
+            setPendingDirectReturn({
+                ids: selectedIds,
+                updatePayload
+            });
+
+            // Setup Doc Generator
+            const details = getISODetails('RTV'); // Default to RTV for Direct Return
+            setDocConfig(prev => ({ ...prev, titleTH: details.th, titleEN: details.en }));
+            setDocData({ type: 'RTV', items: selectedItems });
+            setIncludeVat(true);
+            setShowDocModal(true);
+            setIsDocEditable(false);
+            return;
+        }
+
+        // Existing Hub Logic
+        let successCount = 0;
+        const newStatus: ReturnStatus = 'InTransitHub';
+
+        for (const id of selectedIds) {
+            const success = await updateReturnRecord(id, {
+                status: newStatus,
+                notes: transportNote,
+                dispositionRoute: destination,
+                disposition: undefined
+            });
+            if (success) successCount++;
+        }
+
+        if (successCount > 0) {
+            alert(`บันทึกข้อมูลขนส่งเรียบร้อย! (${routeType} -> ${destination})\n- รายการไปที่ขั้นตอน: 3. รับสินค้าเข้า Hub`);
+        }
     };
 
-    const handleQCSubmit = async () => {
+
+    const handleIntakeReceive = async (id: string) => { // Now handles Step 3 receiving
+        const today = new Date().toISOString().split('T')[0];
+        await updateReturnRecord(id, { status: 'ReceivedAtHub', dateReceived: today });
+    };
+
+    const handleQCSubmit = async () => { // Now handles Step 4 QC
         if (!qcSelectedItem || !selectedDisposition) return;
         if (!qcSelectedItem.condition || qcSelectedItem.condition === 'Unknown') {
             alert("กรุณาระบุสภาพสินค้า");
@@ -398,7 +488,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         const success = await updateReturnRecord(qcSelectedItem.id, {
             condition: qcSelectedItem.condition,
             disposition: selectedDisposition,
-            status: 'Graded',
+            status: 'QCPassed',
             dateGraded: today,
             dispositionRoute: dispositionDetails.route,
             sellerName: dispositionDetails.sellerName,
@@ -414,7 +504,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             setSelectedDisposition(null);
             setCustomInputType(null);
             setIsCustomRoute(false);
-            alert('บันทึกผลการตรวจสอบคุณภาพเรียบร้อย (Ready for Documentation)');
+            alert('บันทึกผล QC เรียบร้อย (Ready for Docs)');
         }
     };
 
@@ -422,7 +512,6 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         const currentQty = qcSelectedItem?.quantity || 0;
         const totalAvailable = isBreakdownUnit ? (currentQty * conversionRate) : currentQty;
 
-        // Improved Validation: Check if integer
         if (!Number.isInteger(splitQty)) {
             alert("กรุณาระบุจำนวนเป็นจำนวนเต็ม");
             return;
@@ -448,8 +537,6 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         const mainQty = totalAvailable - splitQty;
         const today = new Date().toISOString().split('T')[0];
 
-
-
         const updateMainSuccess = await updateReturnRecord(qcSelectedItem.id, {
             quantity: mainQty,
             unit: finalUnit,
@@ -457,7 +544,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             priceSell: finalPriceSell,
             condition: qcSelectedItem.condition,
             disposition: selectedDisposition,
-            status: 'Graded',
+            status: 'QCPassed',
             dateGraded: today,
             dispositionRoute: dispositionDetails.route,
             sellerName: dispositionDetails.sellerName,
@@ -469,7 +556,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         });
 
         const splitId = `${qcSelectedItem.id}-S${Math.floor(Math.random() * 100)}`;
-        const splitStatus = splitDisposition ? 'Graded' : 'Received';
+        const splitStatus = splitDisposition ? 'QCPassed' : 'ReceivedAtHub';
 
         const splitItem: ReturnRecord = {
             ...qcSelectedItem,
@@ -505,7 +592,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             setConversionRate(1);
             setNewUnitName('');
             setSplitDisposition(null);
-            alert(`ดำเนินการแยกรายการเรียบร้อย\n- รายการหลัก: ${mainQty} ${finalUnit}\n- รายการแยก: ${splitQty} ${finalUnit}`);
+            alert(`ดำเนินการแยกรายการเรียบร้อย`);
         } else {
             alert("เกิดข้อผิดพลาดในการแยกรายการ");
         }
@@ -513,7 +600,6 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
 
     const toggleSplitMode = () => {
         if (!showSplitMode) {
-            // Reset ALL Split State when opening
             setSplitQty(0);
             setSplitDisposition(null);
             setSplitCondition('New');
@@ -555,14 +641,33 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         if (!docData) return;
         const today = new Date().toISOString().split('T')[0];
 
+        // Direct Return Pending Check
+        if (pendingDirectReturn) {
+            let successCount = 0;
+            for (const id of pendingDirectReturn.ids) {
+                const success = await updateReturnRecord(id, {
+                    ...pendingDirectReturn.updatePayload,
+                    dateDocumented: today
+                });
+                if (success) successCount++;
+            }
+            if (successCount > 0) {
+                alert(`สร้างเอกสารและบันทึกข้อมูลเรียบร้อย ${successCount} รายการ (Direct Return)`);
+                setShowDocModal(false);
+                setPendingDirectReturn(null);
+            }
+            return;
+        }
+
+        // Standard Hub Doc Generation
         let successCount = 0;
         for (const item of docData.items) {
-            const success = await updateReturnRecord(item.id, { status: 'Documented', dateDocumented: today });
+            const success = await updateReturnRecord(item.id, { status: 'ReturnToSupplier', dateDocumented: today });
             if (success) successCount++;
         }
 
         if (successCount > 0) {
-            alert(`สร้างเอกสารและบันทึกสถานะเรียบร้อย ${successCount} รายการ`);
+            alert(`สร้างเอกสารเรียบร้อย ${successCount} รายการ -> ไปที่ขั้นตอน "ปิดงาน"`);
             setShowDocModal(false);
         }
     };
@@ -591,11 +696,25 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         },
         derived: {
             uniqueCustomers, uniqueDestinations, uniqueProductCodes, uniqueProductNames,
-            requestedItems, receivedItems, gradedItems, documentedItems, completedItems, processedItems
+            logisticItems,
+            hubReceiveItems,
+            hubQCItems,
+            hubDocItems,
+            closureItems,
+            completedItems,
+            // Aliases for compatibility
+            requestedItems,
+            receivedItems,
+            gradedItems,
+            getDocumentedItems: () => [], // Deprecated in favor of hubDocItems
+            processedItems: hubDocItems
         },
         actions: {
             setActiveStep, setIsCustomBranch, setFormData, setRequestItems,
             handleImageUpload, handleRemoveImage, handleAddItem, handleRemoveItem, handleRequestSubmit,
+
+            handleLogisticsSubmit,
+
             handleIntakeReceive, selectQCItem, handleConditionSelect, setQcSelectedItem, setCustomInputType,
             setSelectedDisposition, setIsCustomRoute, handleDispositionDetailChange, handleQCSubmit,
             setShowSplitMode, setIsBreakdownUnit, setConversionRate, setNewUnitName, setSplitQty, setSplitCondition, setSplitDisposition, handleSplitSubmit,
@@ -611,48 +730,30 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                 setShowStep4SplitModal(true);
             },
             handleStep4SplitSubmit: async (splitQty: number, newDisposition: DispositionAction, isBreakdown: boolean = false, rate: number = 1, newUnit: string = '', mainDisposition?: DispositionAction) => {
-                if (!docSelectedItem) {
-                    alert("Error: No Item Selected in State!");
-                    return;
-                }
-
+                if (!docSelectedItem) return;
                 const currentQty = docSelectedItem.quantity;
                 const totalAvailable = isBreakdown ? (currentQty * rate) : currentQty;
 
-                if (splitQty <= 0) {
-                    alert("จำนวนที่แยกต้องมากกว่า 0");
-                    return;
-                }
-                if (splitQty >= totalAvailable) {
-                    alert("จำนวนที่แยกต้องน้อยกว่าจำนวนทั้งหมด (ต้องเหลือรายการหลักอย่างน้อย 1)");
+                if (splitQty <= 0 || splitQty >= totalAvailable) {
+                    alert("Invalid Split Qty");
                     return;
                 }
 
                 const mainQty = totalAvailable - splitQty;
                 const finalUnit = isBreakdown ? (newUnit || 'Sub-unit') : docSelectedItem.unit;
-
-                // Recalculate price
                 const finalPriceBill = isBreakdown && rate > 1 ? (docSelectedItem.priceBill || 0) / rate : docSelectedItem.priceBill;
                 const finalPriceSell = isBreakdown && rate > 1 ? (docSelectedItem.priceSell || 0) / rate : docSelectedItem.priceSell;
                 const finalMainDisposition = mainDisposition || docSelectedItem.disposition || 'Return';
 
                 try {
-                    // 1. Update Main Item
-                    const updateMainPayload: Partial<ReturnRecord> = {
+                    const updateMainSuccess = await updateReturnRecord(docSelectedItem.id, {
                         quantity: mainQty,
+                        unit: finalUnit,
+                        priceBill: finalPriceBill,
+                        priceSell: finalPriceSell,
                         disposition: finalMainDisposition
-                    };
-                    if (isBreakdown) {
-                        updateMainPayload.unit = finalUnit;
-                        updateMainPayload.priceBill = finalPriceBill;
-                        updateMainPayload.priceSell = finalPriceSell;
-                    }
+                    });
 
-                    const updateMainSuccess = await updateReturnRecord(docSelectedItem.id, updateMainPayload);
-                    if (!updateMainSuccess) throw new Error("Failed to update Main Item");
-
-                    // 2. Create Split Item
-                    const today = new Date().toISOString().split('T')[0];
                     const splitId = `${docSelectedItem.id}-S${Math.floor(Math.random() * 1000)}`;
                     const splitItem: ReturnRecord = {
                         ...docSelectedItem,
@@ -662,65 +763,21 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                         priceBill: finalPriceBill,
                         priceSell: finalPriceSell,
                         disposition: newDisposition,
-                        status: 'Graded', // Remains in Step 4 view
+                        status: 'QCPassed',
                         refNo: `${docSelectedItem.refNo} (Split)`,
-                        dateGraded: today,
                         ncrNumber: docSelectedItem.ncrNumber,
-                        parentId: docSelectedItem.id // Traceability: Link to parent
+                        parentId: docSelectedItem.id
                     };
-
                     const createSplitSuccess = await addReturnRecord(splitItem);
-                    if (!createSplitSuccess) throw new Error("Failed to create Split Item");
 
-                    // 3. Success Feedback & UI Update
-                    alert(`แยกรายการสำเร็จ / Split Successful!\n- Main: ${mainQty} ${finalUnit} (${finalMainDisposition})\n- Split: ${splitQty} ${finalUnit} (${newDisposition})`);
-
-                    // Intelligent List Update
-                    if (showSelectionModal) {
-                        setSelectionItems(prev => {
-                            const newList: ReturnRecord[] = [];
-                            prev.forEach(item => {
-                                if (item.id === docSelectedItem.id) {
-                                    // Main Item Logic: Keep it only if it still belongs in this view
-                                    if (finalMainDisposition === selectionStatus) {
-                                        const updatedMain = {
-                                            ...item,
-                                            quantity: mainQty,
-                                            unit: finalUnit,
-                                            priceBill: finalPriceBill,
-                                            priceSell: finalPriceSell,
-                                            disposition: finalMainDisposition
-                                        };
-                                        newList.push(updatedMain);
-                                    }
-
-                                    // Split Item Logic: Add it if it belongs in this view
-                                    if (newDisposition === selectionStatus) {
-                                        newList.push(splitItem);
-                                    }
-                                } else {
-                                    newList.push(item);
-                                }
-                            });
-                            return newList;
-                        });
-
-                        // Update Checkbox Selection State
-                        setSelectedItemIds(prev => {
-                            const newSet = new Set(prev);
-                            if (finalMainDisposition !== selectionStatus) {
-                                newSet.delete(docSelectedItem.id);
-                            }
-                            return newSet;
-                        });
+                    if (updateMainSuccess && createSplitSuccess) {
+                        alert("Split Successful!");
+                        setShowStep4SplitModal(false);
+                        setDocSelectedItem(null);
                     }
-
-                    setShowStep4SplitModal(false);
-                    setDocSelectedItem(null);
-
-                } catch (error) {
-                    console.error("Split Error:", error);
-                    alert(`เกิดข้อผิดพลาด (Error): ${error instanceof Error ? error.message : 'Unknown error'}`);
+                } catch (e) {
+                    console.error(e);
+                    alert("Split Failed");
                 }
             },
             handleCompleteJob,

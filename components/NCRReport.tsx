@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useData, NCRRecord, NCRItem } from '../DataContext';
-import { FileText, AlertTriangle, ArrowRight, CheckCircle, Clock, MapPin, DollarSign, Package, User, Printer, X, Save, Eye, Edit, Lock, Trash2, CheckSquare, Search, Filter, Download, XCircle, RotateCcw, Image as ImageIcon } from 'lucide-react';
+import { FileText, TriangleAlert, ArrowRight, CircleCheck, Clock, MapPin, DollarSign, Package, User, Printer, X, Save, Eye, Edit, Lock, Trash2, CheckSquare, Search, Filter, Download, CircleX, RotateCcw, Image as ImageIcon } from 'lucide-react';
 import { ReturnRecord, ReturnStatus } from '../types';
 
 interface NCRReportProps {
@@ -186,18 +186,24 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
   };
 
   const handleOpenPrint = (item: NCRRecord) => {
-    setPrintItem(item);
+    const correspondingReturn = items.find(r => r.ncrNumber === item.ncrNo);
+    const effectiveFounder = item.founder || correspondingReturn?.founder || '';
+    setPrintItem({ ...item, founder: effectiveFounder });
     setShowPrintModal(true);
   };
 
   const handleViewNCRForm = (item: NCRRecord) => {
-    setNcrFormItem({ ...item });
+    const correspondingReturn = items.find(r => r.ncrNumber === item.ncrNo);
+    const effectiveFounder = item.founder || correspondingReturn?.founder || '';
+    setNcrFormItem({ ...item, founder: effectiveFounder });
     setIsEditMode(false);
     setShowNCRFormModal(true);
   };
 
   const handleEditClick = (item: NCRRecord) => {
-    setPendingEditItem(item);
+    const correspondingReturn = items.find(r => r.ncrNumber === item.ncrNo);
+    const effectiveFounder = item.founder || correspondingReturn?.founder || '';
+    setPendingEditItem({ ...item, founder: effectiveFounder });
     setPasswordInput('');
     setShowPasswordModal(true);
   };
@@ -500,6 +506,8 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
               ) : (
                 paginatedReports.map((report) => {
                   const itemData = report.item || (report as any);
+                  // Ensure productName has a fallback
+                  if (!itemData.productName) itemData.productName = 'Unknown Product';
                   const correspondingReturn = items.find(item => item.ncrNumber === report.ncrNo);
                   const isCanceled = report.status === 'Canceled';
 
@@ -517,9 +525,9 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                         <div className="text-xs">{report.date}</div>
                         <div className="mt-1">
                           {isCanceled ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 font-bold bg-slate-200 px-1.5 py-0.5 rounded border border-slate-300"><XCircle className="w-3 h-3" /> ยกเลิก</span>
+                            <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 font-bold bg-slate-200 px-1.5 py-0.5 rounded border border-slate-300"><CircleX className="w-3 h-3" /> ยกเลิก</span>
                           ) : report.status === 'Closed' ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded border border-green-100"><CheckCircle className="w-3 h-3" /> Closed</span>
+                            <span className="inline-flex items-center gap-1 text-[10px] text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded border border-green-100"><CircleCheck className="w-3 h-3" /> Closed</span>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-[10px] text-amber-500 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100"><Clock className="w-3 h-3" /> {report.status || 'Open'}</span>
                           )}
@@ -538,7 +546,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-sm text-slate-600">{report.founder || '-'}</div>
+                        <div className="text-sm text-slate-600">{itemData.founder || report.founder || correspondingReturn?.founder || '-'}</div>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 text-xs">
@@ -602,11 +610,11 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
 
                           {isCanceled ? (
                             <span className="inline-flex items-center gap-1 bg-slate-200 text-slate-500 px-2 py-1.5 rounded text-[10px] font-bold border border-slate-300">
-                              <XCircle className="w-3 h-3" /> ยกเลิกแล้ว
+                              <CircleX className="w-3 h-3" /> ยกเลิกแล้ว
                             </span>
                           ) : correspondingReturn ? (
                             <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1.5 rounded text-[10px] font-bold border border-green-200">
-                              <CheckCircle className="w-3 h-3" /> ส่งคืนแล้ว
+                              <CircleCheck className="w-3 h-3" /> ส่งคืนแล้ว
                             </span>
                           ) : (
                             (report.actionReject || report.actionScrap || report.actionRejectSort) && (

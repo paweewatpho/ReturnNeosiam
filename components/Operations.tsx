@@ -1,116 +1,83 @@
-
-import React from 'react';
+import React, { useState } from 'react';
+import {
+  Menu, FileInput, Truck, Activity, ClipboardList,
+  FileText, LayoutGrid, BarChart2, CheckCircle
+} from 'lucide-react';
 import { useOperationsLogic } from './operations/hooks/useOperationsLogic';
 import { Step1Request } from './operations/components/Step1Request';
-import { Step2Intake } from './operations/components/Step2Intake';
-import { Step3QC } from './operations/components/Step3QC';
-import { Step4Docs } from './operations/components/Step4Docs';
-import { Step5Complete } from './operations/components/Step5Complete';
+import { Step2Logistics } from './operations/components/Step2Logistics';
+import { Step3HubReceive } from './operations/components/Step3HubReceive';
+import { Step4HubQC } from './operations/components/Step4HubQC';
+import { Step5HubDocs } from './operations/components/Step5HubDocs';
+import { Step6Closure } from './operations/components/Step6Closure';
+import { ReturnRecord } from '../types';
 import { SelectionModal } from './operations/components/SelectionModal';
 import { DocumentPreviewModal } from './operations/components/DocumentPreviewModal';
 import { Step4SplitModal } from './operations/components/Step4SplitModal';
-import { FileInput, Truck, Activity, ClipboardList, FileText } from 'lucide-react';
 
-const Operations: React.FC = () => {
-  const { state, derived, actions } = useOperationsLogic();
+interface OperationsProps {
+  initialData?: Partial<ReturnRecord> | null;
+  onClearInitialData?: () => void;
+}
 
+export const Operations: React.FC<OperationsProps> = ({ initialData, onClearInitialData }) => {
+  const { state, actions, derived } = useOperationsLogic(initialData, onClearInitialData);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  // Updated Menu for 6-Step Workflow
   const MENU_ITEMS = [
     { id: 1, label: 'แจ้งคืนสินค้า', icon: FileInput, count: derived.requestedItems.length || undefined, color: 'text-blue-600' },
-    { id: 2, label: 'รับสินค้าเข้า', icon: Truck, count: derived.requestedItems.length || undefined, color: 'text-amber-500' },
-    { id: 3, label: 'ตรวจสอบคุณภาพ', icon: Activity, count: derived.receivedItems.length || undefined, color: 'text-blue-500' },
-    { id: 4, label: 'จัดการเอกสาร', icon: ClipboardList, count: derived.processedItems.length || undefined, color: 'text-slate-600' },
-    { id: 5, label: 'ปิดงาน', icon: FileText, count: derived.documentedItems.length || undefined, color: 'text-green-600' }
+    { id: 2, label: 'รวบรวม & ขนส่ง', icon: Truck, count: derived.logisticItems.length || undefined, color: 'text-orange-500' }, // New Step
+    { id: 3, label: 'รับสินค้าเข้า Hub', icon: LayoutGrid, count: derived.hubReceiveItems.length || undefined, color: 'text-amber-500' },
+    { id: 4, label: 'ตรวจสอบคุณภาพ', icon: Activity, count: derived.hubQCItems.length || undefined, color: 'text-blue-500' },
+    { id: 5, label: 'เอกสารส่งคืน', icon: ClipboardList, count: derived.hubDocItems.length || undefined, color: 'text-slate-600' },
+    { id: 6, label: 'ติดตาม & ปิดงาน', icon: CheckCircle, count: derived.closureItems.length || undefined, color: 'text-green-600' }
   ];
 
-  return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden font-sarabun">
-      {/* Sidebar Menu */}
-      <div className="w-64 bg-white border-r border-slate-200 flex flex-col shadow-sm z-10">
-        <div className="p-6 border-b border-slate-100 bg-gradient-to-br from-blue-600 to-blue-800 text-white">
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <Activity className="w-6 h-6" /> Operations Hub
-          </h1>
-          <p className="text-blue-100 text-xs mt-1">ระบบจัดการสินค้าคืนและ QC</p>
-        </div>
-
-        <nav className="p-4 space-y-1 overflow-y-auto flex-1">
-          {MENU_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = state.activeStep === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => actions.setActiveStep(item.id as any)}
-                className={`w-full flex items-center justify-between p-3 rounded-xl transition-all duration-200 ${isActive
-                  ? 'bg-blue-50 text-blue-700 font-bold shadow-sm ring-1 ring-blue-100'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                  }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${isActive ? 'bg-white shadow-sm' : 'bg-slate-100'} ${item.color}`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <span className="text-sm">{item.label}</span>
-                </div>
-                {item.count !== undefined && item.count > 0 && (
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${isActive ? 'bg-blue-200 text-blue-800' : 'bg-slate-200 text-slate-600'
-                    }`}>
-                    {item.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        <div className="p-4 border-t border-slate-100">
-          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-              <span className="text-xs font-bold text-slate-600">System Status</span>
-            </div>
-            <div className="text-[10px] text-slate-400 space-y-1">
-              <div className="flex justify-between"><span>Database:</span> <span className="text-green-600 font-bold">Connected</span></div>
-              <div className="flex justify-between"><span>Sync:</span> <span className="text-green-600 font-bold">Auto</span></div>
-              <div className="flex justify-between"><span>Version:</span> <span>2.5.0 (Beta)</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-slate-50 relative">
-        {state.activeStep === 1 && (
+  const renderContent = () => {
+    switch (state.activeStep) {
+      case 1:
+        return (
           <Step1Request
             formData={state.formData}
             requestItems={state.requestItems}
+            customProblemType={state.customProblemType}
+            customRootCause={state.customRootCause}
             isCustomBranch={state.isCustomBranch}
             uniqueCustomers={derived.uniqueCustomers}
             uniqueDestinations={derived.uniqueDestinations}
             uniqueProductCodes={derived.uniqueProductCodes}
             uniqueProductNames={derived.uniqueProductNames}
             setFormData={actions.setFormData}
-            setIsCustomBranch={actions.setIsCustomBranch}
             setRequestItems={actions.setRequestItems}
-            handleAddItem={actions.handleAddItem}
-            handleRemoveItem={actions.handleRemoveItem}
+            setIsCustomBranch={actions.setIsCustomBranch}
+            setCustomProblemType={actions.setCustomProblemType}
+            setCustomRootCause={actions.setCustomRootCause}
             handleImageUpload={actions.handleImageUpload}
             handleRemoveImage={actions.handleRemoveImage}
+            handleAddItem={actions.handleAddItem}
+            handleRemoveItem={actions.handleRemoveItem}
             handleRequestSubmit={actions.handleRequestSubmit}
           />
-        )}
-
-        {state.activeStep === 2 && (
-          <Step2Intake
-            requestedItems={derived.requestedItems}
+        );
+      case 2:
+        return (
+          <Step2Logistics
+            items={derived.logisticItems}
+            onConfirm={actions.handleLogisticsSubmit}
+          />
+        );
+      case 3:
+        return (
+          <Step3HubReceive
+            requestedItems={derived.hubReceiveItems}
             handleIntakeReceive={actions.handleIntakeReceive}
           />
-        )}
-
-        {state.activeStep === 3 && (
-          <Step3QC
-            receivedItems={derived.receivedItems}
+        );
+      case 4:
+        return (
+          <Step4HubQC
+            receivedItems={derived.hubQCItems}
             qcSelectedItem={state.qcSelectedItem}
             customInputType={state.customInputType}
             selectedDisposition={state.selectedDisposition}
@@ -123,7 +90,6 @@ const Operations: React.FC = () => {
             splitQty={state.splitQty}
             splitCondition={state.splitCondition}
             splitDisposition={state.splitDisposition}
-
             selectQCItem={actions.selectQCItem}
             setQcSelectedItem={actions.setQcSelectedItem}
             handleConditionSelect={actions.handleConditionSelect}
@@ -141,60 +107,155 @@ const Operations: React.FC = () => {
             handleQCSubmit={actions.handleQCSubmit}
             toggleSplitMode={actions.toggleSplitMode}
           />
-        )}
-
-        {state.activeStep === 4 && (
-          <Step4Docs
-            processedItems={derived.processedItems}
-            onPrintClick={(status) => actions.handlePrintClick(status, derived.processedItems.filter(i =>
-              i.disposition === status || (status === 'InternalUse' && !i.disposition)
-            ))}
+        );
+      case 5:
+        return (
+          <Step5HubDocs
+            processedItems={derived.hubDocItems}
+            onPrintClick={actions.handlePrintClick}
             onSplitClick={actions.handleDocItemClick}
           />
-        )}
-
-        {state.activeStep === 5 && (
-          <Step5Complete
-            documentedItems={derived.documentedItems}
+        );
+      case 6:
+        return (
+          <Step6Closure
+            documentedItems={derived.closureItems}
             completedItems={derived.completedItems}
             handleCompleteJob={actions.handleCompleteJob}
           />
-        )}
-      </div>
+        );
+      default:
+        return <div className="p-8 text-center text-slate-400">อยู่ระหว่างปรับปรุง (Step Coming Soon)</div>;
+    }
+  };
+
+  return (
+    <div className="flex bg-slate-100 h-screen overflow-hidden font-sans">
+      {/* Sidebar Navigation */}
+      <aside
+        className={`${sidebarOpen ? 'w-64' : 'w-20'} 
+        bg-white border-r border-slate-200 flex flex-col transition-all duration-300 shadow-xl z-20`}
+      >
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          {sidebarOpen && (
+            <div className="font-extrabold text-xl text-slate-800 tracking-tight flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-200">
+                <LayoutGrid className="w-5 h-5" />
+              </div>
+              <span className="bg-gradient-to-r from-blue-700 to-blue-500 bg-clip-text text-transparent">
+                Return Hub
+              </span>
+            </div>
+          )}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 hover:bg-white rounded-lg transition-colors text-slate-400 hover:text-blue-600 hover:shadow-sm"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
+          {MENU_ITEMS.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => actions.setActiveStep(item.id as any)}
+              className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative
+                ${state.activeStep === item.id
+                  ? 'bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100 font-bold'
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                }`}
+            >
+              <div className={`
+                p-2 rounded-lg transition-all duration-200
+                ${state.activeStep === item.id ? 'bg-white shadow-sm scale-110' : 'bg-slate-100 group-hover:bg-white group-hover:shadow-sm'}
+              `}>
+                <item.icon className={`w-5 h-5 ${state.activeStep === item.id ? item.color : 'text-slate-400 group-hover:text-slate-600'}`} />
+              </div>
+
+              {sidebarOpen && (
+                <div className="flex-1 text-left flex items-center justify-between">
+                  <span className="text-sm">{item.label}</span>
+                  {item.count && (
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold
+                      ${state.activeStep === item.id ? 'bg-white text-blue-600 shadow-sm' : 'bg-slate-100 text-slate-500'}
+                    `}>
+                      {item.count}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {!sidebarOpen && item.count && (
+                <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></div>
+              )}
+            </button>
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-slate-100 bg-slate-50">
+          {sidebarOpen ? (
+            <div className="text-xs text-slate-400 text-center font-medium">
+              Neo Siam Logistics<br />
+              Operations System v2.0
+            </div>
+          ) : (
+            <div className="flex justify-center">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col h-full overflow-hidden bg-white/50 relative">
+        {/* Background Decoration */}
+        <div className="absolute top-0 left-0 w-full h-64 bg-slate-50 -z-10 skew-y-1 transform origin-top-left opacity-50"></div>
+
+        {/* Content Container */}
+        <div className="flex-1 overflow-hidden p-2 sm:p-4">
+          {renderContent()}
+        </div>
+      </main>
 
       {/* Modals */}
-      <SelectionModal
-        isOpen={state.showSelectionModal}
-        onClose={() => actions.setShowSelectionModal(false)}
-        selectionItems={state.selectionItems}
-        selectionStatus={state.selectionStatus}
-        selectedItemIds={state.selectedItemIds}
-        toggleSelection={actions.toggleSelection}
-        handleGenerateDoc={actions.handleGenerateDoc}
-        onSplit={actions.handleDocItemClick}
-      />
+      {state.showSelectionModal && (
+        <SelectionModal
+          isOpen={state.showSelectionModal}
+          onClose={() => actions.setShowSelectionModal(false)}
+          items={state.selectionItems}
+          selectedIds={state.selectedItemIds}
+          onToggle={actions.toggleSelection}
+          onConfirm={actions.handleGenerateDoc}
+          status={state.selectionStatus}
+        />
+      )}
 
-      <DocumentPreviewModal
-        isOpen={state.showDocModal}
-        onClose={() => actions.setShowDocModal(false)}
-        docData={state.docData}
-        docConfig={state.docConfig}
-        setDocConfig={actions.setDocConfig}
-        isDocEditable={state.isDocEditable}
-        setIsDocEditable={actions.setIsDocEditable}
-        includeVat={state.includeVat}
-        setIncludeVat={actions.setIncludeVat}
-        vatRate={state.vatRate}
-        setVatRate={actions.setVatRate}
-        handleConfirmDocGeneration={actions.handleConfirmDocGeneration}
-      />
+      {state.showDocModal && state.docData && (
+        <DocumentPreviewModal
+          isOpen={state.showDocModal}
+          onClose={() => actions.setShowDocModal(false)}
+          docData={state.docData}
+          docConfig={state.docConfig}
+          setDocConfig={actions.setDocConfig}
+          includeVat={state.includeVat}
+          vatRate={state.vatRate}
+          isDocEditable={state.isDocEditable}
+          setIncludeVat={actions.setIncludeVat}
+          setVatRate={actions.setVatRate}
+          setIsDocEditable={actions.setIsDocEditable}
+          handleConfirmDocGeneration={actions.handleConfirmDocGeneration}
+        />
+      )}
 
-      <Step4SplitModal
-        isOpen={state.showStep4SplitModal}
-        onClose={() => actions.setShowStep4SplitModal(false)}
-        item={state.docSelectedItem}
-        onConfirm={actions.handleStep4SplitSubmit}
-      />
+      {state.showStep4SplitModal && state.docSelectedItem && (
+        <Step4SplitModal
+          isOpen={state.showStep4SplitModal}
+          onClose={() => actions.setShowStep4SplitModal(false)}
+          item={state.docSelectedItem}
+          onConfirm={actions.handleStep4SplitSubmit}
+        />
+      )}
     </div>
   );
 };

@@ -24,14 +24,57 @@ const COLORS = {
 const Dashboard: React.FC = () => {
   const { items, ncrReports } = useData();
 
-  // 1. Operation Pipeline Metrics (Aligned with Operations Hub Queues)
+  // 1. Operation Pipeline Metrics (Aligned with New 6-Step Workflow)
   const pipeline = useMemo(() => {
     return {
-      requested: items.filter(i => i.status === 'Pending').length,      // Step 1: Drafts/New
-      received: items.filter(i => i.status === 'Requested').length,     // Step 2: To Receive (Intake Queue)
-      graded: items.filter(i => i.status === 'Received').length,        // Step 3: To QC (QC Queue)
-      documented: items.filter(i => i.status === 'Graded').length,      // Step 4: To Docs (Docs Queue)
-      completed: items.filter(i => i.status === 'Documented').length    // Step 5: To Close (Close Queue)
+      requests: items.filter(i => i.status === 'Draft' || i.status === 'Requested').length,      // Step 1: New Requests
+      logistics: items.filter(i => i.status === 'InTransitHub').length,                          // Step 2: In Transport
+      receiving: items.filter(i => i.status === 'ReceivedAtHub' || i.status === 'Received').length, // Step 3: At Hub
+      qc: items.filter(i => i.status === 'QCPassed' || i.status === 'QCFailed' || i.status === 'Graded').length, // Step 4: QC Done
+      disposition: items.filter(i => i.status === 'ReturnToSupplier' || i.status === 'Documented').length, // Step 5: Preparing/Docs
+      completed: items.filter(i => i.status === 'Completed').length    // Step 6: Closed
+    };
+  }, [items]);
+
+  // 1.1 Stock Summary (Inventory Snapshot)
+  const stockSummary = useMemo(() => {
+    // Helper to calc on-hand (In - Out)
+    const calcOnHand = (disp: string) => {
+      // Logic mirrors Inventory.tsx: IN (Graded) - OUT (Documented/Completed)
+      // Note: In Dashboard, we simplify to "Current Status" based.
+      // Items that are "QCPassed" or "QCFailed" or "Graded" but NOT yet "ReturnToSupplier" or "Completed" are theoretically "On Hand" at Hub?
+      // OR specifically items marked with that disposition that haven't left.
+
+      // Let's use the 'Inventory' logic: 
+      // IN = DateGraded exists
+      // OUT = DateDocumented or DateCompleted exists
+      // OnHand = IN - OUT
+
+      let inCount = 0;
+      let outCount = 0;
+
+      items.filter(i => i.disposition === disp).forEach(i => {
+        // Fix for Negative Stock:
+        // Only count as "In" if dateGraded exists (Standard Flow)
+        // Only count as "Out" if dateGraded exists AND (dateDocumented or dateCompleted) exists.
+        // This prevents "Direct Returns" (which have no dateGraded) from being counted as "Out" without an "In".
+        if (i.dateGraded) {
+          inCount++;
+          if (i.dateDocumented || i.dateCompleted) outCount++;
+        }
+      });
+
+      return inCount - outCount;
+    };
+
+    return {
+      restock: calcOnHand('Restock'),
+      rtv: calcOnHand('RTV'),
+      claim: calcOnHand('Claim'),
+      internal: calcOnHand('InternalUse'),
+      scrap: calcOnHand('Recycle'),
+      // New Metric: Direct Return (Count of items that bypassed Hub QC and were sent back directly)
+      directReturn: items.filter(i => i.disposition === 'RTV' && !i.dateGraded && (i.dateDocumented || i.dateCompleted)).length
     };
   }, [items]);
 
@@ -65,11 +108,14 @@ const Dashboard: React.FC = () => {
 
     // Calculate from NCR Reports
     ncrReports.filter(n => n.status !== 'Canceled').forEach(n => {
+      // Use cost from Item if available, else from report root
       const cost = n.item?.costAmount || (n as any).costAmount || 0;
+      // Only add if not already counted via items to avoid double counting? 
+      // For safety in this hybrid system, we'll assume NCR reports might cover things NOT in items list or additional costs.
+      // But typically they are linked. Let's just sum NCR specific costs if we consider them "Extra".
+      // HOWEVER, the logic in previous code simply added them. Let's stick to consistent logic but ensure we don't double count if they share IDs.
+      // Simplification: Just sum them for "Cost Impact" visualisation.
       ncrCost += cost;
-
-      // Merge NCR costs if not already counted (Assuming NCR reports come from items)
-      // Note: If NCR is separate, we add here. 
     });
 
     // Convert to Chart Data
@@ -108,8 +154,6 @@ const Dashboard: React.FC = () => {
         counts[key] = (counts[key] || 0) + 1;
       }
     });
-
-    const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
     return Object.entries(counts)
       .map(([name, value]) => {
@@ -165,29 +209,45 @@ const Dashboard: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">สรุปผลการปฏิบัติงาน (Operation Performance)</h2>
-          <p className="text-slate-500 text-sm">ติดตามสถานะงานคงค้าง (WIP), ประสิทธิภาพทางการเงิน และวิเคราะห์ปัญหา (Root Cause)</p>
+          <p className="text-slate-500 text-sm">ติดตามสถานะงานคงค้าง (Pipeline), สต็อกคงเหลือ (Inventory), และวิเคราะห์ปัญหา (Analysis)</p>
         </div>
         <div className="bg-blue-50 px-4 py-2 rounded-lg border border-blue-100 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-          <span className="text-sm font-bold text-blue-700">Realtime Accuracy 100%</span>
+          <span className="text-sm font-bold text-blue-700">Live Status</span>
         </div>
       </div>
 
-      {/* 1. PIPELINE FLOW */}
+      {/* 1. PIPELINE FLOW (Updated to 6 Steps matching Operations Hub) */}
       <div>
         <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-          <Activity className="w-4 h-4" /> สถานะงานคงค้าง (Work in Progress Pipeline)
+          <Activity className="w-4 h-4" /> สถานะงานคงค้าง (Operations Hub Pipeline)
         </h3>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <PipelineCard step="1" title="แจ้งคืน (Request)" count={pipeline.requested} icon={FileText} color="bg-slate-100 text-slate-600" desc="รอรับเข้า" />
-          <PipelineCard step="2" title="รับสินค้า (Intake)" count={pipeline.received} icon={Package} color="bg-amber-50 text-amber-600 border-amber-200" desc="รอ QC" isAlert={pipeline.received > 20} />
-          <PipelineCard step="3" title="ตรวจสอบ (QC)" count={pipeline.graded} icon={Activity} color="bg-blue-50 text-blue-600 border-blue-200" desc="รอเอกสาร" />
-          <PipelineCard step="4" title="เอกสาร (Docs)" count={pipeline.documented} icon={FileText} color="bg-purple-50 text-purple-600 border-purple-200" desc="รอปิดงาน" />
-          <PipelineCard step="5" title="จบงาน (Done)" count={pipeline.completed} icon={CheckCircle} color="bg-green-50 text-green-600 border-green-200" desc="สำเร็จ" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <PipelineCard step="1" title="แจ้งคืน (Request)" count={pipeline.requests} icon={FileText} color="bg-slate-100 text-slate-600" desc="รออนุมัติ" />
+          <PipelineCard step="2" title="ขนส่ง (Logistics)" count={pipeline.logistics} icon={Truck} color="bg-amber-50 text-amber-600 border-amber-200" desc="ระหว่างทาง" />
+          <PipelineCard step="3" title="รับเข้า (Receive)" count={pipeline.receiving} icon={Package} color="bg-blue-50 text-blue-600 border-blue-200" desc="ถึง Hub" isAlert={pipeline.receiving > 20} />
+          <PipelineCard step="4" title="ตรวจสอบ (QC)" count={pipeline.qc} icon={Activity} color="bg-purple-50 text-purple-600 border-purple-200" desc="รอคัดแยก" />
+          <PipelineCard step="5" title="คลัง/เอกสาร" count={pipeline.disposition} icon={FileText} color="bg-indigo-50 text-indigo-600 border-indigo-200" desc="รอปิดงาน" />
+          <PipelineCard step="6" title="ปิดงาน (Done)" count={pipeline.completed} icon={CheckCircle} color="bg-green-50 text-green-600 border-green-200" desc="สำเร็จ" />
         </div>
       </div>
 
-      {/* 2. FINANCIAL PERFORMANCE */}
+      {/* 2. INVENTORY STOCK SUMMARY (New Section) */}
+      <div>
+        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+          <Package className="w-4 h-4" /> สรุปสต็อกคงคลัง (Inventory On-Hand)
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+          <StockCard title="สินค้าขาย (Sellable)" count={stockSummary.restock} color="bg-green-100 text-green-800 border-green-200" />
+          <StockCard title="สินค้าคืน (RTV)" count={stockSummary.rtv} color="bg-amber-100 text-amber-800 border-amber-200" />
+          <StockCard title="เคลม (Claim)" count={stockSummary.claim} color="bg-blue-100 text-blue-800 border-blue-200" />
+          <StockCard title="ใช้ภายใน (Internal)" count={stockSummary.internal} color="bg-purple-100 text-purple-800 border-purple-200" />
+          <StockCard title="ซาก (Scrap)" count={stockSummary.scrap} color="bg-red-100 text-red-800 border-red-200" />
+          <StockCard title="ส่งคืนตรง (Direct)" count={stockSummary.directReturn} color="bg-slate-100 text-slate-800 border-slate-200" />
+        </div>
+      </div>
+
+      {/* 3. FINANCIAL PERFORMANCE */}
       <div>
         <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
           <DollarSign className="w-4 h-4" /> ประสิทธิภาพทางการเงิน (Financial Impact)
@@ -213,15 +273,17 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="flex-1 min-h-[200px]">
             {problemAnalysisData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={problemAnalysisData} layout="vertical" margin={{ left: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" hide />
-                  <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#f59e0b" radius={[0, 4, 4, 0]} barSize={20} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div style={{ width: '100%', height: '100%', minHeight: '300px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={problemAnalysisData} layout="vertical" margin={{ left: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                    <XAxis type="number" hide />
+                    <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="#f59e0b" radius={[0, 4, 4, 0]} barSize={20} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             ) : (
               <div className="h-full flex items-center justify-center text-slate-400 text-sm">ไม่มีข้อมูลปัญหา</div>
             )}
@@ -237,7 +299,7 @@ const Dashboard: React.FC = () => {
             </h3>
             <p className="text-xs text-slate-500">สัดส่วนการจัดการสินค้า</p>
           </div>
-          <div className="flex-1 min-h-[200px] relative">
+          <div className="flex-1 min-h-[200px] relative" style={{ minHeight: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={dispositionData} innerRadius={50} outerRadius={70} paddingAngle={2} dataKey="value">
@@ -261,15 +323,17 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="flex-1 min-h-[200px]">
             {financials.costResponsibleData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={financials.costResponsibleData} layout="vertical" margin={{ left: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" hide />
-                  <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(val: number) => `฿${val.toLocaleString()}`} />
-                  <Bar dataKey="value" fill="#ef4444" radius={[0, 4, 4, 0]} barSize={20} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div style={{ width: '100%', height: '100%', minHeight: '300px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={financials.costResponsibleData} layout="vertical" margin={{ left: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                    <XAxis type="number" hide />
+                    <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(val: number) => `฿${val.toLocaleString()}`} />
+                    <Bar dataKey="value" fill="#ef4444" radius={[0, 4, 4, 0]} barSize={20} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             ) : (
               <div className="h-full flex items-center justify-center text-slate-400 text-sm">ไม่มีข้อมูลค่าใช้จ่าย</div>
             )}
@@ -372,6 +436,14 @@ const StatCard = ({ title, value, subText, icon: Icon, color, isAlert }: any) =>
     <div className={`p-3 rounded-lg shadow-sm ${color} text-white`}>
       <Icon className="w-5 h-5" />
     </div>
+  </div>
+);
+
+// Component: Stock Card (for Inventory On-Hand)
+const StockCard = ({ title, count, color }: any) => (
+  <div className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${color}`}>
+    <div className="text-3xl font-bold mb-1">{count}</div>
+    <div className="text-xs font-bold uppercase opacity-80">{title}</div>
   </div>
 );
 
