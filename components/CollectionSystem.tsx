@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { CollectionOrder, ReturnRequest, ShipmentManifest, CollectionStatus } from '../types';
 import { mockCollectionOrders, mockReturnRequests, mockDrivers, mockShipments } from '../data/mockCollectionData';
+import { useData } from '../DataContext';
 
 // --- SUB-COMPONENTS ---
 
@@ -44,6 +45,7 @@ const getBranchCode = (branchName: string) => {
 };
 
 const CollectionSystem: React.FC = () => {
+    const { addReturnRecord, getNextReturnNumber } = useData();
     // ... existing state ...
     // Note: Re-declaring component efficiently to target the function update location. 
     // Just targeting the handleCreateManualRequest function and ensuring getBranchCode is available.
@@ -179,7 +181,7 @@ const CollectionSystem: React.FC = () => {
         setFormDesc('');
     };
 
-    const handleCreateManifest = () => {
+    const handleCreateManifest = async () => {
         if (!formCarrier || selectedCollectionIds.length === 0) return;
 
         const newManifest: ShipmentManifest = {
@@ -197,8 +199,49 @@ const CollectionSystem: React.FC = () => {
         // Update Collection Orders status to CONSOLIDATED
         setCollectionOrders(prev => prev.map(c => selectedCollectionIds.includes(c.id) ? { ...c, status: 'CONSOLIDATED' } : c));
 
-        // Simulate sending to "Return Operations Hub"
-        // In a real app, this would trigger an API call to sync data.
+        // Sync to Return Operations Hub (Step 2: Logistics)
+        let opsCount = 0;
+        try {
+            for (const colId of selectedCollectionIds) {
+                const order = collectionOrders.find(o => o.id === colId);
+                if (!order) continue;
+
+                const rmas = returnRequests.filter(r => order.linkedRmaIds.includes(r.id));
+
+                for (const rma of rmas) {
+                    const newOpsId = await getNextReturnNumber();
+                    const record: any = {
+                        id: newOpsId,
+                        refNo: rma.documentNo || rma.id, // User Doc No
+                        neoRefNo: rma.id, // Linked COL ID
+                        date: rma.controlDate || new Date().toISOString().split('T')[0],
+                        branch: rma.branch || 'Headquarters',
+                        customerName: rma.customerName,
+                        destinationCustomer: '',
+                        productName: 'สินค้าส่งคืนทั่วไป (Mixed)', // Default
+                        productCode: 'GEN-MIX',
+                        quantity: order.packageSummary.totalBoxes || 1, // Default box count from collection
+                        unit: 'Box',
+                        priceBill: 0,
+                        priceSell: 0,
+                        condition: 'Unknown',
+                        status: 'Requested', // Shows in Step 2 of Operations
+                        problemDetail: `[จาก Collection System] ${rma.notes || '-'}`,
+                        disposition: 'Pending',
+                        founder: mockDrivers.find(d => d.id === order.driverId)?.name || 'Driver',
+                        problemSource: 'Customer',
+                        images: order.proofOfCollection?.photoUrls || [],
+                        ncrNumber: ''
+                    };
+                    await addReturnRecord(record);
+                    opsCount++;
+                }
+            }
+        } catch (error) {
+            console.error("Error syncing to Operations Hub:", error);
+        }
+
+        alert(`สร้างใบนำส่งสำเร็จ และส่งข้อมูลเข้า Return Operations Hub จำนวน ${opsCount} รายการ`);
 
         setSelectedCollectionIds([]);
         setShowManifestModal(false);
