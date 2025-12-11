@@ -427,6 +427,10 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
           unit: itemData.unit,
           problemDetail: ncrFormItem.problemDetail,
           rootCause: itemData.problemSource,
+          actionReject: ncrFormItem.actionReject,
+          actionRejectSort: ncrFormItem.actionRejectSort,
+          actionScrap: ncrFormItem.actionScrap,
+          actionRework: ncrFormItem.actionRework,
         };
         await updateReturnRecord(correspondingReturn.id, returnUpdateData);
         console.log(`Synced Edit: Updated ReturnRecord ${correspondingReturn.id}`);
