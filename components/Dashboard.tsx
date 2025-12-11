@@ -79,18 +79,33 @@ const Dashboard: React.FC = () => {
     };
   }, [items]);
 
-  // 1.2 Inbound Collection Stats (Mock Data / System 1)
+  // 1.2 Inbound Collection Stats (Mock Data / System 1 + Real Ops Data)
   const collectionStats = useMemo(() => {
+    // Link to Operations: Find items originating from Collection System
+    // We assume items with refNo/neoRefNo starting with R-, COL- come from collection
+    const collectionItems = items.filter(i =>
+      (i.refNo && (i.refNo.startsWith('R-') || i.refNo.startsWith('COL-') || i.refNo.startsWith('RT-'))) ||
+      (i.neoRefNo && (i.neoRefNo.startsWith('R-') || i.neoRefNo.startsWith('COL-')))
+    );
+
+    // Pending Completion = Received at Hub, QC, or Direct Return (waiting for close)
+    // Exclude: Draft/Requested (Step 1-2 Ops), InTransitHub (Step 5 Collection), Completed
+    const pendingCompletionCount = collectionItems.filter(i =>
+      !['Draft', 'Requested', 'InTransitHub', 'Completed'].includes(i.status)
+    ).length;
+
+    const completedCount = collectionItems.filter(i => i.status === 'Completed').length;
+
     return {
       requests: mockReturnRequests.filter(r => r.status === 'APPROVED_FOR_PICKUP').length,
       assigned: mockCollectionOrders.filter(c => c.status === 'ASSIGNED' || c.status === 'PENDING').length,
       collected: mockCollectionOrders.filter(c => c.status === 'COLLECTED').length,
       consolidated: mockCollectionOrders.filter(c => c.status === 'CONSOLIDATED').length,
       transit: mockShipments.filter(s => s.status === 'IN_TRANSIT').length,
-      pendingCompletion: mockReturnRequests.filter(r => r.status === 'RECEIVED_AT_HQ').length,
-      completed: mockReturnRequests.filter(r => (r as any).status === 'COMPLETED').length
+      pendingCompletion: pendingCompletionCount,
+      completed: completedCount
     };
-  }, []);
+  }, [items]);
 
   // 2. Financial Metrics & Cost Analysis
   const financials = useMemo(() => {
