@@ -5,6 +5,7 @@ import { ReturnRecord, ReturnStatus } from '../types';
 import { LineAutocomplete } from './LineAutocomplete';
 import { exportNCRToExcel } from './NCRExcelExport';
 import { NCRPrintPreview } from './NCRPrintPreview';
+import { formatDate } from '../utils/dateUtils';
 
 interface NCRReportProps {
   onTransfer: (data: Partial<ReturnRecord>) => void;
@@ -178,7 +179,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
 
       return `<tr>
                 <td>${report.ncrNo || ''}</td>
-                <td>${report.date || ''}</td>
+                <td>${formatDate(report.date)}</td>
                 <td>${report.status || ''}</td>
                 <td style="mso-number-format:'\@'">${itemData.productCode || ''}</td>
                 <td>${itemData.productName || ''}</td>
@@ -250,7 +251,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
     const returnData: Partial<ReturnRecord> = {
       ncrNumber: ncr.ncrNo || ncr.id,
       branch: itemData.branch,
-      date: ncr.date,
+      date: formatDate(ncr.date),
       productName: itemData.productName,
       productCode: itemData.productCode,
       customerName: itemData.customerName,
@@ -619,7 +620,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                           >
                             {report.ncrNo || report.id}
                           </button>
-                          <div className="text-[9px] text-slate-500">{report.date}</div>
+                          <div className="text-[9px] text-slate-500">{formatDate(report.date)}</div>
                           <div className="mt-0.5">
                             {isCanceled ? (
                               <span className="inline-flex items-center gap-0.5 text-[8px] text-slate-500 font-bold bg-slate-200 px-1 py-0 rounded border border-slate-300"><CircleX className="w-2 h-2" /> ยกเลิก</span>
@@ -800,7 +801,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                                         </div>
                                         {step.date && (
                                           <div className="text-[10px] font-mono text-slate-500 mt-1">
-                                            {step.date}
+                                            {formatDate(step.date)}
                                           </div>
                                         )}
                                       </div>
