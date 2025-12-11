@@ -9,7 +9,7 @@ import {
 } from 'recharts';
 import {
   Truck, CheckCircle, Clock, FileText, Package, AlertOctagon, DollarSign, Trash2, MapPin, Box,
-  TrendingUp, Activity, AlertTriangle, Lock, X
+  TrendingUp, Activity, AlertTriangle, Lock, X, RotateCcw
 } from 'lucide-react';
 import { mockReturnRequests, mockCollectionOrders, mockShipments } from '../data/mockCollectionData';
 
@@ -46,6 +46,49 @@ const Dashboard: React.FC = () => {
         alert("เกิดข้อผิดพลาดในการลบข้อมูล");
         setIsResetting(false);
       }
+    }
+  };
+
+  const handleIntegrityCheck = async () => {
+    const orphans = items.filter(item => {
+      // Check only NCR related items (either has ncrNumber or ID starts with NCR)
+      if (!item.ncrNumber && !item.id.startsWith('NCR')) return false;
+
+      // Case 1: Has explicit ncrNumber field
+      if (item.ncrNumber) {
+        const linkedNCR = ncrReports.find(n => n.ncrNo === item.ncrNumber);
+        return !linkedNCR || linkedNCR.status === 'Canceled';
+      }
+
+      // Case 2: ID starts with NCR (Implicit linkage for some records)
+      if (item.id.startsWith('NCR')) {
+        const linkedNCR = ncrReports.find(n => n.ncrNo === item.id || n.id === item.id);
+        return !linkedNCR || linkedNCR.status === 'Canceled';
+      }
+
+      return false;
+    });
+
+    if (orphans.length === 0) {
+      alert("ไม่พบข้อมูลผิดปกติ (System Stable - No orphans found)");
+      return;
+    }
+
+    const confirmMsg = `พบข้อมูลตกค้างใน Operations Hub (Orphaned): ${orphans.length} รายการ\n` +
+      orphans.map(i => `- ${i.id} / ${i.ncrNumber || ''} (${i.productName})`).join('\n') +
+      `\n\nต้องการลบข้อมูลเหล่านี้ออกจากระบบหรือไม่?`;
+
+    if (confirm(confirmMsg)) {
+      let deletedCount = 0;
+      for (const orphan of orphans) {
+        try {
+          await remove(ref(db, `return_records/${orphan.id}`));
+          deletedCount++;
+        } catch (e) {
+          console.error("Failed to delete orphan", orphan.id);
+        }
+      }
+      alert(`ซ่อมแซมข้อมูลสำเร็จ ลบไป ${deletedCount} รายการ`);
     }
   };
 
@@ -456,17 +499,34 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* DANGER ZONE - Factory Reset */}
-      <div className="border border-red-200 bg-red-50 rounded-lg p-6 flex flex-col items-center mt-12 mb-8 opacity-50 hover:opacity-100 transition-opacity">
-        <h3 className="text-red-700 font-bold text-lg mb-2 flex items-center gap-2">
-          <Trash2 className="w-5 h-5" /> DATA FACTORY RESET
-        </h3>
-        <button
-          onClick={() => setShowAuthModal(true)}
-          className="text-red-600 underline text-xs cursor-pointer hover:text-red-800"
-        >
-          ล้างข้อมูลตัวอย่างทั้งหมด
-        </button>
+      {/* MAINTENANCE ZONE */}
+      <div className="flex flex-col md:flex-row gap-4 justify-center mt-12 mb-8 opacity-70 hover:opacity-100 transition-opacity">
+
+        {/* Integrity Check */}
+        <div className="border border-slate-200 bg-slate-50 rounded-lg p-6 flex flex-col items-center w-64 hover:shadow-md transition-shadow">
+          <h3 className="text-slate-700 font-bold text-sm mb-2 flex items-center gap-2">
+            <RotateCcw className="w-4 h-4 text-blue-500" /> System Integrity
+          </h3>
+          <button onClick={handleIntegrityCheck} className="text-blue-600 underline text-xs cursor-pointer hover:text-blue-800">
+            ตรวจสอบและซ่อมแซมข้อมูล
+          </button>
+          <div className="text-[10px] text-slate-400 mt-1">Scan for orphaned records</div>
+        </div>
+
+        {/* Factory Reset */}
+        <div className="border border-red-200 bg-red-50 rounded-lg p-6 flex flex-col items-center w-64 hover:shadow-md transition-shadow">
+          <h3 className="text-red-700 font-bold text-sm mb-2 flex items-center gap-2">
+            <Trash2 className="w-4 h-4" /> Data Factory Reset
+          </h3>
+          <button
+            onClick={() => setShowAuthModal(true)}
+            className="text-red-600 underline text-xs cursor-pointer hover:text-red-800"
+          >
+            ล้างข้อมูลทั้งหมด (Reset All)
+          </button>
+          <div className="text-[10px] text-red-300 mt-1">Delete all 100%</div>
+        </div>
+
       </div>
 
       {/* Password Modal */}
