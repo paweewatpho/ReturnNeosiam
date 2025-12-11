@@ -24,7 +24,7 @@ export enum AppView {
   COLLECTION = 'COLLECTION'
 }
 
-export type CollectionStatus = 'PENDING' | 'ASSIGNED' | 'COLLECTED' | 'CONSOLIDATED';
+export type CollectionStatus = 'PENDING' | 'ASSIGNED' | 'COLLECTED' | 'CONSOLIDATED' | 'FAILED';
 
 // --- REFRACTORED PER USER REQUEST (STEP 271) ---
 
@@ -79,6 +79,7 @@ export interface CollectionOrder {
 
   status: CollectionStatus;
   vehiclePlate?: string;
+  failureReason?: string;
 
   // Proof
   proofOfCollection?: {

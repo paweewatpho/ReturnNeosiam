@@ -200,9 +200,9 @@ const CollectionSystem: React.FC = () => {
         setFormTracking('');
     };
 
-    const handleDriverAction = (orderId: string, action: 'COLLECT') => {
+    const handleDriverAction = (orderId: string, action: 'COLLECT' | 'FAIL', reason?: string) => {
         if (action === 'COLLECT') {
-            if (confirm('คนขับรถ: ยืนยันการรับสินค้า? (จำลองการถ่ายรูป/เซ็นชื่อ)')) {
+            if (confirm('สาขา: ยืนยันการรับสินค้า? (จำลองการถ่ายรูป/เซ็นชื่อ)')) {
                 setCollectionOrders(prev => prev.map(o => o.id === orderId ? {
                     ...o,
                     status: 'COLLECTED',
@@ -213,6 +213,13 @@ const CollectionSystem: React.FC = () => {
                     }
                 } : o));
             }
+        } else if (action === 'FAIL') {
+            const finalReason = reason || 'ไม่ระบุเหตุผล';
+            setCollectionOrders(prev => prev.map(o => o.id === orderId ? {
+                ...o,
+                status: 'FAILED',
+                failureReason: finalReason
+            } : o));
         }
     };
 
@@ -424,12 +431,21 @@ const CollectionSystem: React.FC = () => {
                                     </div>
                                 </div>
                             </div>
-                            <div className="p-4 border-t border-slate-100 bg-slate-50">
+                            <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-2">
                                 <button
                                     onClick={() => handleDriverAction(order.id, 'COLLECT')}
-                                    className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
+                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm text-sm"
                                 >
-                                    <Camera className="w-4 h-4" /> สาขายืนยันรับสินค้า (Branch Confirm)
+                                    <CheckCircle2 className="w-4 h-4" /> รับสินค้าสำเร็จ
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const reason = prompt('ระบุเหตุผลที่รับสินค้าไม่สำเร็จ:');
+                                        if (reason) handleDriverAction(order.id, 'FAIL', reason);
+                                    }}
+                                    className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 border border-red-200 font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm text-sm"
+                                >
+                                    <X className="w-4 h-4" /> ไม่สำเร็จ
                                 </button>
                             </div>
                         </div>
