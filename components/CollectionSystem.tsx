@@ -500,6 +500,7 @@ const CollectionSystem: React.FC = () => {
                                 <tr>
                                     <th className="p-3 w-10"><input type="checkbox" disabled /></th>
                                     <th className="p-3">เลขที่ใบงาน (COL ID)</th>
+                                    <th className="p-3">สาขา</th>
                                     <th className="p-3">เลข Invoice</th>
                                     <th className="p-3">วันที่ใบคุมรถ</th>
                                     <th className="p-3">เลขที่เอกสาร (R)</th>
@@ -514,7 +515,7 @@ const CollectionSystem: React.FC = () => {
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {pendingRmas.length === 0 ? (
-                                    <tr><td colSpan={12} className="p-8 text-center text-slate-400 italic">ไม่มีรายการรอรับงาน</td></tr>
+                                    <tr><td colSpan={13} className="p-8 text-center text-slate-400 italic">ไม่มีรายการรอรับงาน</td></tr>
                                 ) : pendingRmas.map(rma => (
                                     <tr key={rma.id} className="hover:bg-slate-50 transition-colors cursor-pointer text-sm" onClick={() => {
                                         setSelectedRmas(prev => prev.includes(rma.id) ? prev.filter(id => id !== rma.id) : [...prev, rma.id]);
@@ -528,6 +529,7 @@ const CollectionSystem: React.FC = () => {
                                             />
                                         </td>
                                         <td className="p-3 font-mono text-blue-600 font-bold">{rma.id}</td>
+                                        <td className="p-3 text-slate-700">{rma.branch || '-'}</td>
                                         <td className="p-3 text-slate-700">{rma.invoiceNo || '-'}</td>
                                         <td className="p-3 text-slate-700">{rma.controlDate || '-'}</td>
                                         <td className="p-3 font-bold text-slate-700">{rma.documentNo || '-'}</td>
