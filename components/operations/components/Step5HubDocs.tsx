@@ -37,34 +37,11 @@ export const Step5HubDocs: React.FC<Step4DocsProps> = ({ processedItems, onPrint
     const otherItems = safeItems.filter(i => i.disposition !== 'RTV');
 
     return (
+    return (
         <div className="h-full overflow-x-auto p-4 flex gap-4">
-            {/* 1. Collection Return (COL ID) - Teal */}
+            {/* 1. General RTV - Amber */}
             <KanbanColumn
-                title="Collection Return (COL ID)"
-                status="RTV"
-                icon={FileText}
-                color="bg-teal-600"
-                items={rtvCollectionItems}
-                onPrintClick={onPrintClick}
-                onSplitClick={onSplitClick}
-                overrideFilter={true}
-            />
-
-            {/* 2. NCR Return (NCR) - Rose/Red */}
-            <KanbanColumn
-                title="NCR Return (NCR ID)"
-                status="RTV"
-                icon={AlertOctagon}
-                color="bg-rose-600"
-                items={rtvNcrItems}
-                onPrintClick={onPrintClick}
-                onSplitClick={onSplitClick}
-                overrideFilter={true}
-            />
-
-            {/* 3. General RTV - Amber */}
-            <KanbanColumn
-                title="สินค้าสำหรับส่งคืน (General)"
+                title="สินค้าสำหรับส่งคืน (RTV)"
                 status="RTV"
                 icon={Truck}
                 color="bg-amber-500"
@@ -78,6 +55,30 @@ export const Step5HubDocs: React.FC<Step4DocsProps> = ({ processedItems, onPrint
             <KanbanColumn title="สินค้าสำหรับเคลม (Claim)" status="Claim" icon={ShieldCheck} color="bg-blue-500" items={otherItems} onPrintClick={onPrintClick} onSplitClick={onSplitClick} />
             <KanbanColumn title="สินค้าใช้ภายใน (Internal)" status="InternalUse" icon={Home} color="bg-purple-500" items={otherItems} onPrintClick={onPrintClick} onSplitClick={onSplitClick} />
             <KanbanColumn title="สินค้าสำหรับทำลาย (Scrap)" status="Recycle" icon={Trash2} color="bg-red-500" items={otherItems} onPrintClick={onPrintClick} onSplitClick={onSplitClick} />
+
+            {/* Special Channels: NCR & Collection */}
+            <KanbanColumn
+                title="NCR Return (NCR ID)"
+                status="RTV"
+                icon={AlertOctagon}
+                color="bg-rose-600"
+                items={rtvNcrItems}
+                onPrintClick={onPrintClick}
+                onSplitClick={onSplitClick}
+                overrideFilter={true}
+            />
+
+            <KanbanColumn
+                title="งานรับสินค้า Collection Return (COL ID)"
+                status="RTV"
+                icon={FileText}
+                color="bg-teal-600"
+                items={rtvCollectionItems}
+                onPrintClick={onPrintClick}
+                onSplitClick={onSplitClick}
+                overrideFilter={true}
+            />
         </div>
+    );
     );
 };
