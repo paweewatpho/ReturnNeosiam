@@ -86,7 +86,9 @@ const Dashboard: React.FC = () => {
       assigned: mockCollectionOrders.filter(c => c.status === 'ASSIGNED' || c.status === 'PENDING').length,
       collected: mockCollectionOrders.filter(c => c.status === 'COLLECTED').length,
       consolidated: mockCollectionOrders.filter(c => c.status === 'CONSOLIDATED').length,
-      transit: mockShipments.filter(s => s.status === 'IN_TRANSIT').length
+      transit: mockShipments.filter(s => s.status === 'IN_TRANSIT').length,
+      pendingCompletion: mockReturnRequests.filter(r => r.status === 'RECEIVED_AT_HQ').length,
+      completed: mockReturnRequests.filter(r => (r as any).status === 'COMPLETED').length
     };
   }, []);
 
@@ -125,7 +127,6 @@ const Dashboard: React.FC = () => {
       // Only add if not already counted via items to avoid double counting? 
       // For safety in this hybrid system, we'll assume NCR reports might cover things NOT in items list or additional costs.
       // But typically they are linked. Let's just sum NCR specific costs if we consider them "Extra".
-      // HOWEVER, the logic in previous code simply added them. Let's stick to consistent logic but ensure we don't double count if they share IDs.
       // Simplification: Just sum them for "Cost Impact" visualisation.
       ncrCost += cost;
     });
@@ -234,12 +235,14 @@ const Dashboard: React.FC = () => {
         <h3 className="text-sm font-bold text-teal-600 uppercase tracking-wider mb-3 flex items-center gap-2">
           <Truck className="w-4 h-4" /> ระบบงานรับสินค้า (Inbound Collection System)
         </h3>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           <PipelineCard step="1" title="ใบสั่งงาน (Request)" count={collectionStats.requests} icon={FileText} color="bg-teal-50 text-teal-600 border-teal-200" desc="รอจ่ายงาน" />
           <PipelineCard step="2" title="รับงาน (Job)" count={collectionStats.assigned} icon={MapPin} color="bg-teal-50 text-teal-600 border-teal-200" desc="รถเข้ารับ" />
           <PipelineCard step="3" title="รับของ (Collected)" count={collectionStats.collected} icon={Box} color="bg-teal-50 text-teal-600 border-teal-200" desc="เข้าสาขา" />
           <PipelineCard step="4" title="จุดพัก (Hub)" count={collectionStats.consolidated} icon={Package} color="bg-indigo-50 text-indigo-600 border-indigo-200" desc="รอขนส่ง" />
           <PipelineCard step="5" title="ขนส่ง (Transit)" count={collectionStats.transit} icon={Truck} color="bg-blue-50 text-blue-600 border-blue-200" desc="เข้า Ops Hub" />
+          <PipelineCard step="6" title="รอปิดงาน (Pending)" count={collectionStats.pendingCompletion} icon={Clock} color="bg-orange-50 text-orange-600 border-orange-200" desc="Direct/Docs" />
+          <PipelineCard step="7" title="จบงาน (Completed)" count={collectionStats.completed} icon={CheckCircle} color="bg-green-50 text-green-600 border-green-200" desc="สำเร็จ" />
         </div>
       </div>
 
