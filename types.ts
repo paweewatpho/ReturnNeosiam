@@ -20,7 +20,72 @@ export enum AppView {
   OPERATIONS = 'OPERATIONS',
   NCR = 'NCR',
   NCR_REPORT = 'NCR_REPORT',
-  INVENTORY = 'INVENTORY'
+  INVENTORY = 'INVENTORY',
+  COLLECTION = 'COLLECTION'
+}
+
+export type CollectionStatus = 'PENDING' | 'ASSIGNED' | 'COLLECTED' | 'CONSOLIDATED';
+
+// --- REFRACTORED PER USER REQUEST (STEP 271) ---
+
+// 1. Commercial Document (RMA)
+export interface ReturnRequest {
+  id: string; // e.g., "RMA-001"
+  customerName: string;
+  customerAddress: string;
+  contactPerson: string;
+  contactPhone: string;
+  itemsSummary: string; // e.g., "Mouse x10, Keyboard x5"
+  status: 'APPROVED_FOR_PICKUP' | 'PICKUP_SCHEDULED' | 'RECEIVED_AT_HQ';
+}
+
+// 2. Logistics Document (Collection Order)
+export interface CollectionOrder {
+  id: string; // e.g., "COL-202512-001"
+  driverId: string;
+
+  // Linkage: Reference to RMAs
+  linkedRmaIds: string[];
+
+  // Driver Attributes
+  pickupLocation: {
+    name: string;
+    address: string;
+    lat?: number;
+    lng?: number;
+    contactName: string;
+    contactPhone: string;
+  };
+  pickupDate: string;
+
+  // Logistics Manifest
+  packageSummary: {
+    totalBoxes: number;
+    description: string;
+  };
+
+  status: CollectionStatus;
+  vehiclePlate?: string;
+
+  // Proof
+  proofOfCollection?: {
+    signatureUrl?: string;
+    photoUrls?: string[];
+    timestamp?: string;
+  };
+
+  createdDate: string;
+}
+
+// 3. Consolidation Document
+export interface ShipmentManifest {
+  id: string; // "SHP-2025-99"
+  collectionOrderIds: string[];
+  transportMethod: 'INTERNAL_FLEET' | '3PL_COURIER';
+  carrierName: string;
+  trackingNumber: string;
+  status: 'IN_TRANSIT' | 'ARRIVED_HQ';
+  createdDate: string;
 }
 
 export interface ChatMessage {
@@ -120,7 +185,6 @@ export interface ReturnRecord {
   disposition?: DispositionAction;
   notes?: string; // หมายเหตุ
 
-  // Problem Details (Intake)
   // Problem Details (Intake)
   // problemType: string; // DEPRECATED in favor of booleans below, but kept for legacy? (Maybe keep as summary)
   problemDetail?: string; // รายละเอียด (สำหรับพิมพ์ข้อความ)

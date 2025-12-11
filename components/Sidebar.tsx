@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, Settings, LogOut, PackageOpen, ScanBarcode, AlertOctagon, FileBarChart, Wifi, LayoutGrid, BarChart } from 'lucide-react';
+import { LayoutDashboard, Settings, LogOut, PackageOpen, ScanBarcode, AlertOctagon, FileBarChart, Wifi, LayoutGrid, BarChart, Truck } from 'lucide-react';
 import { AppView } from '../types';
 import { ref, set } from 'firebase/database';
 import { db } from '../firebase';
@@ -17,6 +17,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView }) => {
     { id: AppView.NCR, label: 'NCR (สินค้าตีกลับ)', icon: AlertOctagon },
     { id: AppView.NCR_REPORT, label: 'รายงาน NCR', icon: FileBarChart },
     { id: AppView.INVENTORY, label: 'คลังสินค้า (Inventory)', icon: LayoutGrid },
+    { id: AppView.COLLECTION, label: 'งานรับสินค้า (Collection Tasks)', icon: Truck },
   ];
 
   const handleTestConnection = async () => {
