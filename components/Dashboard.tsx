@@ -82,11 +82,14 @@ const Dashboard: React.FC = () => {
   // 1.2 Inbound Collection Stats (Mock Data / System 1 + Real Ops Data)
   const collectionStats = useMemo(() => {
     // Link to Operations: Find items originating from Collection System
-    // We assume items with refNo/neoRefNo starting with R-, COL- come from collection
-    const collectionItems = items.filter(i =>
-      (i.refNo && (i.refNo.startsWith('R-') || i.refNo.startsWith('COL-') || i.refNo.startsWith('RT-'))) ||
-      (i.neoRefNo && (i.neoRefNo.startsWith('R-') || i.neoRefNo.startsWith('COL-')))
-    );
+    // Strictly filter for COL/RMA IDs and EXCLUDE NCR items to match user request
+    const collectionItems = items.filter(i => {
+      const isNCR = i.ncrNumber || i.id.startsWith('NCR');
+      if (isNCR) return false; // Strictly exclude NCR
+
+      return (i.refNo && (i.refNo.startsWith('R-') || i.refNo.startsWith('COL-') || i.refNo.startsWith('RT-'))) ||
+        (i.neoRefNo && (i.neoRefNo.startsWith('R-') || i.neoRefNo.startsWith('COL-')));
+    });
 
     // Pending Completion = Received at Hub, QC, or Direct Return (waiting for close)
     // Exclude: Draft/Requested (Step 1-2 Ops), InTransitHub (Step 5 Collection), Completed
