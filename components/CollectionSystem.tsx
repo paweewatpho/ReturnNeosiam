@@ -87,6 +87,12 @@ const CollectionSystem: React.FC = () => {
     const [formCarrier, setFormCarrier] = useState('');
     const [formTracking, setFormTracking] = useState('');
 
+    // Fail Modal State
+    const [showFailModal, setShowFailModal] = useState(false);
+    const [failActionId, setFailActionId] = useState<string | null>(null);
+    const [failReasonType, setFailReasonType] = useState<'RESCHEDULE' | 'REFUSED'>('RESCHEDULE');
+    const [failRescheduleDate, setFailRescheduleDate] = useState(new Date().toISOString().split('T')[0]);
+
     // --- ACTIONS ---
 
     const handleCreateManualRequest = () => {
@@ -214,18 +220,29 @@ const CollectionSystem: React.FC = () => {
                 } : o));
             }
         } else if (action === 'FAIL') {
-            const finalReason = reason || 'ไม่ระบุเหตุผล';
-            setCollectionOrders(prev => prev.map(o => o.id === orderId ? {
-                ...o,
-                status: 'FAILED',
-                failureReason: finalReason
-            } : o));
+            setFailActionId(orderId);
+            setFailReasonType('RESCHEDULE'); // Default
+            setShowFailModal(true);
         }
     };
 
-    // --- RENDERERS ---
+    const handleFailSubmit = () => {
+        if (!failActionId) return;
 
-    // 1. CREATE REQUEST VIEW (New Step)
+        setCollectionOrders(prev => prev.map(o => o.id === failActionId ? {
+            ...o,
+            status: failReasonType === 'REFUSED' ? 'FAILED' : 'ASSIGNED', // Refused = FAILED, Reschedule = ASSIGNED (Active)
+            pickupDate: failReasonType === 'RESCHEDULE' ? failRescheduleDate : o.pickupDate,
+            failureReason: failReasonType === 'REFUSED'
+                ? 'ลูกค้าปฎิเสธการเก็บสินค้า'
+                : `เลื่อนรับของเป็นวันที่ ${failRescheduleDate}`
+        } : o));
+
+        setShowFailModal(false);
+        setFailActionId(null);
+    };
+
+    // --- RENDERERS ---
     const renderCreateRequestView = () => (
         <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
@@ -439,10 +456,7 @@ const CollectionSystem: React.FC = () => {
                                     <CheckCircle2 className="w-4 h-4" /> รับสินค้าสำเร็จ
                                 </button>
                                 <button
-                                    onClick={() => {
-                                        const reason = prompt('ระบุเหตุผลที่รับสินค้าไม่สำเร็จ:');
-                                        if (reason) handleDriverAction(order.id, 'FAIL', reason);
-                                    }}
+                                    onClick={() => handleDriverAction(order.id, 'FAIL')}
                                     className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 border border-red-200 font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm text-sm"
                                 >
                                     <X className="w-4 h-4" /> ไม่สำเร็จ
@@ -639,6 +653,63 @@ const CollectionSystem: React.FC = () => {
                         <div className="flex justify-end gap-3 mt-8">
                             <button onClick={() => setShowManifestModal(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg">ยกเลิก</button>
                             <button onClick={handleCreateManifest} className="px-6 py-2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 shadow-sm">สร้างเอกสาร (Create)</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Fail Modal */}
+            {showFailModal && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-scale-in">
+                        <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-red-600">
+                            <X className="w-6 h-6" /> ระบุเหตุผลที่ไม่สำเร็จ
+                        </h3>
+
+                        <div className="space-y-4 mb-6">
+                            <label className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                                <input
+                                    type="radio"
+                                    name="failReason"
+                                    className="w-5 h-5 accent-red-600"
+                                    checked={failReasonType === 'RESCHEDULE'}
+                                    onChange={() => setFailReasonType('RESCHEDULE')}
+                                />
+                                <div>
+                                    <div className="font-bold text-slate-700">ลูกค้าให้ไปเก็บสินค้าอีกครั้ง</div>
+                                    <div className="text-xs text-slate-500">ระบุวันที่นัดหมายใหม่</div>
+                                </div>
+                            </label>
+
+                            {failReasonType === 'RESCHEDULE' && (
+                                <div className="ml-8 animate-fade-in">
+                                    <input
+                                        type="date"
+                                        className="w-full p-2 border border-slate-300 rounded-lg"
+                                        value={failRescheduleDate}
+                                        onChange={e => setFailRescheduleDate(e.target.value)}
+                                    />
+                                </div>
+                            )}
+
+                            <label className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                                <input
+                                    type="radio"
+                                    name="failReason"
+                                    className="w-5 h-5 accent-red-600"
+                                    checked={failReasonType === 'REFUSED'}
+                                    onChange={() => setFailReasonType('REFUSED')}
+                                />
+                                <div>
+                                    <div className="font-bold text-slate-700">ลูกค้าปฎิเสธการเก็บสินค้า</div>
+                                    <div className="text-xs text-slate-500">ปิดงานทันที (Failed)</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div className="flex justify-end gap-3">
+                            <button onClick={() => setShowFailModal(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg">ยกเลิก</button>
+                            <button onClick={handleFailSubmit} className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 shadow-sm">ยืนยัน (Confirm)</button>
                         </div>
                     </div>
                 </div>
