@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useData, NCRRecord, NCRItem } from '../DataContext';
-import { FileText, TriangleAlert, ArrowRight, CircleCheck, Clock, MapPin, DollarSign, Package, User, Printer, X, Save, Eye, Edit, Lock, Trash2, CheckSquare, Search, Filter, Download, CircleX, RotateCcw, Image as ImageIcon } from 'lucide-react';
+import { FileText, TriangleAlert, ArrowRight, CircleCheck, Clock, MapPin, DollarSign, Package, User, Printer, X, Save, Eye, Edit, Lock, Trash2, CheckSquare, Search, Filter, Download, CircleX, RotateCcw, Image as ImageIcon, Truck, Plus, Minus, Calendar } from 'lucide-react';
 import { ReturnRecord, ReturnStatus } from '../types';
 import { LineAutocomplete } from './LineAutocomplete';
 import { exportNCRToExcel } from './NCRExcelExport';
@@ -52,6 +52,28 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
+
+  // Timeline Expansion State
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
+  const toggleRow = (id: string) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id);
+    } else {
+      newExpanded.add(id);
+    }
+    setExpandedRows(newExpanded);
+  };
+
+  const calculateDuration = (startDate?: string, endDate?: string) => {
+    if (!startDate || !endDate) return null;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
 
   const filteredNcrReports = useMemo(() => {
     return ncrReports.filter(report => {
@@ -550,7 +572,8 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
           <table className="w-full text-left border-collapse">
             <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10 shadow-sm text-xs uppercase text-slate-500 font-bold">
               <tr className="whitespace-nowrap">
-                <th className="px-4 py-3 bg-slate-50 sticky left-0 z-10 border-r">วันที่ / เลขที่ NCR</th>
+                <th className="px-2 py-3 bg-slate-50 sticky left-0 z-10 border-r w-10 text-center">#</th>
+                <th className="px-4 py-3 bg-slate-50 sticky left-10 z-10 border-r">วันที่ / เลขที่ NCR</th>
                 <th className="px-4 py-3">สินค้า (Product)</th>
                 <th className="px-4 py-3">ลูกค้า (Customer)</th>
                 <th className="px-4 py-3">ผู้พบปัญหา (Founder)</th>
@@ -574,123 +597,226 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                   const isCanceled = report.status === 'Canceled';
 
                   return (
-                    <tr key={report.id} className={`hover:bg-slate-50 ${isCanceled ? 'line-through text-slate-400 bg-slate-50' : ''}`}>
-                      <td className={`px-4 py-3 sticky left-0 border-r ${isCanceled ? 'bg-slate-100' : 'bg-white hover:bg-slate-50'}`}>
-                        <button
-                          onClick={() => handleViewNCRForm(report)}
-                          disabled={isCanceled}
-                          className="font-bold text-blue-600 hover:text-blue-800 hover:underline text-left flex items-center gap-1 disabled:text-slate-400 disabled:no-underline disabled:cursor-not-allowed"
-                          title="ดูใบแจ้งปัญหาระบบ (View NCR Form)"
-                        >
-                          {report.ncrNo || report.id} <Eye className="w-3 h-3" />
-                        </button>
-                        <div className="text-xs">{report.date}</div>
-                        <div className="mt-1">
-                          {isCanceled ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 font-bold bg-slate-200 px-1.5 py-0.5 rounded border border-slate-300"><CircleX className="w-3 h-3" /> ยกเลิก</span>
-                          ) : report.status === 'Closed' ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded border border-green-100"><CircleCheck className="w-3 h-3" /> Closed</span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[10px] text-amber-500 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100"><Clock className="w-3 h-3" /> {report.status || 'Open'}</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className={`font-bold flex items-center gap-2 ${isCanceled ? '' : 'text-blue-600'}`}>
-                          <Package className="w-4 h-4" /> {itemData.productCode}
-                        </div>
-                        <div className={isCanceled ? '' : 'text-slate-700'}>{itemData.productName}</div>
-                        <div className="text-xs">Qty: {itemData.quantity} {itemData.unit}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className={`flex items-center gap-2 font-medium ${isCanceled ? '' : 'text-slate-700'}`}>
-                          <User className="w-4 h-4" /> {itemData.customerName || '-'}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="text-sm text-slate-600">{itemData.founder || report.founder || correspondingReturn?.founder || '-'}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1 text-xs">
-                          <span className="font-bold w-8">From:</span> {itemData.branch}
-                        </div>
-                        <div className="flex items-center gap-1 text-xs mt-1">
-                          <span className="font-bold w-8">To:</span> <span className="truncate max-w-[150px]" title={itemData.destinationCustomer}>{itemData.destinationCustomer || '-'}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 max-w-[250px] whitespace-normal">
-                        <div className={`text-xs font-bold ${isCanceled ? '' : 'text-slate-700'} mb-0.5`}>{report.problemDetail}</div>
-                        <div className={`text-[10px] p-1 rounded border ${isCanceled ? 'bg-slate-100' : 'bg-slate-100 border-slate-200'}`}>
-                          Source: {itemData.problemSource}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {itemData.hasCost ? (
-                          <div className="flex flex-col items-end">
-                            <span className={`font-bold flex items-center gap-1 ${isCanceled ? '' : 'text-red-600'}`}>
-                              <DollarSign className="w-3 h-3" /> {itemData.costAmount?.toLocaleString()}
-                            </span>
-                            <span className="text-[10px]">{itemData.costResponsible}</span>
+                    <React.Fragment key={report.id}>
+                      <tr className={`hover:bg-slate-50 ${isCanceled ? 'line-through text-slate-400 bg-slate-50' : ''}`}>
+                        <td className={`px-2 py-3 sticky left-0 border-r text-center ${isCanceled ? 'bg-slate-100' : 'bg-white hover:bg-slate-50'}`}>
+                          <button
+                            onClick={() => toggleRow(report.id)}
+                            className="p-1 rounded-full hover:bg-slate-200 text-slate-400 transition-colors"
+                          >
+                            {expandedRows.has(report.id) ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                          </button>
+                        </td>
+                        <td className={`px-4 py-3 sticky left-10 border-r ${isCanceled ? 'bg-slate-100' : 'bg-white hover:bg-slate-50'}`}>
+                          <button
+                            onClick={() => handleViewNCRForm(report)}
+                            disabled={isCanceled}
+                            className="font-bold text-blue-600 hover:text-blue-800 hover:underline text-left flex items-center gap-1 disabled:text-slate-400 disabled:no-underline disabled:cursor-not-allowed"
+                            title="ดูใบแจ้งปัญหาระบบ (View NCR Form)"
+                          >
+                            {report.ncrNo || report.id} <Eye className="w-3 h-3" />
+                          </button>
+                          <div className="text-xs">{report.date}</div>
+                          <div className="mt-1">
+                            {isCanceled ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 font-bold bg-slate-200 px-1.5 py-0.5 rounded border border-slate-300"><CircleX className="w-3 h-3" /> ยกเลิก</span>
+                            ) : report.status === 'Closed' ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded border border-green-100"><CircleCheck className="w-3 h-3" /> Closed</span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-amber-500 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100"><Clock className="w-3 h-3" /> {report.status || 'Open'}</span>
+                            )}
                           </div>
-                        ) : (
-                          <span className="text-xs">-</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {report.actionReject || report.actionRejectSort ? (
-                          <span className={`inline-block px-2 py-1 rounded text-[10px] font-bold border ${isCanceled ? 'bg-slate-200' : 'bg-red-100 text-red-700 border-red-200'}`}>Reject</span>
-                        ) : report.actionScrap ? (
-                          <span className={`inline-block px-2 py-1 rounded text-[10px] font-bold border ${isCanceled ? 'bg-slate-200' : 'bg-orange-100 text-orange-700 border-orange-200'}`}>Scrap</span>
-                        ) : (
-                          <span className="text-xs text-slate-400">-</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {correspondingReturn ? (
-                          <span className={`inline-block px-2 py-1 rounded text-[10px] font-bold border ${correspondingReturn.status === 'Received' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                            correspondingReturn.status === 'Graded' ? 'bg-indigo-100 text-indigo-700 border-indigo-200' :
-                              correspondingReturn.status === 'Completed' ? 'bg-green-100 text-green-700 border-green-200' :
-                                'bg-yellow-100 text-yellow-700 border-yellow-200'
-                            }`}>
-                            {correspondingReturn.status}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-slate-400">-</span>
-                        )}
-                      </td>
-                      <td className={`px-4 py-3 text-center sticky right-0 border-l ${isCanceled ? 'bg-slate-100' : 'bg-white'}`}>
-                        <div className="flex items-center justify-center gap-2">
-                          <button onClick={() => handleOpenPrint(report)} disabled={isCanceled} className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="พิมพ์ใบส่งคืน (Print Return Note)">
-                            <Printer className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => handleEditClick(report)} disabled={isCanceled} className="p-1.5 text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="แก้ไข (Edit)">
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => handleDeleteClick(report.id)} disabled={isCanceled} className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="ยกเลิก (Cancel)">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => handleRowExportExcel(report)} disabled={isCanceled} className="p-1.5 text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="Export Form to Excel">
-                            <Download className="w-4 h-4" />
-                          </button>
-
-                          {isCanceled ? (
-                            <span className="inline-flex items-center gap-1 bg-slate-200 text-slate-500 px-2 py-1.5 rounded text-[10px] font-bold border border-slate-300">
-                              <CircleX className="w-3 h-3" /> ยกเลิกแล้ว
-                            </span>
-                          ) : correspondingReturn ? (
-                            <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1.5 rounded text-[10px] font-bold border border-green-200">
-                              <CircleCheck className="w-3 h-3" /> ส่งคืนแล้ว
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className={`font-bold flex items-center gap-2 ${isCanceled ? '' : 'text-blue-600'}`}>
+                            <Package className="w-4 h-4" /> {itemData.productCode}
+                          </div>
+                          <div className={isCanceled ? '' : 'text-slate-700'}>{itemData.productName}</div>
+                          <div className="text-xs">Qty: {itemData.quantity} {itemData.unit}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className={`flex items-center gap-2 font-medium ${isCanceled ? '' : 'text-slate-700'}`}>
+                            <User className="w-4 h-4" /> {itemData.customerName || '-'}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="text-sm text-slate-600">{itemData.founder || report.founder || correspondingReturn?.founder || '-'}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1 text-xs">
+                            <span className="font-bold w-8">From:</span> {itemData.branch}
+                          </div>
+                          <div className="flex items-center gap-1 text-xs mt-1">
+                            <span className="font-bold w-8">To:</span> <span className="truncate max-w-[150px]" title={itemData.destinationCustomer}>{itemData.destinationCustomer || '-'}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 max-w-[250px] whitespace-normal">
+                          <div className={`text-xs font-bold ${isCanceled ? '' : 'text-slate-700'} mb-0.5`}>{report.problemDetail}</div>
+                          <div className={`text-[10px] p-1 rounded border ${isCanceled ? 'bg-slate-100' : 'bg-slate-100 border-slate-200'}`}>
+                            Source: {itemData.problemSource}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {itemData.hasCost ? (
+                            <div className="flex flex-col items-end">
+                              <span className={`font-bold flex items-center gap-1 ${isCanceled ? '' : 'text-red-600'}`}>
+                                <DollarSign className="w-3 h-3" /> {itemData.costAmount?.toLocaleString()}
+                              </span>
+                              <span className="text-[10px]">{itemData.costResponsible}</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {report.actionReject || report.actionRejectSort ? (
+                            <span className={`inline-block px-2 py-1 rounded text-[10px] font-bold border ${isCanceled ? 'bg-slate-200' : 'bg-red-100 text-red-700 border-red-200'}`}>Reject</span>
+                          ) : report.actionScrap ? (
+                            <span className={`inline-block px-2 py-1 rounded text-[10px] font-bold border ${isCanceled ? 'bg-slate-200' : 'bg-orange-100 text-orange-700 border-orange-200'}`}>Scrap</span>
+                          ) : (
+                            <span className="text-xs text-slate-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {correspondingReturn ? (
+                            <span className={`inline-block px-2 py-1 rounded text-[10px] font-bold border ${correspondingReturn.status === 'Received' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                              correspondingReturn.status === 'Graded' ? 'bg-indigo-100 text-indigo-700 border-indigo-200' :
+                                correspondingReturn.status === 'Completed' ? 'bg-green-100 text-green-700 border-green-200' :
+                                  'bg-yellow-100 text-yellow-700 border-yellow-200'
+                              }`}>
+                              {correspondingReturn.status}
                             </span>
                           ) : (
-                            (report.actionReject || report.actionScrap || report.actionRejectSort) && (
-                              <button onClick={() => handleCreateReturn(report)} className="inline-flex items-center gap-1 bg-orange-500 hover:bg-orange-600 text-white px-2 py-1.5 rounded shadow-sm transition-all transform hover:scale-105 text-[10px] font-bold" title="สร้างคำขอคืนสินค้าอัตโนมัติ">
-                                ส่งคืน <ArrowRight className="w-3 h-3" />
-                              </button>
-                            )
+                            <span className="text-xs text-slate-400">-</span>
                           )}
-                        </div>
-                      </td>
-                    </tr>
+                        </td>
+                        <td className={`px-4 py-3 text-center sticky right-0 border-l ${isCanceled ? 'bg-slate-100' : 'bg-white'}`}>
+                          <div className="flex items-center justify-center gap-2">
+                            <button onClick={() => handleOpenPrint(report)} disabled={isCanceled} className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="พิมพ์ใบส่งคืน (Print Return Note)">
+                              <Printer className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleEditClick(report)} disabled={isCanceled} className="p-1.5 text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="แก้ไข (Edit)">
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleDeleteClick(report.id)} disabled={isCanceled} className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="ยกเลิก (Cancel)">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleRowExportExcel(report)} disabled={isCanceled} className="p-1.5 text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="Export Form to Excel">
+                              <Download className="w-4 h-4" />
+                            </button>
+
+                            {isCanceled ? (
+                              <span className="inline-flex items-center gap-1 bg-slate-200 text-slate-500 px-2 py-1.5 rounded text-[10px] font-bold border border-slate-300">
+                                <CircleX className="w-3 h-3" /> ยกเลิกแล้ว
+                              </span>
+                            ) : correspondingReturn ? (
+                              <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1.5 rounded text-[10px] font-bold border border-green-200">
+                                <CircleCheck className="w-3 h-3" /> ส่งคืนแล้ว
+                              </span>
+                            ) : (
+                              (report.actionReject || report.actionScrap || report.actionRejectSort) && (
+                                <button onClick={() => handleCreateReturn(report)} className="inline-flex items-center gap-1 bg-orange-500 hover:bg-orange-600 text-white px-2 py-1.5 rounded shadow-sm transition-all transform hover:scale-105 text-[10px] font-bold" title="สร้างคำขอคืนสินค้าอัตโนมัติ">
+                                  ส่งคืน <ArrowRight className="w-3 h-3" />
+                                </button>
+                              )
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                      {expandedRows.has(report.id) && (
+                        <tr className="bg-slate-50/50">
+                          <td colSpan={11} className="p-6 border-b border-slate-200 shadow-inner">
+                            <div className="max-w-6xl mx-auto">
+                              <h4 className="font-bold text-slate-700 mb-6 flex items-center gap-2">
+                                <Calendar className="w-5 h-5 text-blue-600" />
+                                Timeline การดำเนินการ (Return Status Tracking)
+                              </h4>
+
+                              <div className="relative flex justify-between items-start px-12">
+                                {/* Connecting Line Background */}
+                                <div className="absolute top-5 left-12 right-12 h-1 bg-slate-200 -z-10 rounded-full"></div>
+
+                                {/* Timeline Steps */}
+                                {[
+                                  { id: 1, label: 'แจ้งคืน (Request)', status: 'รออนุมัติ', date: correspondingReturn?.dateRequested || report.date, icon: FileText, colorKey: 'blue' },
+                                  { id: 2, label: 'ขนส่ง (Logistics)', status: 'ระหว่างทาง', date: correspondingReturn?.dateInTransit, icon: Truck, colorKey: 'orange' },
+                                  { id: 3, label: 'รับเข้า (Receive)', status: 'ถึง Hub', date: correspondingReturn?.dateReceived, icon: MapPin, colorKey: 'indigo' },
+                                  { id: 4, label: 'ตรวจสอบ (QC)', status: 'รอคัดแยก', date: correspondingReturn?.dateGraded, icon: CheckSquare, colorKey: 'yellow' },
+                                  { id: 5, label: 'คลัง/เอกสาร', status: 'รอปิดงาน', date: correspondingReturn?.dateDocumented, icon: FileText, colorKey: 'purple' },
+                                  { id: 6, label: 'ปิดงาน (Done)', status: 'สำเร็จ', date: correspondingReturn?.dateCompleted, icon: CircleCheck, colorKey: 'green' },
+                                ].map((step, index, array) => {
+
+                                  const styleMap: Record<string, any> = {
+                                    blue: { bg: 'bg-blue-100', border: 'border-blue-500', text: 'text-blue-600', badgeBg: 'bg-blue-50', badgeText: 'text-blue-700', badgeBorder: 'border-blue-100' },
+                                    orange: { bg: 'bg-orange-100', border: 'border-orange-500', text: 'text-orange-600', badgeBg: 'bg-orange-50', badgeText: 'text-orange-700', badgeBorder: 'border-orange-100' },
+                                    indigo: { bg: 'bg-indigo-100', border: 'border-indigo-500', text: 'text-indigo-600', badgeBg: 'bg-indigo-50', badgeText: 'text-indigo-700', badgeBorder: 'border-indigo-100' },
+                                    yellow: { bg: 'bg-yellow-100', border: 'border-yellow-500', text: 'text-yellow-600', badgeBg: 'bg-yellow-50', badgeText: 'text-yellow-700', badgeBorder: 'border-yellow-100' },
+                                    purple: { bg: 'bg-purple-100', border: 'border-purple-500', text: 'text-purple-600', badgeBg: 'bg-purple-50', badgeText: 'text-purple-700', badgeBorder: 'border-purple-100' },
+                                    green: { bg: 'bg-green-100', border: 'border-green-500', text: 'text-green-600', badgeBg: 'bg-green-50', badgeText: 'text-green-700', badgeBorder: 'border-green-100' },
+                                  };
+
+                                  const styles = styleMap[step.colorKey];
+                                  const isActive = !!step.date;
+                                  //const isNext = !isActive && array[index - 1]?.date;
+
+                                  const prevStep = array[index - 1];
+                                  const durationDetails = (isActive && prevStep?.date) ? calculateDuration(prevStep.date, step.date) : null;
+
+                                  return (
+                                    <div key={step.id} className="relative flex flex-col items-center">
+                                      {/* Duration Label on Line */}
+                                      {index > 0 && (
+                                        <div className="absolute -left-[50%] top-[-20px] w-full text-center">
+                                          {durationDetails !== null && (
+                                            <span className="text-[10px] font-bold text-slate-400 bg-white px-1 py-0.5 rounded border border-slate-100 shadow-sm">
+                                              {durationDetails} วัน
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      {/* Icon Circle */}
+                                      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 mb-2 z-10 transition-all duration-300
+                                        ${isActive
+                                          ? `${styles.bg} ${styles.border} ${styles.text} shadow-md scale-110`
+                                          : 'bg-white border-slate-300 text-slate-300'
+                                        }
+                                      `}>
+                                        <step.icon className="w-5 h-5" />
+                                      </div>
+
+                                      {/* Text Content */}
+                                      <div className="text-center space-y-1">
+                                        <div className={`text-sm font-bold ${isActive ? 'text-slate-800' : 'text-slate-400'}`}>
+                                          {step.label}
+                                        </div>
+                                        <div className={`text-xs px-2 py-0.5 rounded-full inline-block font-medium
+                                          ${isActive
+                                            ? `${styles.badgeBg} ${styles.badgeText} border ${styles.badgeBorder}`
+                                            : 'text-slate-400 bg-slate-100'
+                                          }
+                                        `}>
+                                          {step.status}
+                                        </div>
+                                        {step.date && (
+                                          <div className="text-[10px] font-mono text-slate-500 mt-1">
+                                            {step.date}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              <div className="text-right mt-8 text-xs text-slate-400">
+                                * ระยะเวลา (วัน) คำนวณจากวันที่ดำเนินการในขั้นตอนก่อนหน้า
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })
               )}

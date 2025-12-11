@@ -99,11 +99,12 @@ export interface ReturnRecord {
   problemAnalysisDetail?: string;
 
   // Status Timestamps (Timeline)
-  dateRequested?: string;   // 1. แจ้งคืนสินค้า
-  dateReceived?: string;    // 2. รับสินค้าเข้า
-  dateGraded?: string;      // 3. ตรวจสอบคุณภาพ
-  dateDocumented?: string;  // 4. ออกเอกสาร
-  dateCompleted?: string;   // 5. ปิดงาน
+  dateRequested?: string;   // 1. แจ้งคืนสินค้า (Request)
+  dateInTransit?: string;   // 2. ขนส่ง (Logistics)
+  dateReceived?: string;    // 3. รับสินค้าเข้า (Receive)
+  dateGraded?: string;      // 4. ตรวจสอบคุณภาพ (QC)
+  dateDocumented?: string;  // 5. ออกเอกสาร (Warehouse/Docs)
+  dateCompleted?: string;   // 6. ปิดงาน (Done)
 
   // New Intake Fields
   quantity: number; // จำนวน
