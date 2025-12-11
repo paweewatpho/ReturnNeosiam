@@ -75,7 +75,7 @@ const CollectionSystem: React.FC = () => {
             pickupDate: formDate,
             packageSummary: {
                 totalBoxes: formBoxes,
-                description: formDesc || 'General Goods'
+                description: formDesc || 'สินค้าทั่วไป'
             },
             status: 'PENDING',
             vehiclePlate: mockDrivers.find(d => d.id === formDriverId)?.plate,
@@ -120,7 +120,7 @@ const CollectionSystem: React.FC = () => {
 
     const handleDriverAction = (orderId: string, action: 'COLLECT') => {
         if (action === 'COLLECT') {
-            if (confirm('Driver: Confirm collection of goods? (Photo/Signature simulated)')) {
+            if (confirm('คนขับรถ: ยืนยันการรับสินค้า? (จำลองการถ่ายรูป/เซ็นชื่อ)')) {
                 setCollectionOrders(prev => prev.map(o => o.id === orderId ? {
                     ...o,
                     status: 'COLLECTED',
@@ -142,35 +142,35 @@ const CollectionSystem: React.FC = () => {
 
         return (
             <div className="space-y-6">
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm animate-fade-in">
                     <div className="flex justify-between items-center mb-4">
                         <div>
-                            <h3 className="text-lg font-bold text-slate-800">1. Pending Pickups (Source: Approved RMAs)</h3>
-                            <p className="text-sm text-slate-500">Commercial Requests waiting for Logistics assignment.</p>
+                            <h3 className="text-lg font-bold text-slate-800">1. งานรอจ่าย (Pending Pickups)</h3>
+                            <p className="text-sm text-slate-500">ใบคำร้องรอการจ่ายงานให้รถขนส่ง (Source: Approved RMAs)</p>
                         </div>
                         {selectedRmas.length > 0 && (
                             <button
                                 onClick={() => setShowCreateModal(true)}
-                                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 animate-bounce-short"
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 animate-bounce-short shadow-md hover:bg-blue-700 transition"
                             >
-                                <Truck className="w-5 h-5" /> Dispatch {selectedRmas.length} Requests
+                                <Truck className="w-5 h-5" /> สร้างใบสั่งงาน ({selectedRmas.length} รายการ)
                             </button>
                         )}
                     </div>
 
                     <table className="w-full text-left">
-                        <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold">
+                        <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold border-b border-slate-200">
                             <tr>
                                 <th className="p-3 w-10"><input type="checkbox" disabled /></th>
-                                <th className="p-3">RMA ID</th>
-                                <th className="p-3">Customer / Location</th>
-                                <th className="p-3">Items Summary</th>
-                                <th className="p-3 text-right">Status</th>
+                                <th className="p-3">เลขที่ RMA</th>
+                                <th className="p-3">ลูกค้า / สถานที่</th>
+                                <th className="p-3">รายการสินค้า</th>
+                                <th className="p-3 text-right">สถานะ</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {pendingRmas.length === 0 ? (
-                                <tr><td colSpan={5} className="p-8 text-center text-slate-400 italic">No approved RMAs pending pickup.</td></tr>
+                                <tr><td colSpan={5} className="p-8 text-center text-slate-400 italic">ไม่มีรายการรอจ่ายงาน (No pending items)</td></tr>
                             ) : pendingRmas.map(rma => (
                                 <tr key={rma.id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => {
                                     setSelectedRmas(prev => prev.includes(rma.id) ? prev.filter(id => id !== rma.id) : [...prev, rma.id]);
@@ -180,7 +180,7 @@ const CollectionSystem: React.FC = () => {
                                             type="checkbox"
                                             checked={selectedRmas.includes(rma.id)}
                                             onChange={() => { }}
-                                            className="accent-blue-600 w-4 h-4"
+                                            className="accent-blue-600 w-4 h-4 cursor-pointer"
                                         />
                                     </td>
                                     <td className="p-3 font-mono text-sm font-bold text-blue-600">{rma.id}</td>
@@ -206,12 +206,16 @@ const CollectionSystem: React.FC = () => {
 
         return (
             <div className="space-y-4">
-                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <Truck className="w-5 h-5" /> Driver Task List
-                </h3>
+                <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <Truck className="w-5 h-5" /> รายการงานคนขับ (Driver Tasks)
+                    </h3>
+                    <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">มุมมองคนขับ (Driver View)</span>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {myTasks.map(order => (
-                        <div key={order.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                        <div key={order.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
                             <div className="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
                                 <span className="font-mono font-bold text-slate-700">{order.id}</span>
                                 <StatusBadge status={order.status} />
@@ -225,17 +229,17 @@ const CollectionSystem: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <User className="w-5 h-5 text-blue-500 shrink-0" />
+                                    <Phone className="w-5 h-5 text-blue-500 shrink-0" />
                                     <div className="text-sm">
                                         <span className="font-bold">{order.pickupLocation.contactName}</span>
                                         <span className="text-slate-400 mx-1">|</span>
-                                        <a href={`tel:${order.pickupLocation.contactPhone}`} className="text-blue-600 underline">{order.pickupLocation.contactPhone}</a>
+                                        <a href={`tel:${order.pickupLocation.contactPhone}`} className="text-blue-600 underline font-bold">{order.pickupLocation.contactPhone}</a>
                                     </div>
                                 </div>
                                 <div className="bg-amber-50 p-3 rounded border border-amber-100 flex items-center gap-3">
                                     <Package className="w-8 h-8 text-amber-600" />
                                     <div>
-                                        <div className="font-bold text-slate-800">{order.packageSummary.totalBoxes} Packages</div>
+                                        <div className="font-bold text-slate-800">จำนวน {order.packageSummary.totalBoxes} กล่อง</div>
                                         <div className="text-xs text-slate-500">{order.packageSummary.description}</div>
                                     </div>
                                 </div>
@@ -243,14 +247,14 @@ const CollectionSystem: React.FC = () => {
                             <div className="p-4 border-t border-slate-100 bg-slate-50">
                                 <button
                                     onClick={() => handleDriverAction(order.id, 'COLLECT')}
-                                    className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                                    className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
                                 >
-                                    <Camera className="w-4 h-4" /> Confirm Collection
+                                    <Camera className="w-4 h-4" /> ยืนยันรับสินค้า (Confirm)
                                 </button>
                             </div>
                         </div>
                     ))}
-                    {myTasks.length === 0 && <div className="col-span-full py-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">No active tasks assigned.</div>}
+                    {myTasks.length === 0 && <div className="col-span-full py-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">ไม่มีงานค้าง (No active tasks)</div>}
                 </div>
             </div>
         );
@@ -262,36 +266,36 @@ const CollectionSystem: React.FC = () => {
 
         return (
             <div className="space-y-6">
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm animate-fade-in">
                     <div className="flex justify-between items-center mb-4">
                         <div>
-                            <h3 className="text-lg font-bold text-slate-800">3. Hub Consolidation</h3>
-                            <p className="text-sm text-slate-500">Items collected by drivers, waiting to be shipped to HQ.</p>
+                            <h3 className="text-lg font-bold text-slate-800">3. จุดพักสินค้า (Hub Consolidation)</h3>
+                            <p className="text-sm text-slate-500">รวมสินค้าเพื่อส่งกลับ HQ (Items at Hub)</p>
                         </div>
                         {selectedCollectionIds.length > 0 && (
                             <button
                                 onClick={() => setShowManifestModal(true)}
-                                className="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 animate-bounce-short"
+                                className="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 animate-bounce-short shadow-md hover:bg-purple-700 transition"
                             >
-                                <Ship className="w-5 h-5" /> Create Manifest ({selectedCollectionIds.length})
+                                <Ship className="w-5 h-5" /> สร้าง Shipment ({selectedCollectionIds.length} รายการ)
                             </button>
                         )}
                     </div>
 
                     <table className="w-full text-left">
-                        <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold">
+                        <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold border-b border-slate-200">
                             <tr>
                                 <th className="p-3 w-10"><input type="checkbox" disabled /></th>
-                                <th className="p-3">Collection ID</th>
-                                <th className="p-3">Pickup Location</th>
-                                <th className="p-3">Driver</th>
-                                <th className="p-3 text-center">Boxes</th>
-                                <th className="p-3 text-right">Status</th>
+                                <th className="p-3">เลขที่ใบงาน</th>
+                                <th className="p-3">จุดรับสินค้า</th>
+                                <th className="p-3">คนขับ</th>
+                                <th className="p-3 text-center">กล่อง</th>
+                                <th className="p-3 text-right">สถานะ</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {collectedOrders.length === 0 ? (
-                                <tr><td colSpan={6} className="p-8 text-center text-slate-400 italic">No collected items at Hub.</td></tr>
+                                <tr><td colSpan={6} className="p-8 text-center text-slate-400 italic">ไม่มีสินค้ารอส่งที่ Hub</td></tr>
                             ) : collectedOrders.map(order => (
                                 <tr key={order.id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => {
                                     setSelectedCollectionIds(prev => prev.includes(order.id) ? prev.filter(id => id !== order.id) : [...prev, order.id]);
@@ -301,7 +305,7 @@ const CollectionSystem: React.FC = () => {
                                             type="checkbox"
                                             checked={selectedCollectionIds.includes(order.id)}
                                             onChange={() => { }}
-                                            className="accent-purple-600 w-4 h-4"
+                                            className="accent-purple-600 w-4 h-4 cursor-pointer"
                                         />
                                     </td>
                                     <td className="p-3 font-mono text-sm font-bold text-purple-600">{order.id}</td>
@@ -320,21 +324,24 @@ const CollectionSystem: React.FC = () => {
                 </div>
 
                 <div className="border-t border-slate-200 pt-6">
-                    <h4 className="font-bold text-slate-700 mb-4">Recent Shipments (Manifests)</h4>
+                    <h4 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                        <FileText className="w-5 h-5" /> ประวัติการส่งของ (Recent Shipments)
+                    </h4>
                     <div className="grid gap-4">
                         {shipments.map(shipment => (
-                            <div key={shipment.id} className="bg-slate-50 p-4 rounded border border-slate-200 flex justify-between items-center">
+                            <div key={shipment.id} className="bg-white p-4 rounded border border-slate-200 flex justify-between items-center shadow-sm">
                                 <div>
-                                    <div className="font-bold text-slate-800">{shipment.id}</div>
-                                    <div className="text-xs text-slate-500 flex gap-2 mt-1">
-                                        <span>Via: {shipment.carrierName}</span>
-                                        <span>Track: {shipment.trackingNumber}</span>
-                                        <span>Count: {shipment.collectionOrderIds.length} Orders</span>
+                                    <div className="font-bold text-slate-800 text-lg">{shipment.id}</div>
+                                    <div className="text-xs text-slate-500 flex gap-4 mt-1">
+                                        <span className="font-semibold">ขนส่ง: {shipment.carrierName}</span>
+                                        <span>Tracking: {shipment.trackingNumber}</span>
+                                        <span>จำนวน: {shipment.collectionOrderIds.length} ใบงาน</span>
                                     </div>
                                 </div>
                                 <StatusBadge status={shipment.status} />
                             </div>
                         ))}
+                        {shipments.length === 0 && <div className="text-slate-400 italic text-sm">ยังไม่มีประวัติการส่ง</div>}
                     </div>
                 </div>
             </div>
@@ -346,18 +353,18 @@ const CollectionSystem: React.FC = () => {
             {/* STEP NAVIGATION */}
             <div className="bg-white border-b border-slate-200 px-6 py-4">
                 <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-xl font-bold text-slate-800">Inbound Logistics</h2>
+                    <h2 className="text-xl font-bold text-slate-800">ระบบงานรับสินค้า (Inbound Logistics)</h2>
                     <span className="text-xs text-slate-400 font-mono">Module: LOG-INBOUND-01</span>
                 </div>
                 <div className="flex gap-2">
                     <button onClick={() => setCurrentStep(1)} className={`flex-1 py-3 px-4 rounded-lg border text-sm font-bold transition-all ${currentStep === 1 ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
-                        1. Dispatch (RMA)
+                        1. จ่ายงาน (Dispatch)
                     </button>
                     <button onClick={() => setCurrentStep(2)} className={`flex-1 py-3 px-4 rounded-lg border text-sm font-bold transition-all ${currentStep === 2 ? 'bg-amber-50 border-amber-200 text-amber-700 shadow-sm' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
-                        2. Driver Collection
+                        2. คนขับรับของ (Driver)
                     </button>
                     <button onClick={() => setCurrentStep(3)} className={`flex-1 py-3 px-4 rounded-lg border text-sm font-bold transition-all ${currentStep === 3 ? 'bg-purple-50 border-purple-200 text-purple-700 shadow-sm' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
-                        3. Consolidation
+                        3. รวมของส่ง HQ (Hub)
                     </button>
                 </div>
             </div>
@@ -375,36 +382,36 @@ const CollectionSystem: React.FC = () => {
             {showCreateModal && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 animate-scale-in">
-                        <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Truck className="w-6 h-6 text-blue-600" /> Create Collection Order</h3>
-                        <p className="text-sm text-slate-500 mb-6">Grouping {selectedRmas.length} RMAs for pickup.</p>
+                        <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Truck className="w-6 h-6 text-blue-600" /> สร้างใบสั่งงาน (Create Order)</h3>
+                        <p className="text-sm text-slate-500 mb-6">รวม {selectedRmas.length} รายการ เพื่อจ่ายงานให้คนขับ</p>
 
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Assign Driver</label>
-                                <select className="w-full p-2 border border-slate-300 rounded-lg" value={formDriverId} onChange={e => setFormDriverId(e.target.value)}>
-                                    <option value="">-- Select Driver --</option>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">เลือกคนขับ (Driver)</label>
+                                <select className="w-full p-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" value={formDriverId} onChange={e => setFormDriverId(e.target.value)}>
+                                    <option value="">-- เลือกรายการ --</option>
                                     {mockDrivers.map(d => <option key={d.id} value={d.id}>{d.name} ({d.plate})</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Pickup Date</label>
-                                <input type="date" className="w-full p-2 border border-slate-300 rounded-lg" value={formDate} onChange={e => setFormDate(e.target.value)} />
+                                <label className="block text-sm font-medium text-slate-700 mb-1">วันที่เข้ารับ (Pickup Date)</label>
+                                <input type="date" className="w-full p-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" value={formDate} onChange={e => setFormDate(e.target.value)} />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Total Boxes (Est.)</label>
-                                    <input type="number" min="1" className="w-full p-2 border border-slate-300 rounded-lg" value={formBoxes} onChange={e => setFormBoxes(parseInt(e.target.value))} />
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">จำนวนกล่อง (ประมาณ)</label>
+                                    <input type="number" min="1" className="w-full p-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" value={formBoxes} onChange={e => setFormBoxes(parseInt(e.target.value))} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-                                    <input type="text" className="w-full p-2 border border-slate-300 rounded-lg" placeholder="e.g. Computer Parts" value={formDesc} onChange={e => setFormDesc(e.target.value)} />
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">รายละเอียดสินค้า</label>
+                                    <input type="text" className="w-full p-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="เช่น อุปกรณ์คอมพิวเตอร์" value={formDesc} onChange={e => setFormDesc(e.target.value)} />
                                 </div>
                             </div>
                         </div>
 
                         <div className="flex justify-end gap-3 mt-8">
-                            <button onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg">Cancel</button>
-                            <button onClick={handleCreateCollection} className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">Confirm Dispatch</button>
+                            <button onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg">ยกเลิก</button>
+                            <button onClick={handleCreateCollection} className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-sm">ยืนยันจ่ายงาน (Dispatch)</button>
                         </div>
                     </div>
                 </div>
@@ -414,23 +421,23 @@ const CollectionSystem: React.FC = () => {
             {showManifestModal && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 animate-scale-in">
-                        <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Ship className="w-6 h-6 text-purple-600" /> Create Shipment Manifest</h3>
-                        <p className="text-sm text-slate-500 mb-6">Consolidating {selectedCollectionIds.length} collections to HQ.</p>
+                        <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Ship className="w-6 h-6 text-purple-600" /> สร้าง Shipment Manifest</h3>
+                        <p className="text-sm text-slate-500 mb-6">รวม {selectedCollectionIds.length} ใบงาน เพื่อส่งกลับสำนักงานใหญ่</p>
 
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Carrier / Transport Provider</label>
-                                <input type="text" className="w-full p-2 border border-slate-300 rounded-lg" placeholder="e.g. Kerry Express, Private Truck" value={formCarrier} onChange={e => setFormCarrier(e.target.value)} />
+                                <label className="block text-sm font-medium text-slate-700 mb-1">บริษัทขนส่ง / วิธีการส่ง</label>
+                                <input type="text" className="w-full p-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-purple-500" placeholder="เช่น Kerry Express, รถบริษัท" value={formCarrier} onChange={e => setFormCarrier(e.target.value)} />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Tracking Number</label>
-                                <input type="text" className="w-full p-2 border border-slate-300 rounded-lg" placeholder="Optional" value={formTracking} onChange={e => setFormTracking(e.target.value)} />
+                                <label className="block text-sm font-medium text-slate-700 mb-1">เลข Tracking / ทะเบียนรถ</label>
+                                <input type="text" className="w-full p-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-purple-500" placeholder="ระบุเลขพัสดุ (ถ้ามี)" value={formTracking} onChange={e => setFormTracking(e.target.value)} />
                             </div>
                         </div>
 
                         <div className="flex justify-end gap-3 mt-8">
-                            <button onClick={() => setShowManifestModal(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg">Cancel</button>
-                            <button onClick={handleCreateManifest} className="px-6 py-2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700">Generate Manifest</button>
+                            <button onClick={() => setShowManifestModal(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg">ยกเลิก</button>
+                            <button onClick={handleCreateManifest} className="px-6 py-2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 shadow-sm">สร้างเอกสาร (Create)</button>
                         </div>
                     </div>
                 </div>
