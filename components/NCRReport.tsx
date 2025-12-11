@@ -6,6 +6,7 @@ import { LineAutocomplete } from './LineAutocomplete';
 import { exportNCRToExcel } from './NCRExcelExport';
 import { NCRPrintPreview } from './NCRPrintPreview';
 import { formatDate } from '../utils/dateUtils';
+import NCRTimelineModal from './NCRTimelineModal'; // Import new modal
 
 interface NCRReportProps {
   onTransfer: (data: Partial<ReturnRecord>) => void;
@@ -54,27 +55,15 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
 
-  // Timeline Expansion State
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  // Timeline Modal State
+  const [showTimelineModal, setShowTimelineModal] = useState(false);
+  const [timelineReport, setTimelineReport] = useState<NCRRecord | null>(null);
 
-  const toggleRow = (id: string) => {
-    const newExpanded = new Set(expandedRows);
-    if (newExpanded.has(id)) {
-      newExpanded.delete(id);
-    } else {
-      newExpanded.add(id);
-    }
-    setExpandedRows(newExpanded);
+  const handleOpenTimeline = (report: NCRRecord) => {
+    setTimelineReport(report);
+    setShowTimelineModal(true);
   };
 
-  const calculateDuration = (startDate?: string, endDate?: string) => {
-    if (!startDate || !endDate) return null;
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
 
   const filteredNcrReports = useMemo(() => {
     return ncrReports.filter(report => {
@@ -605,10 +594,13 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                       <tr key={report.id} className={`hover:bg-slate-50 ${isCanceled ? 'line-through text-slate-400 bg-slate-50' : ''}`}>
                         <td className={`px-0.5 py-1 sticky left-0 border-r text-center ${isCanceled ? 'bg-slate-100' : 'bg-white hover:bg-slate-50'}`}>
                           <button
-                            onClick={() => toggleRow(report.id)}
-                            className="p-0.5 rounded-full hover:bg-slate-200 text-slate-400 transition-colors"
+                            onClick={() => handleOpenTimeline(report)}
+                            className="p-0.5 rounded-full hover:bg-blue-100 text-blue-400 hover:text-blue-600 transition-colors"
+                            title="ดู Timeline (View Infographic)"
                           >
-                            {expandedRows.has(report.id) ? <Minus className="w-2.5 h-2.5" /> : <Plus className="w-2.5 h-2.5" />}
+                            <div className="bg-blue-50 border border-blue-200 rounded-full p-0.5">
+                              <Search className="w-3 h-3" />
+                            </div>
                           </button>
                         </td>
                         <td className={`px-1 py-1 sticky left-6 border-r w-[80px] ${isCanceled ? 'bg-slate-100' : 'bg-white hover:bg-slate-50'}`}>
@@ -724,99 +716,6 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                           </div>
                         </td>
                       </tr>
-                      {expandedRows.has(report.id) && (
-                        <tr className="bg-slate-50/50">
-                          <td colSpan={11} className="p-6 border-b border-slate-200 shadow-inner">
-                            <div className="max-w-6xl mx-auto">
-                              <h4 className="font-bold text-slate-700 mb-6 flex items-center gap-2">
-                                <Calendar className="w-5 h-5 text-blue-600" />
-                                Timeline การดำเนินการ (Return Status Tracking)
-                              </h4>
-
-                              <div className="relative flex justify-between items-start px-12">
-                                {/* Connecting Line Background */}
-                                <div className="absolute top-5 left-12 right-12 h-1 bg-slate-200 -z-10 rounded-full"></div>
-
-                                {/* Timeline Steps */}
-                                {[
-                                  { id: 1, label: 'แจ้งคืน (Request)', status: 'รออนุมัติ', date: correspondingReturn?.dateRequested || report.date, icon: FileText, colorKey: 'blue' },
-                                  { id: 2, label: 'ขนส่ง (Logistics)', status: 'ระหว่างทาง', date: correspondingReturn?.dateInTransit, icon: Truck, colorKey: 'orange' },
-                                  { id: 3, label: 'รับเข้า (Receive)', status: 'ถึง Hub', date: correspondingReturn?.dateReceived, icon: MapPin, colorKey: 'indigo' },
-                                  { id: 4, label: 'ตรวจสอบ (QC)', status: 'รอคัดแยก', date: correspondingReturn?.dateGraded, icon: CheckSquare, colorKey: 'yellow' },
-                                  { id: 5, label: 'คลัง/เอกสาร', status: 'รอปิดงาน', date: correspondingReturn?.dateDocumented, icon: FileText, colorKey: 'purple' },
-                                  { id: 6, label: 'ปิดงาน (Done)', status: 'สำเร็จ', date: correspondingReturn?.dateCompleted, icon: CircleCheck, colorKey: 'green' },
-                                ].map((step, index, array) => {
-
-                                  const styleMap: Record<string, any> = {
-                                    blue: { bg: 'bg-blue-100', border: 'border-blue-500', text: 'text-blue-600', badgeBg: 'bg-blue-50', badgeText: 'text-blue-700', badgeBorder: 'border-blue-100' },
-                                    orange: { bg: 'bg-orange-100', border: 'border-orange-500', text: 'text-orange-600', badgeBg: 'bg-orange-50', badgeText: 'text-orange-700', badgeBorder: 'border-orange-100' },
-                                    indigo: { bg: 'bg-indigo-100', border: 'border-indigo-500', text: 'text-indigo-600', badgeBg: 'bg-indigo-50', badgeText: 'text-indigo-700', badgeBorder: 'border-indigo-100' },
-                                    yellow: { bg: 'bg-yellow-100', border: 'border-yellow-500', text: 'text-yellow-600', badgeBg: 'bg-yellow-50', badgeText: 'text-yellow-700', badgeBorder: 'border-yellow-100' },
-                                    purple: { bg: 'bg-purple-100', border: 'border-purple-500', text: 'text-purple-600', badgeBg: 'bg-purple-50', badgeText: 'text-purple-700', badgeBorder: 'border-purple-100' },
-                                    green: { bg: 'bg-green-100', border: 'border-green-500', text: 'text-green-600', badgeBg: 'bg-green-50', badgeText: 'text-green-700', badgeBorder: 'border-green-100' },
-                                  };
-
-                                  const styles = styleMap[step.colorKey];
-                                  const isActive = !!step.date;
-                                  //const isNext = !isActive && array[index - 1]?.date;
-
-                                  const prevStep = array[index - 1];
-                                  const durationDetails = (isActive && prevStep?.date) ? calculateDuration(prevStep.date, step.date) : null;
-
-                                  return (
-                                    <div key={step.id} className="relative flex flex-col items-center">
-                                      {/* Duration Label on Line */}
-                                      {index > 0 && (
-                                        <div className="absolute -left-[50%] top-[-20px] w-full text-center">
-                                          {durationDetails !== null && (
-                                            <span className="text-[10px] font-bold text-slate-400 bg-white px-1 py-0.5 rounded border border-slate-100 shadow-sm">
-                                              {durationDetails} วัน
-                                            </span>
-                                          )}
-                                        </div>
-                                      )}
-
-                                      {/* Icon Circle */}
-                                      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 mb-2 z-10 transition-all duration-300
-                                        ${isActive
-                                          ? `${styles.bg} ${styles.border} ${styles.text} shadow-md scale-110`
-                                          : 'bg-white border-slate-300 text-slate-300'
-                                        }
-                                      `}>
-                                        <step.icon className="w-5 h-5" />
-                                      </div>
-
-                                      {/* Text Content */}
-                                      <div className="text-center space-y-1">
-                                        <div className={`text-sm font-bold ${isActive ? 'text-slate-800' : 'text-slate-400'}`}>
-                                          {step.label}
-                                        </div>
-                                        <div className={`text-xs px-2 py-0.5 rounded-full inline-block font-medium
-                                          ${isActive
-                                            ? `${styles.badgeBg} ${styles.badgeText} border ${styles.badgeBorder}`
-                                            : 'text-slate-400 bg-slate-100'
-                                          }
-                                        `}>
-                                          {step.status}
-                                        </div>
-                                        {step.date && (
-                                          <div className="text-[10px] font-mono text-slate-500 mt-1">
-                                            {formatDate(step.date)}
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-
-                              <div className="text-right mt-8 text-xs text-slate-400">
-                                * ระยะเวลา (วัน) คำนวณจากวันที่ดำเนินการในขั้นตอนก่อนหน้า
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
                     </React.Fragment>
                   );
                 })
@@ -824,6 +723,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
             </tbody>
           </table>
         </div>
+
 
         {/* Pagination Controls */}
         <div className="p-4 border-t border-slate-200 bg-slate-50 flex flex-col md:flex-row justify-between items-center gap-4 text-sm print:hidden">
@@ -1120,6 +1020,13 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
           </div>
         )
       }
+
+      <NCRTimelineModal
+        isOpen={showTimelineModal}
+        onClose={() => setShowTimelineModal(false)}
+        report={timelineReport}
+        correspondingReturn={items.find(i => i.ncrNumber === timelineReport?.ncrNo)}
+      />
 
       {/* Password Modal for Edit */}
       {
