@@ -11,7 +11,6 @@ import {
   Truck, CheckCircle, Clock, FileText, Package, AlertOctagon, DollarSign, Trash2, MapPin, Box,
   TrendingUp, Activity, AlertTriangle, Lock, X, RotateCcw
 } from 'lucide-react';
-import { mockReturnRequests, mockCollectionOrders, mockShipments } from '../data/mockCollectionData';
 
 const COLORS = {
   Restock: '#22c55e', // Green
@@ -135,11 +134,11 @@ const Dashboard: React.FC = () => {
     const completedCount = collectionItems.filter(i => i.status === 'Completed').length;
 
     return {
-      requests: mockReturnRequests.filter(r => r.status === 'APPROVED_FOR_PICKUP').length,
-      assigned: mockCollectionOrders.filter(c => c.status === 'ASSIGNED' || c.status === 'PENDING').length,
-      collected: mockCollectionOrders.filter(c => c.status === 'COLLECTED').length,
-      consolidated: mockCollectionOrders.filter(c => c.status === 'CONSOLIDATED').length,
-      transit: mockShipments.filter(s => s.status === 'IN_TRANSIT').length,
+      requests: collectionItems.filter(i => i.status === 'Requested').length,
+      assigned: collectionItems.filter(i => i.status === 'PickupScheduled').length,
+      collected: collectionItems.filter(i => i.status === 'PickedUp').length,
+      consolidated: 0, // Internal state not yet persisted globally
+      transit: collectionItems.filter(i => i.status === 'InTransitHub').length,
       pendingCompletion: pendingCompletionCount,
       completed: completedCount
     };

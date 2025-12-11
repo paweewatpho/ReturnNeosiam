@@ -6,7 +6,7 @@ import {
     Camera, PenTool, Printer, Boxes, Ship, LayoutGrid, List, Trash2, Lock
 } from 'lucide-react';
 import { CollectionOrder, ReturnRequest, ShipmentManifest, CollectionStatus, ReturnStatus } from '../types';
-import { mockCollectionOrders, mockReturnRequests, mockDrivers, mockShipments } from '../data/mockCollectionData';
+import { mockDrivers } from '../data/mockCollectionData';
 import { useData } from '../DataContext';
 
 // --- SUB-COMPONENTS ---
@@ -81,9 +81,9 @@ const CollectionSystem: React.FC = () => {
         if (syncCount > 0) console.log(`[Sync] Updated ${syncCount} NCR Records to ${newStatus}`);
     };
 
-    const [returnRequests, setReturnRequests] = useState<ReturnRequest[]>(mockReturnRequests);
-    const [collectionOrders, setCollectionOrders] = useState<CollectionOrder[]>(mockCollectionOrders);
-    const [shipments, setShipments] = useState<ShipmentManifest[]>(mockShipments);
+    const [returnRequests, setReturnRequests] = useState<ReturnRequest[]>([]);
+    const [collectionOrders, setCollectionOrders] = useState<CollectionOrder[]>([]);
+    const [shipments, setShipments] = useState<ShipmentManifest[]>([]);
     const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
     const [selectedRmas, setSelectedRmas] = useState<string[]>([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
