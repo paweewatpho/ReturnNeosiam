@@ -417,54 +417,69 @@ const CollectionSystem: React.FC = () => {
                     <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">มุมมองสาขา</span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {myTasks.map(order => (
-                        <div key={order.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
-                            <div className="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-                                <span className="font-mono font-bold text-slate-700">{order.id}</span>
-                                <StatusBadge status={order.status} />
-                            </div>
-                            <div className="p-4 flex-grow space-y-4">
-                                <div className="flex items-start gap-3">
-                                    <MapPin className="w-5 h-5 text-red-500 mt-1 shrink-0" />
-                                    <div>
-                                        <div className="font-bold text-slate-800">{order.pickupLocation.name}</div>
-                                        <div className="text-sm text-slate-500">{order.pickupLocation.address}</div>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <Phone className="w-5 h-5 text-blue-500 shrink-0" />
-                                    <div className="text-sm">
-                                        <span className="font-bold">{order.pickupLocation.contactName}</span>
-                                        <span className="text-slate-400 mx-1">|</span>
-                                        <a href={`tel:${order.pickupLocation.contactPhone}`} className="text-blue-600 underline font-bold">{order.pickupLocation.contactPhone}</a>
-                                    </div>
-                                </div>
-                                <div className="bg-amber-50 p-3 rounded border border-amber-100 flex items-center gap-3">
-                                    <Package className="w-8 h-8 text-amber-600" />
-                                    <div>
-                                        <div className="font-bold text-slate-800">จำนวน {order.packageSummary.totalBoxes} กล่อง</div>
-                                        <div className="text-xs text-slate-500">{order.packageSummary.description}</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-2">
-                                <button
-                                    onClick={() => handleDriverAction(order.id, 'COLLECT')}
-                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm text-sm"
-                                >
-                                    <CheckCircle2 className="w-4 h-4" /> รับสินค้าสำเร็จ
-                                </button>
-                                <button
-                                    onClick={() => handleDriverAction(order.id, 'FAIL')}
-                                    className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 border border-red-200 font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm text-sm"
-                                >
-                                    <X className="w-4 h-4" /> ไม่สำเร็จ
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                    {myTasks.length === 0 && <div className="col-span-full py-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">ไม่มีงานค้างที่สาขา</div>}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left whitespace-nowrap">
+                            <thead className="bg-amber-50 text-amber-900 text-xs uppercase font-bold border-b border-amber-100">
+                                <tr>
+                                    <th className="p-3">เลขที่ใบงาน (COL)</th>
+                                    <th className="p-3">ชื่อลูกค้า</th>
+                                    <th className="p-3">เลข Invoice</th>
+                                    <th className="p-3">วันที่ใบคุมรถ</th>
+                                    <th className="p-3">เลขที่เอกสาร (R)</th>
+                                    <th className="p-3">เลขที่ใบคุม (TM)</th>
+                                    <th className="p-3 text-center">การดำเนินการ (Actions)</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {myTasks.length === 0 ? (
+                                    <tr><td colSpan={7} className="p-12 text-center text-slate-400 border-dashed border-2 border-slate-100 rounded-xl m-4">ไม่มีงานค้างที่สาขา</td></tr>
+                                ) : myTasks.map(order => {
+                                    const relatedRmas = returnRequests.filter(r => order.linkedRmaIds.includes(r.id));
+                                    return (
+                                        <tr key={order.id} className="hover:bg-slate-50 transition-colors">
+                                            <td className="p-3 font-mono font-bold text-blue-600 border-r border-slate-100 bg-slate-50/30 align-top">
+                                                {order.id}
+                                                <div className="mt-1"><StatusBadge status={order.status} /></div>
+                                            </td>
+                                            <td className="p-3 text-sm font-bold text-slate-700 align-top max-w-[200px] whitespace-normal">
+                                                {order.pickupLocation.name}
+                                                <div className="text-xs text-slate-500 font-normal mt-1">{order.pickupLocation.contactPhone}</div>
+                                            </td>
+                                            <td className="p-3 text-sm text-slate-600 align-top">
+                                                {relatedRmas.map(r => <div key={r.id}>{r.invoiceNo || '-'}</div>)}
+                                            </td>
+                                            <td className="p-3 text-sm text-slate-600 align-top">
+                                                {relatedRmas.map(r => <div key={r.id}>{r.controlDate || '-'}</div>)}
+                                            </td>
+                                            <td className="p-3 text-sm font-mono text-slate-600 align-top">
+                                                {relatedRmas.map(r => <div key={r.id}>{r.documentNo || '-'}</div>)}
+                                            </td>
+                                            <td className="p-3 text-sm text-slate-600 align-top">
+                                                {relatedRmas.map(r => <div key={r.id}>{r.tmNo || '-'}</div>)}
+                                            </td>
+                                            <td className="p-3 align-top">
+                                                <div className="flex flex-col gap-2 w-32 mx-auto">
+                                                    <button
+                                                        onClick={() => handleDriverAction(order.id, 'COLLECT')}
+                                                        className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-1.5 px-3 rounded text-xs flex items-center justify-center gap-1 shadow-sm transition-all"
+                                                    >
+                                                        <CheckCircle2 className="w-3 h-3" /> สำเร็จ
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDriverAction(order.id, 'FAIL')}
+                                                        className="w-full bg-red-100 hover:bg-red-200 text-red-700 border border-red-200 font-bold py-1.5 px-3 rounded text-xs flex items-center justify-center gap-1 shadow-sm transition-all"
+                                                    >
+                                                        <X className="w-3 h-3" /> ไม่สำเร็จ
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         );
