@@ -35,6 +35,8 @@ const NCRTimelineModal: React.FC<NCRTimelineModalProps> = ({ isOpen, onClose, re
         { id: 6, label: 'ปิดงาน (Done)', status: 'สำเร็จ', date: correspondingReturn?.dateCompleted, icon: CircleCheck, colorKey: 'green', description: 'กระบวนการเสร็จสิ้น' },
     ];
 
+    const isCanceled = report.status === 'Canceled';
+
     const styleMap: Record<string, any> = {
         blue: { bg: 'bg-blue-100', border: 'border-blue-500', text: 'text-blue-600', badgeBg: 'bg-blue-50', badgeText: 'text-blue-700' },
         orange: { bg: 'bg-orange-100', border: 'border-orange-500', text: 'text-orange-600', badgeBg: 'bg-orange-50', badgeText: 'text-orange-700' },
@@ -42,21 +44,25 @@ const NCRTimelineModal: React.FC<NCRTimelineModalProps> = ({ isOpen, onClose, re
         yellow: { bg: 'bg-yellow-100', border: 'border-yellow-500', text: 'text-yellow-600', badgeBg: 'bg-yellow-50', badgeText: 'text-yellow-700' },
         purple: { bg: 'bg-purple-100', border: 'border-purple-500', text: 'text-purple-600', badgeBg: 'bg-purple-50', badgeText: 'text-purple-700' },
         green: { bg: 'bg-green-100', border: 'border-green-500', text: 'text-green-600', badgeBg: 'bg-green-50', badgeText: 'text-green-700' },
+        red: { bg: 'bg-red-100', border: 'border-red-500', text: 'text-red-600', badgeBg: 'bg-red-50', badgeText: 'text-red-700' },
+        gray: { bg: 'bg-slate-100', border: 'border-slate-300', text: 'text-slate-400', badgeBg: 'bg-slate-100', badgeText: 'text-slate-500' },
     };
+
+    const firstPendingIndex = steps.findIndex(s => !s.date);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className={`bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh] ${isCanceled ? 'border-4 border-red-500' : ''}`}>
                 {/* Header */}
-                <div className="bg-slate-50 border-b border-slate-100 p-6 flex justify-between items-start">
+                <div className={`border-b p-6 flex justify-between items-start ${isCanceled ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
                     <div>
                         <div className="flex items-center gap-3 mb-1">
                             <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                                <Calendar className="w-6 h-6 text-blue-600" />
+                                {isCanceled ? <X className="w-8 h-8 text-red-600" /> : <Calendar className="w-6 h-6 text-blue-600" />}
                                 Timeline การดำเนินการ
                             </h2>
-                            <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold border border-blue-200 shadow-sm">
-                                NCR No: {report.ncrNo || report.id}
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold border shadow-sm ${isCanceled ? 'bg-red-100 text-red-700 border-red-200' : 'bg-blue-100 text-blue-700 border-blue-200'}`}>
+                                {isCanceled ? 'รายการถูกยกเลิก (CANCELED)' : `NCR No: ${report.ncrNo || report.id}`}
                             </span>
                         </div>
                         <p className="text-slate-500 text-sm">ติดตามสถานะและประวัติการดำเนินงานของสินค้าคืน (Status Tracking Infographic)</p>
@@ -98,10 +104,31 @@ const NCRTimelineModal: React.FC<NCRTimelineModalProps> = ({ isOpen, onClose, re
 
                         <div className="grid grid-cols-1 md:grid-cols-6 gap-6 relative">
                             {steps.map((step, index) => {
-                                const styles = styleMap[step.colorKey];
-                                const isActive = !!step.date;
+                                let styles = styleMap[step.colorKey];
+                                let isActive = !!step.date;
                                 const prevStep = steps[index - 1];
                                 const durationDetails = (isActive && prevStep?.date) ? calculateDuration(prevStep.date, step.date) : null;
+
+                                // Handle Canceled State
+                                let label = step.label;
+                                let status = step.status;
+                                let Icon = step.icon;
+
+                                if (isCanceled) {
+                                    if (!step.date) {
+                                        // This step was effectively canceled/skipped
+                                        if (index === firstPendingIndex) {
+                                            // This is WHERE it stopped -> Show Canceled Status
+                                            styles = styleMap['red'];
+                                            isActive = true; // Show as "Active" (Red Highlight) to indicate stoppage
+                                            status = 'ยกเลิก';
+                                            Icon = X;
+                                        } else if (index > firstPendingIndex) {
+                                            // Future steps -> Ghost
+                                            styles = styleMap['gray'];
+                                        }
+                                    }
+                                }
 
                                 return (
                                     <div key={step.id} className="flex flex-col items-center relative z-10 group">
@@ -122,20 +149,20 @@ const NCRTimelineModal: React.FC<NCRTimelineModalProps> = ({ isOpen, onClose, re
                                                 : 'border-slate-200 text-slate-300'
                                             }
                     `}>
-                                            <step.icon className="w-7 h-7" />
+                                            <Icon className="w-7 h-7" />
                                         </div>
 
                                         {/* Card Body */}
                                         <div className={`w-full bg-white rounded-xl border p-3 shadow-sm text-center min-h-[140px] flex flex-col transition-all duration-300
                       ${isActive ? 'border-blue-100 shadow-md transform hover:-translate-y-1' : 'border-slate-100 opacity-70'}
                     `}>
-                                            <div className={`font-bold text-sm mb-1 ${isActive ? 'text-slate-800' : 'text-slate-400'}`}>{step.label}</div>
+                                            <div className={`font-bold text-sm mb-1 ${isActive ? 'text-slate-800' : 'text-slate-400'}`}>{label}</div>
 
                                             <div className="flex-grow flex items-center justify-center my-2">
                                                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold
                           ${isActive ? `${styles.badgeBg} ${styles.badgeText}` : 'bg-slate-100 text-slate-400'}
                         `}>
-                                                    {step.status}
+                                                    {status}
                                                 </span>
                                             </div>
 
@@ -145,6 +172,11 @@ const NCRTimelineModal: React.FC<NCRTimelineModalProps> = ({ isOpen, onClose, re
                                                     <div className="text-xs font-bold text-slate-600 flex items-center justify-center gap-1">
                                                         <Clock className="w-3 h-3" />
                                                         {formatDate(step.date)}
+                                                    </div>
+                                                ) : isCanceled && index === firstPendingIndex ? (
+                                                    <div className="text-xs font-bold text-red-500 flex items-center justify-center gap-1">
+                                                        <X className="w-3 h-3" />
+                                                        CANCELED
                                                     </div>
                                                 ) : (
                                                     <div className="text-[10px] text-slate-300 italic">Pending</div>

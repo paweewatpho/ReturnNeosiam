@@ -16,6 +16,7 @@ export interface NCRItem {
   destinationCustomer: string;
   quantity: number;
   unit: string;
+  pricePerUnit?: number;
   priceBill: number;
   expiryDate: string;
   hasCost: boolean;

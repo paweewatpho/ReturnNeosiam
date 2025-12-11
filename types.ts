@@ -113,6 +113,8 @@ export interface ChatMessage {
 export type ReturnStatus =
   | 'Draft'             // Step 1: Created
   | 'Requested'         // Legacy
+  | 'PickupScheduled'   // Step 2: Collection Scheduled
+  | 'PickedUp'          // Step 3: Driver Collected
   | 'InTransitHub'      // Step 2 (Route A): On way to Hub
   | 'ReturnToSupplier'  // Step 2 (Route B) OR Step 5 (Route A)
   | 'ReceivedAtHub'     // Step 3 (Route A): Arrived at Hub
@@ -188,6 +190,7 @@ export interface ReturnRecord {
   // New Intake Fields
   quantity: number; // จำนวน
   unit: string; // หน่วย
+  pricePerUnit?: number; // ราคาต่อหน่วย
   priceBill: number; // ราคาหน้าบิล
   priceSell: number; // ราคาขาย
   expiryDate?: string; // วันหมดอายุ

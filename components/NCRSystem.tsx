@@ -27,7 +27,7 @@ const NCRSystem: React.FC = () => {
 
     const [ncrItems, setNcrItems] = useState<NCRItem[]>([]);
     const [showItemModal, setShowItemModal] = useState(false);
-    const [newItem, setNewItem] = useState<Partial<NCRItem>>({ branch: '', refNo: '', neoRefNo: '', productCode: '', productName: '', customerName: '', destinationCustomer: '', quantity: 0, unit: '', priceBill: 0, expiryDate: '', hasCost: false, costAmount: 0, costResponsible: '', problemSource: '' });
+    const [newItem, setNewItem] = useState<Partial<NCRItem>>({ branch: '', refNo: '', neoRefNo: '', productCode: '', productName: '', customerName: '', destinationCustomer: '', quantity: 0, unit: '', pricePerUnit: 0, priceBill: 0, expiryDate: '', hasCost: false, costAmount: 0, costResponsible: '', problemSource: '' });
     const [isCustomReportBranch, setIsCustomReportBranch] = useState(false);
     const [sourceSelection, setSourceSelection] = useState({ category: '', whBranch: '', whCause: '', whOtherText: '', transType: '', transName: '', transPlate: '', transVehicleType: '', transAffiliation: '', transCompany: '', otherText: '', problemScenario: '' });
 
@@ -150,6 +150,7 @@ const NCRSystem: React.FC = () => {
             id: Date.now().toString(),
             destinationCustomer: newItem.destinationCustomer || '',
             quantity: Number(newItem.quantity) || 0,
+            pricePerUnit: Number(newItem.pricePerUnit) || 0,
             priceBill: Number(newItem.priceBill) || 0,
             costAmount: Number(newItem.costAmount) || 0,
             problemSource: finalProblemSource,
@@ -161,7 +162,7 @@ const NCRSystem: React.FC = () => {
         // Keep Branch and other sticky fields if needed, but for now reset product info
         setNewItem(prev => ({
             ...prev,
-            refNo: '', neoRefNo: '', productCode: '', productName: '', customerName: '', destinationCustomer: '', quantity: 0, unit: '', priceBill: 0, expiryDate: '', hasCost: false, costAmount: 0, costResponsible: '', problemSource: ''
+            refNo: '', neoRefNo: '', productCode: '', productName: '', customerName: '', destinationCustomer: '', quantity: 0, unit: '', pricePerUnit: 0, priceBill: 0, expiryDate: '', hasCost: false, costAmount: 0, costResponsible: '', problemSource: ''
         }));
         setSourceSelection({ category: '', whBranch: '', whCause: '', whOtherText: '', transType: '', transName: '', transPlate: '', transVehicleType: '', transAffiliation: '', transCompany: '', otherText: '' });
 
@@ -339,8 +340,9 @@ const NCRSystem: React.FC = () => {
                     status: 'Requested',
                     disposition: 'Pending',
                     reason: `Created via NCR System (${formData.problemDetail || 'No Detail'})`,
-                    amount: (item.quantity || 0) * (item.priceBill || 0), // Calculated Amount
+                    amount: item.priceBill || 0, // Calculated Amount (Total)
                     priceBill: item.priceBill || 0,
+                    pricePerUnit: item.pricePerUnit || 0,
                     priceSell: 0, // Default
                     neoRefNo: item.neoRefNo || '-',
                     // Pass Problem Boolean Flags to ReturnRecord
@@ -691,6 +693,151 @@ const NCRSystem: React.FC = () => {
                 <div className="text-right text-xs mt-4 font-mono text-slate-400">FM-OP01-06 Rev.00</div>
             </div>
 
+            {/* Item Modal */}
+            {showItemModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm print:hidden animate-fade-in">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col">
+                        <div className="flex justify-between items-center p-4 border-b sticky top-0 bg-white z-10">
+                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2"><Plus className="w-5 h-5 text-blue-600" /> เพิ่มรายการสินค้า (Add Item)</h3>
+                            <button onClick={() => setShowItemModal(false)} className="text-slate-400 hover:text-slate-600"><X className="w-6 h-6" /></button>
+                        </div>
+
+                        <div className="p-6 space-y-6 flex-1 overflow-y-auto">
+                            {/* Branch & Product Code */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">สาขาต้นทาง <span className="text-red-500">*</span></label>
+                                    <select className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 bg-slate-50" value={newItem.branch} onChange={e => setNewItem({ ...newItem, branch: e.target.value })}>
+                                        <option value="">-- เลือกสาขา --</option>
+                                        {WAREHOUSE_BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
+                                    </select>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">รหัสสินค้า <span className="text-red-500">*</span></label>
+                                        <input type="text" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={newItem.productCode} onChange={e => setNewItem({ ...newItem, productCode: e.target.value })} placeholder="Code" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">Ref No.</label>
+                                        <input type="text" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={newItem.refNo} onChange={e => setNewItem({ ...newItem, refNo: e.target.value })} placeholder="Reference" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Product Name & Customer */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">ชื่อสินค้า</label>
+                                    <input type="text" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={newItem.productName} onChange={e => setNewItem({ ...newItem, productName: e.target.value })} placeholder="Product Name" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">ลูกค้า</label>
+                                    <input type="text" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={newItem.customerName} onChange={e => setNewItem({ ...newItem, customerName: e.target.value })} placeholder="Customer Name" />
+                                </div>
+                            </div>
+
+                            {/* PRICE LOGIC SECTION */}
+                            <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">จำนวน (Qty)</label>
+                                    <div className="flex">
+                                        <input
+                                            type="number"
+                                            className="w-full p-2 border rounded-l focus:ring-2 focus:ring-blue-500"
+                                            value={newItem.quantity}
+                                            onChange={e => {
+                                                const qty = parseFloat(e.target.value) || 0;
+                                                const price = newItem.pricePerUnit || 0;
+                                                setNewItem({ ...newItem, quantity: qty, priceBill: qty * price });
+                                            }}
+                                        />
+                                        <input type="text" className="w-20 p-2 border border-l-0 rounded-r bg-slate-100 text-center text-sm" placeholder="หน่วย" value={newItem.unit} onChange={e => setNewItem({ ...newItem, unit: e.target.value })} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-blue-700 mb-1">ราคา/หน่วย (Price/Unit)</label>
+                                    <input
+                                        type="number"
+                                        className="w-full p-2 border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 bg-white"
+                                        placeholder="0.00"
+                                        value={newItem.pricePerUnit || ''}
+                                        onChange={e => {
+                                            const price = parseFloat(e.target.value) || 0;
+                                            const qty = newItem.quantity || 0;
+                                            setNewItem({ ...newItem, pricePerUnit: price, priceBill: qty * price });
+                                        }}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">ราคาหน้าบิล (Total Bill)</label>
+                                    <input type="number" className="w-full p-2 border bg-slate-100 font-bold text-slate-700 rounded" readOnly value={newItem.priceBill} />
+                                </div>
+                            </div>
+
+                            {/* Expiry & Destination */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">วันหมดอายุ (Expiry)</label>
+                                    <input type="date" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={newItem.expiryDate} onChange={e => setNewItem({ ...newItem, expiryDate: e.target.value })} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">ลูกค้าปลายทาง (Destination)</label>
+                                    <input type="text" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={newItem.destinationCustomer} onChange={e => setNewItem({ ...newItem, destinationCustomer: e.target.value })} placeholder="Optional" />
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 pt-4 border-t">
+                                <h4 className="font-bold text-slate-900 underline">ระบุแหล่งที่มาของปัญหา (Problem Source)</h4>
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                    <label className="flex items-center gap-2 border p-2 rounded hover:bg-slate-50 cursor-pointer">
+                                        <input type="radio" name="sourceCat" checked={sourceSelection.category === 'Customer'} onChange={() => setSourceSelection({ ...sourceSelection, category: 'Customer', problemScenario: 'Customer' })} />
+                                        ลูกค้าต้นทาง (Source Customer)
+                                    </label>
+                                    <label className="flex items-center gap-2 border p-2 rounded hover:bg-slate-50 cursor-pointer">
+                                        <input type="radio" name="sourceCat" checked={sourceSelection.category === 'DestinationCustomer'} onChange={() => setSourceSelection({ ...sourceSelection, category: 'DestinationCustomer', problemScenario: 'DestinationCustomer' })} />
+                                        ลูกค้าปลายทาง (Destination Customer)
+                                    </label>
+                                    {/* Simplified for now, could be expanded */}
+                                    <label className="flex items-center gap-2 border p-2 rounded hover:bg-slate-50 cursor-pointer">
+                                        <input type="radio" name="sourceCat" checked={sourceSelection.category === 'Accounting'} onChange={() => setSourceSelection({ ...sourceSelection, category: 'Accounting' })} />
+                                        บัญชี (Accounting)
+                                    </label>
+                                    <label className="flex items-center gap-2 border p-2 rounded hover:bg-slate-50 cursor-pointer">
+                                        <input type="radio" name="sourceCat" checked={sourceSelection.category === 'Warehouse'} onChange={() => setSourceSelection({ ...sourceSelection, category: 'Warehouse' })} />
+                                        คลังสินค้า (Warehouse)
+                                    </label>
+                                    <label className="flex items-center gap-2 border p-2 rounded hover:bg-slate-50 cursor-pointer">
+                                        <input type="radio" name="sourceCat" checked={sourceSelection.category === 'Transport'} onChange={() => setSourceSelection({ ...sourceSelection, category: 'Transport' })} />
+                                        ขนส่ง (Transport)
+                                    </label>
+                                    <label className="flex items-center gap-2 border p-2 rounded hover:bg-slate-50 cursor-pointer">
+                                        <input type="radio" name="sourceCat" checked={sourceSelection.category === 'Other'} onChange={() => setSourceSelection({ ...sourceSelection, category: 'Other' })} />
+                                        อื่นๆ (Other)
+                                    </label>
+                                </div>
+
+                                <div className="p-3 bg-red-50 rounded border border-red-100 flex items-center gap-4">
+                                    <label className="flex items-center gap-2 font-bold text-red-700 cursor-pointer">
+                                        <input type="checkbox" checked={newItem.hasCost} onChange={e => setNewItem({ ...newItem, hasCost: e.target.checked })} />
+                                        มีค่าใช้จ่าย (Cost Charge)
+                                    </label>
+                                    {newItem.hasCost && (
+                                        <div className="flex items-center gap-2">
+                                            <input type="number" className="p-1 border text-sm w-32 rounded" placeholder="จำนวนเงิน" value={newItem.costAmount || ''} onChange={e => setNewItem({ ...newItem, costAmount: parseFloat(e.target.value) })} />
+                                            <span className="text-sm text-red-600">บาท</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-4 border-t flex justify-end gap-3 sticky bottom-0 bg-slate-50 z-10">
+                            <button onClick={() => setShowItemModal(false)} className="px-5 py-2 text-slate-600 font-bold hover:bg-slate-200 rounded-lg">ยกเลิก</button>
+                            <button onClick={() => handleAddItem(true)} className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md transform active:scale-95 transition-all">บันทึกรายการ</button>
+                        </div>
+                    </div>
+                </div>
+            )}
             {/* Password Modal */}
             {showAuthModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">

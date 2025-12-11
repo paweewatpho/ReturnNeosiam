@@ -81,6 +81,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         date: new Date().toISOString().split('T')[0],
         quantity: 1,
         unit: 'ชิ้น',
+        pricePerUnit: 0,
         priceBill: 0,
         priceSell: 0,
         status: 'Draft',
@@ -364,6 +365,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                             quantity: record.quantity,
                             unit: record.unit || 'PCS',
                             priceBill: record.priceBill,
+                            pricePerUnit: record.pricePerUnit || 0,
                             expiryDate: record.expiryDate,
                             hasCost: record.hasCost,
                             costAmount: record.costAmount,
@@ -563,18 +565,39 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             return;
         }
 
-        const finalUnit = isBreakdownUnit ? (newUnitName || 'Sub-unit') : qcSelectedItem.unit;
-        const finalPriceBill = isBreakdownUnit && conversionRate > 1 ? (qcSelectedItem.priceBill || 0) / conversionRate : qcSelectedItem.priceBill;
-        const finalPriceSell = isBreakdownUnit && conversionRate > 1 ? (qcSelectedItem.priceSell || 0) / conversionRate : qcSelectedItem.priceSell;
+        // Calculate Price Per Unit (fallback to average if missing)
+        const currentPriceBill = qcSelectedItem.priceBill || 0;
+        const pricePerUnit = qcSelectedItem.pricePerUnit || (currentPriceBill / (qcSelectedItem.quantity || 1));
 
+        // Handle Breakdown Price Logic
+        let unitPriceForCalc = pricePerUnit;
+        if (isBreakdownUnit && conversionRate > 1) {
+            // If breaking down (e.g. 1 Box -> 10 Pcs), the price per new unit is PricePerUnit / Rate
+            unitPriceForCalc = pricePerUnit / conversionRate;
+        }
+
+        const finalUnit = isBreakdownUnit ? (newUnitName || 'Sub-unit') : qcSelectedItem.unit;
+
+        // Calculate Totals for Main and Split
         const mainQty = totalAvailable - splitQty;
+        const mainBill = mainQty * unitPriceForCalc;
+        const splitBill = splitQty * unitPriceForCalc;
+
+        // Price Sell Logic (Propagate same logic or keep 0 if not set)
+        const currentPriceSell = qcSelectedItem.priceSell || 0;
+        const priceSellPerUnit = currentPriceSell / (qcSelectedItem.quantity || 1);
+        const unitSellPriceForCalc = (isBreakdownUnit && conversionRate > 1) ? (priceSellPerUnit / conversionRate) : priceSellPerUnit;
+        const mainSell = mainQty * unitSellPriceForCalc;
+        const splitSell = splitQty * unitSellPriceForCalc;
+
         const today = new Date().toISOString().split('T')[0];
 
         const updateMainSuccess = await updateReturnRecord(qcSelectedItem.id, {
             quantity: mainQty,
             unit: finalUnit,
-            priceBill: finalPriceBill,
-            priceSell: finalPriceSell,
+            priceBill: mainBill,
+            pricePerUnit: unitPriceForCalc,
+            priceSell: mainSell,
             condition: qcSelectedItem.condition,
             disposition: selectedDisposition,
             status: 'QCPassed',
@@ -596,8 +619,9 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             id: splitId,
             quantity: splitQty,
             unit: finalUnit,
-            priceBill: finalPriceBill,
-            priceSell: finalPriceSell,
+            priceBill: splitBill,
+            pricePerUnit: unitPriceForCalc,
+            priceSell: splitSell,
             condition: splitCondition,
             status: splitStatus,
             refNo: `${qcSelectedItem.refNo} (Split)`,
@@ -705,6 +729,17 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         }
     };
 
+    const handleUpdateDocItem = async (id: string, updates: Partial<ReturnRecord>) => {
+        await updateReturnRecord(id, updates);
+        setDocData(prev => {
+            if (!prev) return null;
+            return {
+                ...prev,
+                items: prev.items.map(item => item.id === id ? { ...item, ...updates } : item)
+            };
+        });
+    };
+
     const handleCompleteJob = async (id: string) => {
         const today = new Date().toISOString().split('T')[0];
         await updateReturnRecord(id, { status: 'Completed', dateCompleted: today });
@@ -754,7 +789,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             toggleSplitMode,
             handlePrintClick, toggleSelection, setShowSelectionModal,
             handleGenerateDoc, setIncludeVat, setVatRate, setDiscountRate, setIsDocEditable, setDocConfig, setShowDocModal,
-            handleConfirmDocGeneration,
+            handleConfirmDocGeneration, handleUpdateDocItem,
 
             // Step 4 Split Actions
             setDocSelectedItem, setShowStep4SplitModal,

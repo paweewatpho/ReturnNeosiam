@@ -492,18 +492,26 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
     if (!status) {
       return <span className="text-slate-400 text-xs">-</span>;
     }
-    const config = {
+    const config: Record<string, { text: string, color: string }> = {
       'Requested': { text: 'รอรับเข้า', color: 'bg-slate-100 text-slate-600' },
-      'Received': { text: 'รอ QC', color: 'bg-amber-100 text-amber-700' },
-      'Graded': { text: 'รอเอกสาร', color: 'bg-blue-100 text-blue-700' },
-      'Documented': { text: 'รอปิดงาน', color: 'bg-purple-100 text-purple-700' },
+      'PickupScheduled': { text: 'รอรถรับ (Job)', color: 'bg-indigo-100 text-indigo-700' },
+      'PickedUp': { text: 'รับของแล้ว', color: 'bg-pink-100 text-pink-700' },
+      'InTransitHub': { text: 'กำลังขนส่ง', color: 'bg-orange-100 text-orange-800' },
+      'ReceivedAtHub': { text: 'สินค้าถึง Hub (รอ QC)', color: 'bg-yellow-100 text-yellow-800' },
+      'Received': { text: 'สินค้าถึง Hub (รอ QC)', color: 'bg-yellow-100 text-yellow-800' },
+      'QCPassed': { text: 'ผ่าน QC (รอเอกสาร)', color: 'bg-blue-100 text-blue-700' },
+      'Graded': { text: 'ผ่าน QC (รอเอกสาร)', color: 'bg-blue-100 text-blue-700' },
+      'ReturnToSupplier': { text: 'ส่งคืน/รอปิดงาน', color: 'bg-purple-100 text-purple-700' },
+      'Documented': { text: 'ส่งคืน/รอปิดงาน', color: 'bg-purple-100 text-purple-700' },
       'Completed': { text: 'จบงาน', color: 'bg-green-100 text-green-700' },
-    }[status];
+    };
 
-    if (!config) {
+    const statusConfig = config[status];
+
+    if (!statusConfig) {
       return <span className={`px-2 py-1 text-[10px] font-bold rounded bg-slate-100 text-slate-600`}>{status}</span>;
     }
-    return <span className={`px-2 py-1 text-[10px] font-bold rounded ${config.color}`}>{config.text}</span>;
+    return <span className={`px-2 py-1 text-[10px] font-bold rounded ${statusConfig.color}`}>{statusConfig.text}</span>;
   };
 
 
@@ -565,11 +573,14 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
         <select value={filters.returnStatus} onChange={e => setFilters({ ...filters, returnStatus: e.target.value })} className="bg-slate-50 border border-slate-200 rounded-lg text-xs p-1 outline-none focus:ring-1 focus:ring-blue-500">
           <option value="All">ทุกสถานะคืน</option>
           <option value="NotReturned">ยังไม่คืน</option>
-          <option value="Requested">รอรับ</option>
-          <option value="Received">รอ QC</option>
-          <option value="Graded">รอเอกสาร</option>
-          <option value="Documented">รอปิด</option>
-          <option value="Completed">จบ</option>
+          <option value="Requested">รอรับเข้า</option>
+          <option value="PickupScheduled">รอรถรับ (Job Assigned)</option>
+          <option value="PickedUp">รับของแล้ว (Picked Up)</option>
+          <option value="InTransitHub">กำลังขนส่ง</option>
+          <option value="ReceivedAtHub">สินค้าถึง Hub (รอ QC)</option>
+          <option value="QCPassed">ผ่าน QC (รอเอกสาร)</option>
+          <option value="ReturnToSupplier">ส่งคืน/รอปิดงาน</option>
+          <option value="Completed">จบงาน</option>
         </select>
         <label className="flex items-center gap-1 text-xs text-slate-600 px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer whitespace-nowrap">
           <input type="checkbox" checked={filters.hasCost} onChange={e => setFilters({ ...filters, hasCost: e.target.checked })} />

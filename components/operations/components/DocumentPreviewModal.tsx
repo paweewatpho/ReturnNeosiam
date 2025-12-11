@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FileText, Edit3, Printer, CheckCircle, X, FileSpreadsheet } from 'lucide-react';
 import { ThaiBahtText, getISODetails, calculateTotal } from '../utils';
 
@@ -17,6 +17,7 @@ interface DocumentPreviewModalProps {
     discountRate: number;
     setDiscountRate: (val: number) => void;
     handleConfirmDocGeneration: () => void;
+    onUpdateItem: (id: string, updates: any) => void;
 }
 
 export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
@@ -24,11 +25,27 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     isDocEditable, setIsDocEditable,
     includeVat, setIncludeVat, vatRate, setVatRate,
     discountRate, setDiscountRate,
-    handleConfirmDocGeneration
+    handleConfirmDocGeneration,
+    onUpdateItem
 }) => {
+    const [editingPrices, setEditingPrices] = useState<Record<string, number>>({});
+
     if (!isOpen || !docData) return null;
 
-    const totals = calculateTotal(docData.items, includeVat, vatRate, discountRate);
+    // Merge editing prices into items for calculation and display
+    const effectiveItems = docData.items.map((item: any) => {
+        if (editingPrices[item.id] !== undefined) {
+            const newPrice = editingPrices[item.id];
+            return {
+                ...item,
+                pricePerUnit: newPrice,
+                priceBill: newPrice * (item.quantity || 1)
+            };
+        }
+        return item;
+    });
+
+    const totals = calculateTotal(effectiveItems, includeVat, vatRate, discountRate);
 
     const handleExportExcel = () => {
         const title = docConfig.titleTH || getISODetails(docData.type).th;
@@ -272,7 +289,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                             </tr>
                         </thead>
                         <tbody>
-                            {docData.items.map((item: any, idx: number) => (
+                            {effectiveItems.map((item: any, idx: number) => (
                                 <tr key={idx}>
                                     <td className="border border-slate-800 p-2 text-center">{idx + 1}</td>
                                     <td className="border border-slate-800 p-2">{item.productCode}</td>
@@ -283,8 +300,29 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                                     <td className="border border-slate-800 p-2 text-center font-bold">{item.quantity}</td>
                                     <td className="border border-slate-800 p-2 text-center">{item.unit}</td>
                                     <td className="border border-slate-800 p-2 text-center text-xs">{item.condition}</td>
-                                    <td className="border border-slate-800 p-2 text-right">{item.priceBill?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td className="border border-slate-800 p-2 text-right">{((item.priceBill || 0) * item.quantity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td className="border border-slate-800 p-2 text-right">
+                                        {isDocEditable ? (
+                                            <input
+                                                type="number"
+                                                className="w-full text-right bg-transparent border-b border-dashed border-gray-300 focus:border-blue-500 outline-none text-sm font-bold print:border-none"
+                                                value={item.pricePerUnit ?? ((item.priceBill || 0) / (item.quantity || 1))}
+                                                onChange={(e) => {
+                                                    const val = parseFloat(e.target.value);
+                                                    setEditingPrices(prev => ({ ...prev, [item.id]: isNaN(val) ? 0 : val }));
+                                                }}
+                                                onBlur={(e) => {
+                                                    const val = parseFloat(e.target.value);
+                                                    onUpdateItem(item.id, {
+                                                        pricePerUnit: val,
+                                                        priceBill: val * (item.quantity || 1)
+                                                    });
+                                                }}
+                                            />
+                                        ) : (
+                                            (item.pricePerUnit ?? ((item.priceBill || 0) / (item.quantity || 1))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                        )}
+                                    </td>
+                                    <td className="border border-slate-800 p-2 text-right">{(item.priceBill || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 </tr>
                             ))}
                             {/* Summary Rows */}

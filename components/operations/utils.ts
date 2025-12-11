@@ -125,7 +125,7 @@ export const RESPONSIBLE_MAPPING: Record<string, string> = {
 };
 
 export const calculateTotal = (items: ReturnRecord[], hasVat: boolean, vatRate: number = 7, discountRate: number = 0) => {
-    const subtotal = items.reduce((acc, item) => acc + ((item.priceBill || 0) * item.quantity), 0);
+    const subtotal = items.reduce((acc, item) => acc + (item.priceBill || 0), 0);
     const discount = subtotal * (discountRate / 100);
     const afterDiscount = subtotal - discount;
     const vat = hasVat ? afterDiscount * (vatRate / 100) : 0;

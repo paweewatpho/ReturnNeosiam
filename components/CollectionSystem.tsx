@@ -5,7 +5,7 @@ import {
     ArrowRight, Plus, Search, User, Phone, X, Save,
     Camera, PenTool, Printer, Boxes, Ship, LayoutGrid, List, Trash2, Lock
 } from 'lucide-react';
-import { CollectionOrder, ReturnRequest, ShipmentManifest, CollectionStatus } from '../types';
+import { CollectionOrder, ReturnRequest, ShipmentManifest, CollectionStatus, ReturnStatus } from '../types';
 import { mockCollectionOrders, mockReturnRequests, mockDrivers, mockShipments } from '../data/mockCollectionData';
 import { useData } from '../DataContext';
 
@@ -45,19 +45,41 @@ const getBranchCode = (branchName: string) => {
 };
 
 const CollectionSystem: React.FC = () => {
-    const { addReturnRecord, getNextReturnNumber } = useData();
-    // ... existing state ...
-    // Note: Re-declaring component efficiently to target the function update location. 
-    // Just targeting the handleCreateManualRequest function and ensuring getBranchCode is available.
+    const { addReturnRecord, getNextReturnNumber, items, updateReturnRecord } = useData();
 
-    // (We will place getBranchCode outside or inside. Placing outside for cleanliness, but for this edit I need to be careful with context)
-    // Actually, I'll put it inside handleCreateManualRequest or just above component if I can target the top. 
-    // But replace_file_content works on lines. 
-    // The previous view shows imports up to line 9, then sub-components. 
-    // I can stick getBranchCode before CollectionSystem definition or inside handleCreateManualRequest. 
-    // Putting it inside handleCreateManualRequest is safest for a localized edit.
+    // --- HELPER: Cascading Status Sync ---
+    const syncLogisticsStatusToNCR = async (rmaIds: string[], newStatus: ReturnStatus) => {
+        // Find ReturnRecords in Operations Hub that match the RMA IDs (via refNo or ncrNumber linkage)
+        // Strategy: Iterate all Items. If item.ncrNumber matches RMA.documentNo OR item.refNo matches RMA.documentNo
+        let syncCount = 0;
 
-    // ...
+        for (const rmaId of rmaIds) {
+            const rma = returnRequests.find(r => r.id === rmaId);
+            if (!rma) continue;
+
+            const targetNcrNo = rma.documentNo; // Assuming Document No is the Link (NCR No)
+
+            // Find matches in Return Records
+            const matches = items.filter(item =>
+                (item.ncrNumber && item.ncrNumber === targetNcrNo) ||
+                (item.refNo === targetNcrNo)
+            );
+
+            for (const match of matches) {
+                // Determine if we should update based on status hierarchy (optional, but good for safety)
+                // Avoid reverting 'Completed' or 'ReceivedAtHub' if we are just scheduling pickup
+                if (match.status !== 'Completed' && match.status !== 'ReceivedAtHub' && match.status !== 'InTransitHub') {
+                    await updateReturnRecord(match.id, { status: newStatus });
+                    syncCount++;
+                } else if (newStatus === 'InTransitHub' && match.status !== 'ReceivedAtHub' && match.status !== 'Completed') {
+                    // For Hub transit, we can overwrite PickedUp
+                    await updateReturnRecord(match.id, { status: newStatus });
+                    syncCount++;
+                }
+            }
+        }
+        if (syncCount > 0) console.log(`[Sync] Updated ${syncCount} NCR Records to ${newStatus}`);
+    };
 
     const [returnRequests, setReturnRequests] = useState<ReturnRequest[]>(mockReturnRequests);
     const [collectionOrders, setCollectionOrders] = useState<CollectionOrder[]>(mockCollectionOrders);
@@ -233,8 +255,7 @@ const CollectionSystem: React.FC = () => {
         setShowAuthModal(true);
     };
 
-
-    const handleCreateCollection = () => {
+    const handleCreateCollection = async () => {
 
         if (selectedRmas.length === 0) return;
 
@@ -267,6 +288,9 @@ const CollectionSystem: React.FC = () => {
         // Update RMAs status
         setReturnRequests(prev => prev.map(r => selectedRmas.includes(r.id) ? { ...r, status: 'PICKUP_SCHEDULED' } : r));
 
+        // SYNC to NCR Report
+        await syncLogisticsStatusToNCR(selectedRmas, 'PickupScheduled');
+
         // Reset
         setSelectedRmas([]);
         setShowCreateModal(false);
@@ -292,6 +316,14 @@ const CollectionSystem: React.FC = () => {
         // Update Collection Orders status to CONSOLIDATED
         setCollectionOrders(prev => prev.map(c => selectedCollectionIds.includes(c.id) ? { ...c, status: 'CONSOLIDATED' } : c));
 
+        // SYNC Step 4: InTransitHub for all linked RMAs
+        let allRmaIds: string[] = [];
+        for (const colId of selectedCollectionIds) {
+            const col = collectionOrders.find(o => o.id === colId);
+            if (col) allRmaIds.push(...col.linkedRmaIds);
+        }
+        await syncLogisticsStatusToNCR(allRmaIds, 'InTransitHub');
+
         // Sync to Return Operations Hub (Step 2: Logistics)
         let opsCount = 0;
         try {
@@ -302,39 +334,52 @@ const CollectionSystem: React.FC = () => {
                 const rmas = returnRequests.filter(r => order.linkedRmaIds.includes(r.id));
 
                 for (const rma of rmas) {
-                    const newOpsId = await getNextReturnNumber();
-                    const record: any = {
-                        id: newOpsId,
-                        refNo: rma.documentNo || rma.id, // User Doc No
-                        neoRefNo: rma.id, // Linked COL ID
-                        date: rma.controlDate || new Date().toISOString().split('T')[0],
-                        branch: rma.branch || 'Headquarters',
-                        customerName: rma.customerName,
-                        destinationCustomer: '',
-                        productName: 'สินค้าส่งคืนทั่วไป (Mixed)', // Default
-                        productCode: 'GEN-MIX',
-                        quantity: order.packageSummary.totalBoxes || 1, // Default box count from collection
-                        unit: 'Box',
-                        priceBill: 0,
-                        priceSell: 0,
-                        condition: 'Unknown',
-                        status: 'Requested', // Shows in Step 2 of Operations
-                        problemDetail: `[จาก Collection System] ${rma.notes || '-'}`,
-                        disposition: 'Pending',
-                        founder: mockDrivers.find(d => d.id === order.driverId)?.name || 'Driver',
-                        problemSource: 'Customer',
-                        images: order.proofOfCollection?.photoUrls || [],
-                        ncrNumber: ''
-                    };
-                    await addReturnRecord(record);
-                    opsCount++;
+                    // Check if already exists in Hub
+                    const existingItem = items.find(i => i.ncrNumber === rma.documentNo || i.refNo === rma.documentNo);
+
+                    if (existingItem) {
+                        // Update existing (sync refNo if needed)
+                        await updateReturnRecord(existingItem.id, {
+                            status: 'InTransitHub',
+                            neoRefNo: rma.id
+                        });
+                        console.log(`[Manifest] Linked existing item ${existingItem.id} to COL ${rma.id}`);
+                    } else {
+                        // Create New Record if not found
+                        const newOpsId = await getNextReturnNumber();
+                        const record: any = {
+                            id: newOpsId,
+                            refNo: rma.documentNo || rma.id, // User Doc No
+                            neoRefNo: rma.id, // Linked COL ID
+                            date: rma.controlDate || new Date().toISOString().split('T')[0],
+                            branch: rma.branch || 'Headquarters',
+                            customerName: rma.customerName,
+                            destinationCustomer: '',
+                            productName: 'สินค้าส่งคืนทั่วไป (Mixed)', // Default
+                            productCode: 'GEN-MIX',
+                            quantity: order.packageSummary.totalBoxes || 1, // Default box count from collection
+                            unit: 'Box',
+                            priceBill: 0,
+                            priceSell: 0,
+                            condition: 'Unknown',
+                            status: 'InTransitHub', // Correct status for shipped items
+                            problemDetail: `[จาก Collection System] ${rma.notes || '-'}`,
+                            disposition: 'Pending',
+                            founder: mockDrivers.find(d => d.id === order.driverId)?.name || 'Driver',
+                            problemSource: 'Customer',
+                            images: order.proofOfCollection?.photoUrls || [],
+                            ncrNumber: ''
+                        };
+                        await addReturnRecord(record);
+                        opsCount++;
+                    }
                 }
             }
         } catch (error) {
             console.error("Error syncing to Operations Hub:", error);
         }
 
-        alert(`สร้างใบนำส่งสำเร็จ และส่งข้อมูลเข้า Return Operations Hub จำนวน ${opsCount} รายการ`);
+        alert(`สร้างใบนำส่งสำเร็จ และปรับปรุงสถานะรายการที่เกี่ยวข้อง`);
 
         setSelectedCollectionIds([]);
         setShowManifestModal(false);
@@ -342,7 +387,7 @@ const CollectionSystem: React.FC = () => {
         setFormTracking('');
     };
 
-    const handleDriverAction = (orderId: string, action: 'COLLECT' | 'FAIL', reason?: string) => {
+    const handleDriverAction = async (orderId: string, action: 'COLLECT' | 'FAIL', reason?: string) => {
         if (action === 'COLLECT') {
             // Auto-confirm success (removed confirm dialog)
             setCollectionOrders(prev => prev.map(o => o.id === orderId ? {
@@ -354,6 +399,13 @@ const CollectionSystem: React.FC = () => {
                     photoUrls: ['mock_photo_url']
                 }
             } : o));
+
+            // SYNC to NCR Report
+            const order = collectionOrders.find(o => o.id === orderId);
+            if (order) {
+                await syncLogisticsStatusToNCR(order.linkedRmaIds, 'PickedUp');
+            }
+
         } else if (action === 'FAIL') {
             setFailActionId(orderId);
             setFailReasonType('RESCHEDULE'); // Default

@@ -249,6 +249,7 @@ export const Operations: React.FC<OperationsProps> = ({ initialData, onClearInit
           setDiscountRate={actions.setDiscountRate}
           setIsDocEditable={actions.setIsDocEditable}
           handleConfirmDocGeneration={actions.handleConfirmDocGeneration}
+          onUpdateItem={actions.handleUpdateDocItem}
         />
       )}
 
