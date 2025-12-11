@@ -1,9 +1,4 @@
 
-import React from 'react';
-import { Activity, ClipboardList, GitFork, Save, Truck, Search } from 'lucide-react';
-import { ReturnRecord, ItemCondition, DispositionAction } from '../../../types';
-import { conditionLabels, dispositionLabels } from '../utils';
-import { RETURN_ROUTES } from '../../../constants';
 
 import React, { useState, useEffect } from 'react';
 import { Activity, ClipboardList, GitFork, Save, Truck, Search } from 'lucide-react';
