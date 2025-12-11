@@ -508,45 +508,56 @@ const CollectionSystem: React.FC = () => {
                         )}
                     </div>
 
-                    <table className="w-full text-left">
-                        <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold border-b border-slate-200">
-                            <tr>
-                                <th className="p-3 w-10"><input type="checkbox" disabled /></th>
-                                <th className="p-3">เลขที่ใบงาน</th>
-                                <th className="p-3">จุดรับสินค้า</th>
-                                <th className="p-3">ผู้ดำเนินการ</th>
-                                <th className="p-3 text-center">กล่อง</th>
-                                <th className="p-3 text-right">สถานะ</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {collectedOrders.length === 0 ? (
-                                <tr><td colSpan={6} className="p-8 text-center text-slate-400 italic">ไม่มีสินค้ารอส่งที่ Hub</td></tr>
-                            ) : collectedOrders.map(order => (
-                                <tr key={order.id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => {
-                                    setSelectedCollectionIds(prev => prev.includes(order.id) ? prev.filter(id => id !== order.id) : [...prev, order.id]);
-                                }}>
-                                    <td className="p-3">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedCollectionIds.includes(order.id)}
-                                            onChange={() => { }}
-                                            className="accent-purple-600 w-4 h-4 cursor-pointer"
-                                        />
-                                    </td>
-                                    <td className="p-3 font-mono text-sm font-bold text-purple-600">{order.id}</td>
-                                    <td className="p-3 text-sm">
-                                        <div className="font-bold text-slate-700">{order.pickupLocation.name}</div>
-                                    </td>
-                                    <td className="p-3 text-sm">
-                                        {mockDrivers.find(d => d.id === order.driverId)?.name.split('(')[0] || 'Branch Staff'}
-                                    </td>
-                                    <td className="p-3 text-center font-bold text-slate-800">{order.packageSummary.totalBoxes}</td>
-                                    <td className="p-3 text-right"><StatusBadge status={order.status} /></td>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left whitespace-nowrap">
+                            <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold border-b border-slate-200">
+                                <tr>
+                                    <th className="p-3 w-10"><input type="checkbox" disabled /></th>
+                                    <th className="p-3">เลขที่ใบงาน (COL ID)</th>
+                                    <th className="p-3">เลข Invoice</th>
+                                    <th className="p-3">วันที่ใบคุมรถ</th>
+                                    <th className="p-3">เลขที่เอกสาร (R)</th>
+                                    <th className="p-3">ชื่อลูกค้า</th>
+                                    <th className="p-3">ที่อยู่</th>
+                                    <th className="p-3">จังหวัด</th>
+                                    <th className="p-3">เลขที่ใบคุม (TM)</th>
+                                    <th className="p-3">รหัสลูกค้า</th>
+                                    <th className="p-3">หมายเหตุ</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {collectedOrders.length === 0 ? (
+                                    <tr><td colSpan={11} className="p-8 text-center text-slate-400 italic">ไม่มีสินค้ารอส่งที่ Hub</td></tr>
+                                ) : collectedOrders.map(order => {
+                                    const relatedRmas = returnRequests.filter(r => order.linkedRmaIds.includes(r.id));
+                                    return (
+                                        <tr key={order.id} className="hover:bg-slate-50 transition-colors cursor-pointer text-sm" onClick={() => {
+                                            setSelectedCollectionIds(prev => prev.includes(order.id) ? prev.filter(id => id !== order.id) : [...prev, order.id]);
+                                        }}>
+                                            <td className="p-3">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedCollectionIds.includes(order.id)}
+                                                    onChange={() => { }}
+                                                    className="accent-purple-600 w-4 h-4 cursor-pointer"
+                                                />
+                                            </td>
+                                            <td className="p-3 font-mono font-bold text-purple-600 border-r border-slate-100">{order.id}</td>
+                                            <td className="p-3 text-slate-700">{relatedRmas.map(r => r.invoiceNo || '-').join(', ')}</td>
+                                            <td className="p-3 text-slate-700">{relatedRmas.map(r => r.controlDate || '-').join(', ')}</td>
+                                            <td className="p-3 font-bold text-slate-700">{relatedRmas.map(r => r.documentNo || '-').join(', ')}</td>
+                                            <td className="p-3 font-bold text-slate-700">{order.pickupLocation.name}</td>
+                                            <td className="p-3 text-slate-600 max-w-[200px] truncate" title={order.pickupLocation.address}>{order.pickupLocation.address}</td>
+                                            <td className="p-3 text-slate-700">{relatedRmas.map(r => r.province || '-').join(', ')}</td>
+                                            <td className="p-3 text-slate-700">{relatedRmas.map(r => r.tmNo || '-').join(', ')}</td>
+                                            <td className="p-3 text-slate-700">{relatedRmas.map(r => r.customerCode || '-').join(', ')}</td>
+                                            <td className="p-3 text-slate-500 italic max-w-[150px] truncate">{relatedRmas.map(r => r.notes || '-').join(', ')}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <div className="border-t border-slate-200 pt-6">
