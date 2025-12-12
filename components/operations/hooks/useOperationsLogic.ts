@@ -494,7 +494,9 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             });
 
             // Setup Doc Generator (Return Note / RTV Template)
-            setDocConfig(prev => ({ ...prev, titleTH: 'ใบส่งคืนสินค้า (Return Note)', titleEN: 'RETURN NOTE' }));
+            const docTitleTH = routeType === 'Hub' ? 'ใบนำส่งสินค้าเข้า Hub (Transfer Note)' : 'ใบส่งคืนสินค้า (Return Note)';
+            const docTitleEN = routeType === 'Hub' ? 'TRANSFER NOTE' : 'RETURN NOTE';
+            setDocConfig(prev => ({ ...prev, titleTH: docTitleTH, titleEN: docTitleEN }));
 
             // Critical: Ensure docData is set before Modal opens
             // 'RTV' is used as a generic template for Internal Transfer as well (using same layout)
