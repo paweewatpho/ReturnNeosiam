@@ -506,11 +506,9 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             setIncludeVat(true);
             setIsDocEditable(false);
 
-            // Force Modal Open with small delay to ensure state propagation
+            // Force Modal Open immediately
             console.log("Opening Document Modal for Logistics...");
-            setTimeout(() => {
-                setShowDocModal(true);
-            }, 50);
+            setShowDocModal(true);
 
         } catch (error) {
             console.error("HandleLogisticsSubmit Error:", error);

@@ -111,11 +111,6 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                 destination: routeType === 'Direct' ? finalDestination : undefined
             };
             onConfirm(Array.from(selectedIds), routeType, submissionTransportInfo);
-
-            // Clear selection after a delay to allow parent to process
-            setTimeout(() => {
-                setSelectedIds(new Set());
-            }, 500);
         } else {
             console.error("No onConfirm handler provided to Step2NCRLogistics");
         }
