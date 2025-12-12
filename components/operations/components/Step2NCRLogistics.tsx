@@ -1,37 +1,38 @@
-
 import React, { useState, useMemo } from 'react';
 import { Truck, MapPin, Printer, ArrowRight, Package, Box, Calendar, Layers } from 'lucide-react';
 import { useData } from '../../../DataContext';
 import { ReturnRecord } from '../../../types';
 
-interface Step5LogisticsProps {
-    onConfirm: (selectedIds: string[], routeType: 'Hub' | 'Direct', transportInfo: any) => void;
-}
-
-export const Step5Logistics: React.FC<Step5LogisticsProps> = ({ onConfirm }) => {
+export const Step2NCRLogistics: React.FC = () => {
     const { items, updateReturnRecord } = useData();
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+    // Transport Info State matched to Step 5
     const [transportInfo, setTransportInfo] = useState({
         driverName: '',
         plateNumber: '',
         transportCompany: 'รถบริษัท'
     });
-    const [routeType, setRouteType] = useState<'Hub' | 'Direct'>('Hub');
 
+    // Route & Destination State
+    const [routeType, setRouteType] = useState<'Hub' | 'Direct'>('Hub');
     const [directDestination, setDirectDestination] = useState<string>('');
     const [customDestination, setCustomDestination] = useState<string>('');
     const [selectedBranch, setSelectedBranch] = useState<string>('All');
 
-    // Filter Logic: Global Items -> Status 'ReadyForLogistics' or 'COL_Consolidated'
-    const logisticsItems = useMemo(() => {
-        return items.filter(i => i.status === 'ReadyForLogistics' || i.status === 'COL_Consolidated');
+    // Filter Logic: Status 'Requested' AND (NCR or LOGISTICS)
+    const pendingItems = useMemo(() => {
+        return items.filter(item =>
+            item.status === 'Requested' &&
+            (item.documentType === 'NCR' || item.documentType === 'LOGISTICS')
+        );
     }, [items]);
 
-    const uniqueBranches = useMemo(() => Array.from(new Set(logisticsItems.map(i => i.branch))).filter(Boolean), [logisticsItems]);
+    const uniqueBranches = useMemo(() => Array.from(new Set(pendingItems.map(i => i.branch))).filter(Boolean), [pendingItems]);
 
-    const filteredItems = useMemo(() => logisticsItems.filter(item =>
+    const filteredItems = useMemo(() => pendingItems.filter(item =>
         selectedBranch === 'All' || item.branch === selectedBranch
-    ), [logisticsItems, selectedBranch]);
+    ), [pendingItems, selectedBranch]);
 
     const handleToggle = (id: string) => {
         const newSet = new Set(selectedIds);
@@ -77,38 +78,44 @@ export const Step5Logistics: React.FC<Step5LogisticsProps> = ({ onConfirm }) => 
         }
 
         const confirmMsg = routeType === 'Hub'
-            ? 'ยืนยันการส่งเข้า Hub (รวบรวมและระบุขนส่ง)?'
-            : `ยืนยันการส่งคืนตรงผู้ผลิต (Direct Return) ไปยัง "${finalDestination}"?`;
+            ? `ยืนยันการส่งเข้า Hub จำนวน ${selectedIds.size} รายการ?`
+            : `ยืนยันการส่งคืนตรง (Direct Return) ไปยัง "${finalDestination}" จำนวน ${selectedIds.size} รายการ?`;
 
         if (window.confirm(confirmMsg)) {
             const driverDetails = `Driver: ${transportInfo.driverName}, Plate: ${transportInfo.plateNumber}, Transport: ${transportInfo.transportCompany}`;
 
-            try {
-                for (const id of Array.from(selectedIds)) {
-                    if (routeType === 'Hub') {
-                        await updateReturnRecord(id, {
-                            status: 'COL_InTransit',
-                            notes: `[Logistics] ${driverDetails}`
-                        });
-                    } else {
-                        // Direct Return
-                        await updateReturnRecord(id, {
-                            status: 'DirectReturn', // User suggested DirectReturn for direct path
-                            disposition: 'RTV',
-                            destinationCustomer: finalDestination,
-                            notes: `[Direct Logistics] ${driverDetails}`
-                        });
-                    }
-                }
+            const updates = Array.from(selectedIds).map(id => {
+                const item = items.find(i => i.id === id);
+                if (!item) return null;
 
-                // Notify parent to handle additional logic (like PDF generation for Direct)
-                onConfirm(Array.from(selectedIds), routeType, { ...transportInfo, destination: finalDestination });
-                setSelectedIds(new Set());
-                alert('บันทึกข้อมูลการขนส่งเรียบร้อย');
-            } catch (error) {
-                console.error('Logistics Error:', error);
-                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูลการขนส่ง');
-            }
+                if (routeType === 'Hub') {
+                    return updateReturnRecord(id, {
+                        ...item,
+                        status: 'NCR_InTransit',
+                        dateInTransit: new Date().toISOString(),
+                        transportPlate: transportInfo.plateNumber,
+                        transportDriver: transportInfo.driverName,
+                        transportCompany: transportInfo.transportCompany,
+                        notes: item.notes ? `${item.notes}\n[Logistics] ${driverDetails}` : `[Logistics] ${driverDetails}`
+                    });
+                } else {
+                    // Direct Return
+                    return updateReturnRecord(id, {
+                        ...item,
+                        status: 'DirectReturn', // Using specific NCR status or ReturnToSupplier? Using DirectReturn as per previous NCR flow
+                        disposition: 'RTV',
+                        destinationCustomer: finalDestination,
+                        dateInTransit: new Date().toISOString(), // Track when it was sent
+                        transportPlate: transportInfo.plateNumber,
+                        transportDriver: transportInfo.driverName,
+                        transportCompany: transportInfo.transportCompany,
+                        notes: item.notes ? `${item.notes}\n[Direct Logistics] ${driverDetails}` : `[Direct Logistics] ${driverDetails}`
+                    });
+                }
+            });
+
+            await Promise.all(updates);
+            setSelectedIds(new Set());
         }
     };
 
@@ -117,11 +124,12 @@ export const Step5Logistics: React.FC<Step5LogisticsProps> = ({ onConfirm }) => 
     return (
         <div className="h-full flex flex-col p-6 animate-fade-in overflow-y-auto">
             <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <Truck className="w-6 h-6 text-orange-600" /> 5. ขนส่ง (Logistics)
+                <Truck className="w-6 h-6 text-indigo-600" /> 2. รวบรวมและระบุขนส่ง (Consolidation & Logistics)
             </h3>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                {/* Transport Info Form */}
+
+                {/* Transport Info Form (Left Panel) */}
                 <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-1">
                     <h4 className="font-bold text-slate-700 mb-4 border-b border-slate-100 pb-2">ข้อมูลการขนส่ง</h4>
                     <div className="space-y-4">
@@ -131,7 +139,7 @@ export const Step5Logistics: React.FC<Step5LogisticsProps> = ({ onConfirm }) => 
                                 type="text"
                                 value={transportInfo.plateNumber}
                                 onChange={e => setTransportInfo({ ...transportInfo, plateNumber: e.target.value })}
-                                className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 bg-slate-50"
+                                className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 bg-slate-50"
                                 placeholder="เช่น 1กข-1234"
                             />
                         </div>
@@ -141,7 +149,7 @@ export const Step5Logistics: React.FC<Step5LogisticsProps> = ({ onConfirm }) => 
                                 type="text"
                                 value={transportInfo.driverName}
                                 onChange={e => setTransportInfo({ ...transportInfo, driverName: e.target.value })}
-                                className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 bg-slate-50"
+                                className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 bg-slate-50"
                                 placeholder="ชื่อ-นามสกุล"
                             />
                         </div>
@@ -149,16 +157,20 @@ export const Step5Logistics: React.FC<Step5LogisticsProps> = ({ onConfirm }) => 
                             <label className="block text-sm font-bold text-slate-600 mb-1">บริษัทขนส่ง</label>
                             <div className="space-y-2">
                                 <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="radio" name="transportType" checked={transportInfo.transportCompany === 'รถบริษัท'} onChange={() => setTransportInfo({ ...transportInfo, transportCompany: 'รถบริษัท' })} className="text-blue-600 focus:ring-blue-500" />
+                                    <input type="radio" name="transportType" checked={transportInfo.transportCompany === 'รถบริษัท'} onChange={() => setTransportInfo({ ...transportInfo, transportCompany: 'รถบริษัท' })} className="text-indigo-600 focus:ring-indigo-500" />
                                     <span className="text-sm">รถบริษัท</span>
                                 </label>
                                 <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="radio" name="transportType" checked={transportInfo.transportCompany !== 'รถบริษัท'} onChange={() => setTransportInfo({ ...transportInfo, transportCompany: '' })} className="text-blue-600 focus:ring-blue-500" />
-                                    <span className="text-sm">รถขนส่งร่วม (3PL)</span>
+                                    <input type="radio" name="transportType" checked={transportInfo.transportCompany === 'รถร่วม'} onChange={() => setTransportInfo({ ...transportInfo, transportCompany: 'รถร่วม' })} className="text-indigo-600 focus:ring-indigo-500" />
+                                    <span className="text-sm">รถร่วม</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="transportType" checked={!['รถบริษัท', 'รถร่วม'].includes(transportInfo.transportCompany)} onChange={() => setTransportInfo({ ...transportInfo, transportCompany: '' })} className="text-indigo-600 focus:ring-indigo-500" />
+                                    <span className="text-sm">อื่นๆ</span>
                                 </label>
                             </div>
-                            {transportInfo.transportCompany !== 'รถบริษัท' && (
-                                <input type="text" value={transportInfo.transportCompany === 'รถบริษัท' ? '' : transportInfo.transportCompany} onChange={e => setTransportInfo({ ...transportInfo, transportCompany: e.target.value })} className="w-full mt-2 p-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 bg-slate-50" placeholder="ระบุชื่อบริษัทขนส่ง..." />
+                            {!['รถบริษัท', 'รถร่วม'].includes(transportInfo.transportCompany) && (
+                                <input type="text" value={transportInfo.transportCompany} onChange={e => setTransportInfo({ ...transportInfo, transportCompany: e.target.value })} className="w-full mt-2 p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 bg-slate-50" placeholder="ระบุชื่อบริษัทขนส่ง..." />
                             )}
                         </div>
                     </div>
@@ -166,18 +178,18 @@ export const Step5Logistics: React.FC<Step5LogisticsProps> = ({ onConfirm }) => 
                     <div className="mt-6 pt-4 border-t border-slate-100">
                         <h4 className="font-bold text-slate-700 mb-3 block">ปลายทาง (Destination)</h4>
                         <div className="space-y-3">
-                            <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${routeType === 'Hub' ? 'bg-orange-50 border-orange-500 shadow-sm' : 'border-slate-200 hover:bg-slate-50'}`}>
+                            <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${routeType === 'Hub' ? 'bg-indigo-50 border-indigo-500 shadow-sm' : 'border-slate-200 hover:bg-slate-50'}`}>
                                 <input type="radio" name="route" checked={routeType === 'Hub'} onChange={() => setRouteType('Hub')} className="mt-1" />
                                 <div>
                                     <div className="font-bold text-slate-800">Hub นครสวรรค์</div>
-                                    <div className="text-xs text-slate-500">ส่งเข้า Hub หลัก</div>
+                                    <div className="text-xs text-slate-500">ส่งเข้า Hub เพื่อตรวจสอบคุณภาพ (QC)</div>
                                 </div>
                             </label>
                             <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${routeType === 'Direct' ? 'bg-green-50 border-green-500 shadow-sm' : 'border-slate-200 hover:bg-slate-50'}`}>
                                 <input type="radio" name="route" checked={routeType === 'Direct'} onChange={() => setRouteType('Direct')} className="mt-1" />
                                 <div>
                                     <div className="font-bold text-slate-800">ส่งตรง (Direct Return)</div>
-                                    <div className="text-xs text-slate-500">ส่งคืนผู้ผลิตโดยตรง</div>
+                                    <div className="text-xs text-slate-500">ไม่ผ่าน QC, ส่งคืนผู้ผลิต/ลูกค้าทันที</div>
                                 </div>
                             </label>
 
@@ -203,17 +215,18 @@ export const Step5Logistics: React.FC<Step5LogisticsProps> = ({ onConfirm }) => 
 
                     <button
                         onClick={confirmSelection}
-                        className={`w-full mt-6 py-3 rounded-lg font-bold text-white shadow-md flex items-center justify-center gap-2 transition-all ${routeType === 'Hub' ? 'bg-orange-600 hover:bg-orange-700' : 'bg-green-600 hover:bg-green-700'}`}
+                        disabled={selectedIds.size === 0}
+                        className={`w-full mt-6 py-3 rounded-lg font-bold text-white shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${routeType === 'Hub' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-green-600 hover:bg-green-700'}`}
                     >
-                        {routeType === 'Hub' ? <>ส่งของ (Ship to Hub) <Truck className="w-4 h-4" /></> : <>ส่งของ (Direct Ship) <Printer className="w-4 h-4" /></>}
+                        {routeType === 'Hub' ? <>บันทึกส่งเข้า Hub (Save to Hub) <Truck className="w-4 h-4" /></> : <>บันทึกส่งตรง (Save Direct) <Printer className="w-4 h-4" /></>}
                     </button>
                 </div>
 
-                {/* List */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 lg:col-span-2 flex flex-col overflow-hidden max-h-[600px]">
+                {/* List (Right Panel - Spanning 2 cols) */}
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 lg:col-span-2 flex flex-col overflow-hidden max-h-[700px]">
                     <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center flex-wrap gap-2">
                         <div>
-                            <h4 className="font-bold text-slate-700">รายการรอกระจายสินค้า ({filteredItems.length})</h4>
+                            <h4 className="font-bold text-slate-700">รายการสินค้ารอจัดส่ง ({filteredItems.length})</h4>
                             <div className="text-sm text-slate-500">เลือก {selectedIds.size} รายการ</div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -231,28 +244,39 @@ export const Step5Logistics: React.FC<Step5LogisticsProps> = ({ onConfirm }) => 
                         {filteredItems.length === 0 ? (
                             <div className="p-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
                                 <Package className="w-12 h-12 mx-auto mb-2 text-slate-300" />
-                                <p>ไม่มีสินค้ารอขนส่ง</p>
+                                <p>ไม่พบรายการสินค้าที่รอจัดส่ง</p>
+                                <p className="text-xs mt-1">หรือลองเปลี่ยนตัวกรองสาขา</p>
                             </div>
                         ) : (
                             <div className="space-y-3">
                                 {filteredItems.map(item => {
                                     const isSelected = selectedIds.has(item.id);
+                                    const isNCR = item.documentType === 'NCR';
                                     return (
-                                        <div key={item.id} onClick={() => handleToggle(item.id)} className={`flex items-start gap-4 p-4 rounded-xl border transition-all cursor-pointer ${isSelected ? 'bg-orange-50 border-orange-400 ring-1 ring-orange-200' : 'bg-white border-slate-200 hover:border-orange-300'}`}>
+                                        <div key={item.id} onClick={() => handleToggle(item.id)} className={`flex items-start gap-4 p-4 rounded-xl border transition-all cursor-pointer ${isSelected ? 'bg-indigo-50 border-indigo-400 ring-1 ring-indigo-200' : 'bg-white border-slate-200 hover:border-indigo-300'}`}>
                                             <div className="pt-1">
-                                                <div className={`w-5 h-5 rounded border flex items-center justify-center ${isSelected ? 'bg-orange-500 border-orange-500' : 'bg-white border-slate-300'}`}>
+                                                <div className={`w-5 h-5 rounded border flex items-center justify-center ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-slate-300'}`}>
                                                     {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
                                                 </div>
                                             </div>
                                             <div className="flex-1">
-                                                <div className="flex justify-between">
-                                                    <h4 className="font-bold text-slate-800 text-sm">{item.productName}</h4>
-                                                    <span className="text-xs font-mono text-slate-500">{item.id}</span>
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <h4 className="font-bold text-slate-800 text-sm">{item.productName}</h4>
+                                                        <div className="flex gap-2 mt-1">
+                                                            {isNCR ?
+                                                                <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-bold">NCR</span> :
+                                                                <span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-bold">COL</span>
+                                                            }
+                                                            <span className="text-xs font-mono text-slate-500">{item.ncrNumber || item.id}</span>
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-xs font-medium text-slate-400">{item.dateRequested || item.date}</span>
                                                 </div>
-                                                <div className="text-xs text-slate-500 mt-1 flex gap-4">
-                                                    <span>สาขา: {item.branch}</span>
+                                                <div className="text-xs text-slate-500 mt-2 flex gap-4 flex-wrap">
+                                                    <span className="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">สาขา: {item.branch}</span>
                                                     <span>จำนวน: <b>{item.quantity} {item.unit}</b></span>
-                                                    <span>แจ้งเมื่อ: {item.dateRequested || item.date}</span>
+                                                    {item.founder && <span>ผู้พบ: {item.founder}</span>}
                                                 </div>
                                             </div>
                                         </div>

@@ -7,15 +7,15 @@ import { ReturnRecord } from '../../../types';
 export const Step4Consolidation: React.FC = () => {
     const { items, updateReturnRecord } = useData();
 
-    // Filter Items: Status 'BranchReceived'
+    // Filter Items: Status 'BranchReceived' or 'COL_BranchReceived'
     const receivedItems = React.useMemo(() => {
-        return items.filter(item => item.status === 'BranchReceived');
+        return items.filter(item => item.status === 'BranchReceived' || item.status === 'COL_BranchReceived');
     }, [items]);
 
     const handleConsolidate = async (id: string) => {
         // Prepare for Logistics
         if (window.confirm('ยืนยันการรวมสินค้าเพื่อเตรียมขนส่ง (Ready for Logistics)?')) {
-            await updateReturnRecord(id, { status: 'ReadyForLogistics' });
+            await updateReturnRecord(id, { status: 'COL_Consolidated' });
         }
     };
 
@@ -23,7 +23,7 @@ export const Step4Consolidation: React.FC = () => {
         if (receivedItems.length === 0) return;
         if (window.confirm(`ยืนยันการรวมสินค้าทั้งหมด ${receivedItems.length} รายการ?`)) {
             for (const item of receivedItems) {
-                await updateReturnRecord(item.id, { status: 'ReadyForLogistics' });
+                await updateReturnRecord(item.id, { status: 'COL_Consolidated' });
             }
         }
     };

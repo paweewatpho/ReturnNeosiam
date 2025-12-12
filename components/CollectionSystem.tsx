@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useData } from '../DataContext';
 import { useOperationsLogic } from './operations/hooks/useOperationsLogic';
-import { Step1Request } from './operations/components/Step1Request';
+import { Step1LogisticsRequest } from './operations/components/Step1LogisticsRequest';
 import { Step2JobAccept } from './operations/components/Step2JobAccept';
 import { Step3BranchReceive } from './operations/components/Step3BranchReceive';
 import { Step4Consolidation } from './operations/components/Step4Consolidation';
@@ -137,13 +137,11 @@ const CollectionSystem: React.FC = () => {
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none" />
 
                     {currentStep === 1 && (
-                        <Step1Request
+                        <Step1LogisticsRequest
                             formData={state.formData}
                             requestItems={state.requestItems}
                             isCustomBranch={state.isCustomBranch}
                             uniqueCustomers={derived.uniqueCustomers}
-                            uniqueDestinations={derived.uniqueDestinations}
-                            uniqueFounders={derived.uniqueFounders}
                             uniqueProductCodes={derived.uniqueProductCodes}
                             uniqueProductNames={derived.uniqueProductNames}
                             setFormData={actions.setFormData}
@@ -151,8 +149,6 @@ const CollectionSystem: React.FC = () => {
                             setRequestItems={actions.setRequestItems}
                             handleAddItem={actions.handleAddItem}
                             handleRemoveItem={actions.handleRemoveItem}
-                            handleImageUpload={actions.handleImageUpload}
-                            handleRemoveImage={actions.handleRemoveImage}
                             handleRequestSubmit={actions.handleRequestSubmit}
                         />
                     )}

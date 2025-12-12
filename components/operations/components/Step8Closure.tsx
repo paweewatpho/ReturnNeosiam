@@ -7,9 +7,15 @@ import { DispositionBadge } from './DispositionBadge';
 export const Step8Closure: React.FC = () => {
     const { items, updateReturnRecord } = useData();
 
-    // Filter Items: Status 'DocsCompleted'
+    // Filter Items: Status 'DocsCompleted', 'COL_Documented', 'NCR_Documented', 'DirectReturn', 'ReturnToSupplier'
     const documentedItems = React.useMemo(() => {
-        return items.filter(item => item.status === 'DocsCompleted');
+        return items.filter(item =>
+            item.status === 'DocsCompleted' ||
+            item.status === 'COL_Documented' ||
+            item.status === 'NCR_Documented' ||
+            item.status === 'DirectReturn' ||
+            item.status === 'ReturnToSupplier'
+        );
     }, [items]);
 
     // Completed Items

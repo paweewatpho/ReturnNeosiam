@@ -14,6 +14,7 @@ interface NCRReportProps {
 
 const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
   const { ncrReports, items, updateNCRReport, deleteNCRReport, updateReturnRecord, deleteReturnRecord } = useData();
+  // Refreshed imports
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [printItem, setPrintItem] = useState<NCRRecord | null>(null);
 

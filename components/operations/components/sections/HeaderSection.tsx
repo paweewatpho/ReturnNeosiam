@@ -17,54 +17,89 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
     setIsCustomBranch
 }) => {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-xl border border-slate-200">
-            <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">วันที่แจ้งคืน <span className="text-red-500">*</span></label>
-                <div className="relative">
+        <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">ถึงหน่วยงาน (To Dept)</label>
                     <input
-                        type="date"
-                        required
-                        value={formData.date}
-                        onChange={e => updateField('date', e.target.value)}
-                        className="w-full p-2.5 pl-10 bg-white border border-slate-300 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-700 shadow-sm"
+                        type="text"
+                        value={formData.toDept || 'แผนกควบคุมคุณภาพ'}
+                        onChange={e => updateField('toDept', e.target.value)}
+                        className="w-full p-2.5 bg-white border border-slate-300 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-700 shadow-sm"
+                        placeholder="ระบุหน่วยงาน..."
                     />
-                    <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                </div>
+                <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">วันที่แจ้งคืน <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                        <input
+                            type="date"
+                            required
+                            value={formData.date}
+                            onChange={e => updateField('date', e.target.value)}
+                            className="w-full p-2.5 pl-10 bg-white border border-slate-300 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-700 shadow-sm"
+                        />
+                        <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">สำเนา (Copy To)</label>
+                    <input
+                        type="text"
+                        value={formData.copyTo || ''}
+                        onChange={e => updateField('copyTo', e.target.value)}
+                        className="w-full p-2.5 bg-white border border-slate-300 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-700 shadow-sm"
+                        placeholder="ระบุผู้รับสำเนา..."
+                    />
                 </div>
             </div>
-            <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">สาขาที่ส่งคืน <span className="text-red-500">*</span></label>
-                {isCustomBranch ? (
-                    <div className="flex gap-2 animate-fade-in relative">
-                        <input
-                            type="text"
-                            required
-                            value={formData.branch}
-                            onChange={e => updateField('branch', e.target.value)}
-                            className="w-full p-2.5 pl-10 bg-white border border-slate-300 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
-                            placeholder="ระบุชื่อสาขา..."
-                            autoFocus
-                        />
-                        <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                        <button type="button" onClick={() => setIsCustomBranch(false)} className="text-xs text-blue-600 hover:underline absolute right-3 top-3 bg-white px-2">เลือกจากรายการ</button>
-                    </div>
-                ) : (
-                    <div className="relative">
-                        <select
-                            required
-                            value={formData.branch}
-                            onChange={e => {
-                                if (e.target.value === 'Other') setIsCustomBranch(true);
-                                else updateField('branch', e.target.value);
-                            }}
-                            className="w-full p-2.5 pl-10 bg-white border border-slate-300 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-700 shadow-sm appearance-none"
-                        >
-                            <option value="" disabled>-- เลือกสาขา --</option>
-                            {BRANCH_LIST.map(b => <option key={b} value={b}>{b}</option>)}
-                            <option value="Other">+ ระบุเอง...</option>
-                        </select>
-                        <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    </div>
-                )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">สาขาที่ส่งคืน <span className="text-red-500">*</span></label>
+                    {isCustomBranch ? (
+                        <div className="flex gap-2 animate-fade-in relative">
+                            <input
+                                type="text"
+                                required
+                                value={formData.branch}
+                                onChange={e => updateField('branch', e.target.value)}
+                                className="w-full p-2.5 pl-10 bg-white border border-slate-300 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                                placeholder="ระบุชื่อสาขา..."
+                                autoFocus
+                            />
+                            <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                            <button type="button" onClick={() => setIsCustomBranch(false)} className="text-xs text-blue-600 hover:underline absolute right-3 top-3 bg-white px-2">เลือกจากรายการ</button>
+                        </div>
+                    ) : (
+                        <div className="relative">
+                            <select
+                                required
+                                value={formData.branch}
+                                onChange={e => {
+                                    if (e.target.value === 'Other') setIsCustomBranch(true);
+                                    else updateField('branch', e.target.value);
+                                }}
+                                className="w-full p-2.5 pl-10 bg-white border border-slate-300 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-700 shadow-sm appearance-none"
+                            >
+                                <option value="" disabled>-- เลือกสาขา --</option>
+                                {BRANCH_LIST.map(b => <option key={b} value={b}>{b}</option>)}
+                                <option value="Other">+ ระบุเอง...</option>
+                            </select>
+                            <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                        </div>
+                    )}
+                </div>
+                <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">เลขที่ใบสั่งซื้อ/ผลิต (PO No.)</label>
+                    <input
+                        type="text"
+                        value={formData.poNo || ''}
+                        onChange={e => updateField('poNo', e.target.value)}
+                        className="w-full p-2.5 bg-white border border-slate-300 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-700 shadow-sm"
+                        placeholder="ระบุเลขที่ PO..."
+                    />
+                </div>
             </div>
         </div>
     );

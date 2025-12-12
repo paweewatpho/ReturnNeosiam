@@ -132,25 +132,63 @@ export const ProblemDetailsSection: React.FC<ProblemDetailsSectionProps> = ({
                         </div>
                     </div>
                     <div className="mb-2 font-bold underline text-slate-800 text-sm">พบปัญหาที่กระบวนการ <span className="text-red-500">*</span></div>
-                    <div className="grid grid-cols-2 gap-2 mb-4 text-slate-700 text-sm">
-                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemDamaged} onChange={() => handleCheckboxToggle('problemDamaged')} /> ชำรุด</label>
-                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemDamagedInBox} onChange={() => handleCheckboxToggle('problemDamagedInBox')} /> ชำรุดในกล่อง</label>
-                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemLost} onChange={() => handleCheckboxToggle('problemLost')} /> สูญหาย</label>
-                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemMixed} onChange={() => handleCheckboxToggle('problemMixed')} /> สินค้าสลับ</label>
-                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemWrongInv} onChange={() => handleCheckboxToggle('problemWrongInv')} /> สินค้าไม่ตรง INV.</label>
-                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemLate} onChange={() => handleCheckboxToggle('problemLate')} /> ส่งช้า</label>
-                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemDuplicate} onChange={() => handleCheckboxToggle('problemDuplicate')} /> ส่งซ้ำ</label>
-                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemWrong} onChange={() => handleCheckboxToggle('problemWrong')} /> ส่งผิด</label>
-                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemIncomplete} onChange={() => handleCheckboxToggle('problemIncomplete')} /> ส่งของไม่ครบ</label>
-                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemOver} onChange={() => handleCheckboxToggle('problemOver')} /> ส่งของเกิน</label>
-                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemWrongInfo} onChange={() => handleCheckboxToggle('problemWrongInfo')} /> ข้อมูลผิด</label>
-                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemShortExpiry} onChange={() => handleCheckboxToggle('problemShortExpiry')} /> สินค้าอายุสั้น</label>
-                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemTransportDamage} onChange={() => handleCheckboxToggle('problemTransportDamage')} /> สินค้าเสียหายบนรถขนส่ง</label>
-                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemAccident} onChange={() => handleCheckboxToggle('problemAccident')} /> อุบัติเหตุ</label>
-                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemPOExpired} onChange={() => handleCheckboxToggle('problemPOExpired')} /> PO. หมดอายุ</label>
-                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemNoBarcode} onChange={() => handleCheckboxToggle('problemNoBarcode')} /> บาร์โค๊ตไม่ขึ้น</label>
-                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemNotOrdered} onChange={() => handleCheckboxToggle('problemNotOrdered')} /> ไม่ได้สั่งสินค้า</label>
-                        <div className="flex items-center gap-2 p-1 col-span-2"><input type="checkbox" checked={formData.problemOther} onChange={() => handleCheckboxToggle('problemOther')} /> <span>อื่นๆ</span><input type="text" className="border-b border-dotted border-slate-400 bg-transparent outline-none flex-1 text-slate-700" value={formData.problemOtherText || ''} onChange={e => updateField('problemOtherText', e.target.value)} /></div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4 text-slate-700 text-sm">
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                            <input type="checkbox" checked={formData.problemDamaged} onChange={() => handleCheckboxToggle('problemDamaged')} /> ชำรุด
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                            <input type="checkbox" checked={formData.problemDamagedInBox} onChange={() => handleCheckboxToggle('problemDamagedInBox')} /> ชำรุดในกล่อง
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                            <input type="checkbox" checked={formData.problemLost} onChange={() => handleCheckboxToggle('problemLost')} /> สูญหาย
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                            <input type="checkbox" checked={formData.problemMixed} onChange={() => handleCheckboxToggle('problemMixed')} /> สินค้าสลับ
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                            <input type="checkbox" checked={formData.problemWrongInv} onChange={() => handleCheckboxToggle('problemWrongInv')} /> สินค้าไม่ตรง INV.
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                            <input type="checkbox" checked={formData.problemLate} onChange={() => handleCheckboxToggle('problemLate')} /> ส่งช้า
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                            <input type="checkbox" checked={formData.problemDuplicate} onChange={() => handleCheckboxToggle('problemDuplicate')} /> ส่งซ้ำ
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                            <input type="checkbox" checked={formData.problemWrong} onChange={() => handleCheckboxToggle('problemWrong')} /> ส่งผิด
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                            <input type="checkbox" checked={formData.problemIncomplete} onChange={() => handleCheckboxToggle('problemIncomplete')} /> ส่งของไม่ครบ
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                            <input type="checkbox" checked={formData.problemOver} onChange={() => handleCheckboxToggle('problemOver')} /> ส่งของเกิน
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                            <input type="checkbox" checked={formData.problemWrongInfo} onChange={() => handleCheckboxToggle('problemWrongInfo')} /> ข้อมูลผิด
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                            <input type="checkbox" checked={formData.problemShortExpiry} onChange={() => handleCheckboxToggle('problemShortExpiry')} /> สินค้าอายุสั้น
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                            <input type="checkbox" checked={formData.problemTransportDamage} onChange={() => handleCheckboxToggle('problemTransportDamage')} /> สินค้าเสียหายบนรถขนส่ง
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                            <input type="checkbox" checked={formData.problemAccident} onChange={() => handleCheckboxToggle('problemAccident')} /> อุบัติเหตุ
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                            <input type="checkbox" checked={formData.problemPOExpired} onChange={() => handleCheckboxToggle('problemPOExpired')} /> PO. หมดอายุ
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                            <input type="checkbox" checked={formData.problemNoBarcode} onChange={() => handleCheckboxToggle('problemNoBarcode')} /> บาร์โค๊ตไม่ขึ้น
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                            <input type="checkbox" checked={formData.problemNotOrdered} onChange={() => handleCheckboxToggle('problemNotOrdered')} /> ไม่ได้สั่งสินค้า
+                        </label>
+                        <div className="flex items-center gap-2 p-1 col-span-2">
+                            <input type="checkbox" checked={formData.problemOther} onChange={() => handleCheckboxToggle('problemOther')} />
+                            <span>อื่นๆ</span>
+                            <input type="text" className="border-b border-dotted border-slate-400 bg-transparent outline-none flex-1 text-slate-700" value={formData.problemOtherText || ''} onChange={e => updateField('problemOtherText', e.target.value)} />
+                        </div>
                     </div>
                     <div>
                         <label className="font-bold underline text-sm text-slate-800">รายละเอียด:</label>

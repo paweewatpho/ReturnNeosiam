@@ -9,15 +9,15 @@ export const Step3HubReceive: React.FC = () => {
     const [filterCustomer, setFilterCustomer] = React.useState<string>('');
     const [filterDestination, setFilterDestination] = React.useState<string>('');
 
-    // Filter Items: Status 'PickupScheduled' (In Transit from Logistics)
+    // Filter Items: Status 'NCR_InTransit' or 'PickupScheduled' (Legacy)
     const requestedItems = React.useMemo(() => {
-        return items.filter(item => item.status === 'PickupScheduled');
+        return items.filter(item => item.status === 'NCR_InTransit' || item.status === 'PickupScheduled');
     }, [items]);
 
     const handleIntakeReceive = async (id: string) => {
         if (window.confirm('ยืนยันรับเข้าสินค้านี้เข้าสู่ Hub?')) {
             await updateReturnRecord(id, {
-                status: 'ReceivedAtHub'
+                status: 'NCR_HubReceived'
             });
         }
     };

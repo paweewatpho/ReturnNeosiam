@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { FileInput, Package, PlusCircle, Save } from 'lucide-react';
+import { FileText, PlusCircle, Save, Trash2, Package, Truck } from 'lucide-react';
 import { ReturnRecord } from '../../../types';
 import { ConfirmSubmitModal } from './ConfirmSubmitModal';
 import { ItemAnalysisModal } from './ItemAnalysisModal';
 
-// Sub-components
+// Sub-components for NCR Form
 import { HeaderSection } from './sections/HeaderSection';
 import { FounderInfoSection } from './sections/FounderInfoSection';
 import { ProductFormSection } from './sections/ProductFormSection';
@@ -34,6 +34,8 @@ interface Step1RequestProps {
     handleRequestSubmit: () => void;
 }
 
+type DocumentType = 'NCR';
+
 export const Step1Request: React.FC<Step1RequestProps> = ({
     formData, requestItems, isCustomBranch,
     uniqueCustomers, uniqueDestinations, uniqueFounders, uniqueProductCodes, uniqueProductNames,
@@ -41,9 +43,17 @@ export const Step1Request: React.FC<Step1RequestProps> = ({
     setFormData, setIsCustomBranch, setRequestItems,
     handleAddItem, handleRemoveItem, handleImageUpload, handleRemoveImage, handleRequestSubmit
 }) => {
+    // Fixed to 'NCR' mode
+    const [docType] = useState<DocumentType>('NCR');
     const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-    // Analysis Modal State
+    // Sync docType to formData CONSTANTLY to be safe, though initial logic might handle it.
+    React.useEffect(() => {
+        setFormData(prev => ({ ...prev, documentType: 'NCR' }));
+    }, [setFormData]);
+
+
+    // Analysis Modal State (NCR Only)
     const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
     const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
     const [editingItemData, setEditingItemData] = useState<Partial<ReturnRecord> | null>(null);
@@ -68,6 +78,8 @@ export const Step1Request: React.FC<Step1RequestProps> = ({
 
     const onAddItemClick = (e: React.FormEvent | React.MouseEvent) => {
         e.preventDefault();
+
+        // NCR Validation
         if (!formData.productName || !formData.productCode || !formData.founder) {
             alert("กรุณาระบุชื่อสินค้า, รหัสสินค้า และผู้พบปัญหา (Founder)");
             return;
@@ -81,24 +93,26 @@ export const Step1Request: React.FC<Step1RequestProps> = ({
 
     const onSaveClick = () => {
         if (requestItems.length === 0) {
-            alert("ไม่สามารถยืนยันได้: กรุณาเพิ่มรายการสินค้าเข้าสู่ตารางอย่างน้อย 1 รายการ");
-            return;
-        }
-        if (formData.productName || formData.productCode) {
-            alert("ไม่สามารถยืนยันได้: คุณมีข้อมูลที่กรอกค้างอยู่ กรุณากดปุ่ม 'เพิ่มรายการ (Add)' เพื่อนำข้อมูลลงตาราง หรือลบข้อมูลออกก่อน");
+            alert("กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ");
             return;
         }
 
-        const incompleteItems = requestItems.filter(item => !item.preliminaryDecision);
+        // Check if form data is lingering
+        if (formData.productName || formData.productCode) {
+            alert("คุณมีข้อมูลที่กรอกค้างอยู่ กรุณากดปุ่ม 'เพิ่มรายการ' หรือลบข้อมูลออกก่อน");
+            return;
+        }
+        // Detailed Validation
+        const incompleteItems = requestItems.filter(item => !item.problemAnalysis);
         if (incompleteItems.length > 0) {
-            alert(`ไม่สามารถยืนยันได้: มีรายการที่ยังไม่ได้วิเคราะห์ ${incompleteItems.length} รายการ กรุณากดปุ่ม 'วิเคราะห์/แก้ไข' และระบุข้อมูลให้ครบถ้วน`);
+            alert(`ไม่สามารถยืนยันได้: มีรายการที่ยังไม่ได้ระบุสาเหตุปัญหา (Problem Source) จำนวน ${incompleteItems.length} รายการ`);
             return;
         }
 
         setShowConfirmModal(true);
     };
 
-    // Modal Handlers
+    // Modal Handlers (NCR)
     const handleAnalyzeClick = (index: number) => {
         setEditingItemIndex(index);
         setEditingItemData(requestItems[index]);
@@ -136,24 +150,32 @@ export const Step1Request: React.FC<Step1RequestProps> = ({
 
             <div className="h-full overflow-auto p-6">
                 <div className="max-w-4xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
-                    {/* Page Header */}
+
+                    {/* Header Info - Simplified for NCR Only */}
                     <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                        <div className="bg-blue-100 p-2 rounded-lg text-blue-600"><FileInput className="w-6 h-6" /></div>
-                        <div><h3 className="text-xl font-bold text-slate-800">1. แจ้งคืนสินค้า (Return Request)</h3><p className="text-sm text-slate-500">สำหรับสาขา: กรอกข้อมูลสินค้าที่ต้องการส่งคืนเพื่อสร้างคำขอเข้าระบบ</p></div>
-                        {initialData?.ncrNumber && <div className="ml-auto bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold border border-orange-200">Auto-filled from NCR: {initialData.ncrNumber}</div>}
+                        <div className="p-2 rounded-lg bg-indigo-100 text-indigo-600">
+                            <FileText className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-slate-800">
+                                1. ใบแจ้งคืนสินค้า (NCR / Return Request)
+                            </h3>
+                            <p className="text-sm text-slate-500">
+                                สร้างเอกสาร NCR เพื่อแจ้งปัญหาคุณภาพและวิเคราะห์สาเหตุ
+                            </p>
+                        </div>
+                        {initialData?.ncrNumber && <div className="ml-auto bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold border border-orange-200">Ref NCR: {initialData.ncrNumber}</div>}
                     </div>
 
                     <form onSubmit={onAddItemClick} className="space-y-6">
 
-                        {/* 1. Header Section */}
+                        {/* --- NCR FORM FIELDS --- */}
                         <HeaderSection
                             formData={formData}
                             updateField={updateField}
                             isCustomBranch={isCustomBranch}
                             setIsCustomBranch={setIsCustomBranch}
                         />
-
-                        {/* 2. Founder / Header Info */}
                         <FounderInfoSection
                             formData={formData}
                             updateField={updateField}
@@ -161,12 +183,10 @@ export const Step1Request: React.FC<Step1RequestProps> = ({
                             uniqueDestinations={uniqueDestinations}
                             uniqueFounders={uniqueFounders}
                         />
-
-                        {/* 3. Product Entry Form */}
                         <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
                             <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center justify-between">
                                 <h4 className="flex items-center gap-2 font-bold text-slate-800">
-                                    <Package className="w-5 h-5 text-indigo-500" /> ข้อมูลสินค้า (Item Details)
+                                    <Package className="w-5 h-5 text-indigo-500" /> ข้อมูลสินค้า (Item Details - NCR)
                                 </h4>
                                 <div className="text-xs text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-sm">
                                     รายการที่ {requestItems.length + 1}
@@ -180,7 +200,6 @@ export const Step1Request: React.FC<Step1RequestProps> = ({
                                     uniqueProductCodes={uniqueProductCodes}
                                     uniqueProductNames={uniqueProductNames}
                                 />
-
                                 <ProblemDetailsSection
                                     formData={formData}
                                     updateField={updateField}
@@ -188,7 +207,6 @@ export const Step1Request: React.FC<Step1RequestProps> = ({
                                     handleImageUpload={handleImageUpload}
                                     handleRemoveImage={handleRemoveImage}
                                 />
-
                                 <ActionSection
                                     formData={formData}
                                     updateField={updateField}
@@ -196,32 +214,24 @@ export const Step1Request: React.FC<Step1RequestProps> = ({
                                 />
                             </div>
                         </div>
-
-                        {/* 4. Root Cause */}
                         <RootCauseSection
                             formData={formData}
                             updateField={updateField}
                             handleCheckboxToggle={handleCheckboxToggle}
                         />
-
-                        {/* 5. Cost Tracking */}
                         <CostSection
                             formData={formData}
                             updateField={updateField}
                         />
 
-                        {/* Add Button */}
+                        {/* Add Button for NCR */}
                         <div className="flex justify-center mt-8 mb-4 py-4 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                            <button
-                                type="submit"
-                                className="w-full md:w-2/3 px-6 py-4 bg-blue-600 text-white rounded-xl font-bold text-lg shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all flex items-center justify-center gap-3 active:scale-95"
-                            >
-                                <PlusCircle className="w-6 h-6" />
-                                เพิ่มรายการสินค้าลงตาราง (Add Item to List)
+                            <button type="submit" className="w-full md:w-2/3 px-6 py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg shadow-lg hover:bg-indigo-700 hover:shadow-xl transition-all flex items-center justify-center gap-3 active:scale-95">
+                                <PlusCircle className="w-6 h-6" /> เพิ่มรายการสินค้าลงตาราง (Add Item)
                             </button>
                         </div>
 
-                        {/* 6. Items List */}
+                        {/* Items List */}
                         {requestItems.length > 0 && (
                             <ItemsTable
                                 requestItems={requestItems}
@@ -230,10 +240,10 @@ export const Step1Request: React.FC<Step1RequestProps> = ({
                             />
                         )}
 
-                        {/* Submit All Button */}
+                        {/* Submit Button */}
                         <div className="flex justify-end items-center pt-4 border-t border-slate-100 mt-6">
-                            <button type="button" onClick={onSaveClick} className="px-6 py-2.5 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700 shadow-md flex items-center gap-2">
-                                <Save className="w-4 h-4" /> ยืนยันข้อมูลทั้งหมด ({requestItems.length}) รายการ
+                            <button type="button" onClick={onSaveClick} className="px-8 py-3 rounded-xl text-white font-bold shadow-lg flex items-center gap-2 transform hover:scale-105 transition-all bg-indigo-600 hover:bg-indigo-700">
+                                <Save className="w-5 h-5" /> บันทึกเอกสาร NCR (Save)
                             </button>
                         </div>
                     </form>

@@ -14,9 +14,9 @@ export const Step2JobAccept: React.FC = () => {
     const [driverId, setDriverId] = React.useState('');
     const [pickupDate, setPickupDate] = React.useState(new Date().toISOString().split('T')[0]);
 
-    // Filter Items: Status 'Requested'
+    // Filter Items: Status 'Requested' BUT exclude NCR (which go to NCR Hub Step 2)
     const requestedItems = React.useMemo(() => {
-        return items.filter(item => item.status === 'Requested');
+        return items.filter(item => item.status === 'Requested' && item.documentType !== 'NCR');
     }, [items]);
 
     const handleToggleSelect = (id: string) => {
@@ -49,20 +49,25 @@ export const Step2JobAccept: React.FC = () => {
         };
 
         // 1. Create Order in Firebase
-        await set(ref(db, `collection_orders/${newColId}`), newOrder);
+        try {
+            await set(ref(db, `collection_orders/${newColId}`), newOrder);
 
-        // 2. Update Items
-        for (const id of selectedIds) {
-            await updateReturnRecord(id, {
-                status: 'JobAccepted',
-                collectionOrderId: newColId
-            });
+            // 2. Update Items
+            for (const id of selectedIds) {
+                await updateReturnRecord(id, {
+                    status: 'COL_JobAccepted',
+                    collectionOrderId: newColId
+                });
+            }
+
+            alert(`สร้างงานรับสินค้าเรียบร้อยแล้ว: ${newColId}`);
+            setShowModal(false);
+            setSelectedIds([]);
+            setDriverId('');
+        } catch (error) {
+            console.error('Error creating job:', error);
+            alert('เกิดข้อผิดพลาดในการสร้างงาน');
         }
-
-        alert(`สร้างงานรับสินค้าเรียบร้อยแล้ว: ${newColId}`);
-        setShowModal(false);
-        setSelectedIds([]);
-        setDriverId('');
     };
 
     return (

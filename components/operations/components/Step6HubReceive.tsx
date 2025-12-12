@@ -10,15 +10,15 @@ export const Step6HubReceive: React.FC = () => {
     const [filterCustomer, setFilterCustomer] = React.useState<string>('');
     const [filterDestination, setFilterDestination] = React.useState<string>('');
 
-    // Filter Items: Status 'InTransitToHub'
+    // Filter Items: Status 'InTransitToHub' or 'COL_InTransit'
     const incomingItems = React.useMemo(() => {
-        return items.filter(item => item.status === 'InTransitToHub');
+        return items.filter(item => item.status === 'InTransitToHub' || item.status === 'COL_InTransit');
     }, [items]);
 
     const handleHubReceive = async (id: string) => {
         if (window.confirm('ยืนยันรับเข้าสินค้านี้เข้าสู่ Hub (Main Warehouse)?')) {
             await updateReturnRecord(id, {
-                status: 'HubReceived',
+                status: 'COL_HubReceived',
                 dateReceived: new Date().toISOString().split('T')[0]
             });
         }
@@ -29,7 +29,7 @@ export const Step6HubReceive: React.FC = () => {
         if (window.confirm(`ยืนยันการรับสินค้าเข้า Hub ทั้งหมด ${filteredItems.length} รายการ?`)) {
             for (const item of filteredItems) {
                 await updateReturnRecord(item.id, {
-                    status: 'HubReceived',
+                    status: 'COL_HubReceived',
                     dateReceived: new Date().toISOString().split('T')[0]
                 });
             }

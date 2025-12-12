@@ -132,3 +132,60 @@ export const calculateTotal = (items: ReturnRecord[], hasVat: boolean, vatRate: 
     const net = afterDiscount + vat;
     return { subtotal, discount, afterDiscount, vat, net };
 };
+
+export const isNCRItem = (item: Partial<ReturnRecord>): boolean => {
+    return item.documentType === 'NCR' ||
+        !!item.ncrNumber ||
+        (item.id !== undefined && item.id.startsWith('NCR-')) || false;
+};
+
+export const isCollectionItem = (item: Partial<ReturnRecord>): boolean => {
+    return item.documentType === 'LOGISTICS' ||
+        (!isNCRItem(item) && (
+            (item.refNo !== undefined && item.refNo.startsWith('COL-')) ||
+            (item.refNo !== undefined && item.refNo.startsWith('R-'))
+        )) || false;
+};
+
+export const validateReturnRecord = (item: Partial<ReturnRecord>): string[] => {
+    const errors: string[] = [];
+    if (!item.productName) errors.push('ชื่อสินค้า (Product Name) ว่างเปล่า');
+    if (!item.quantity || item.quantity <= 0) errors.push('จำนวน (Quantity) ไม่ถูกต้อง');
+    if (!item.branch) errors.push('สาขา (Branch) ว่างเปล่า');
+    return errors;
+};
+
+// Unified Status Transition Logic
+export const VALID_TRANSITIONS: Record<string, string[]> = {
+    // NCR Flow
+    'Requested': ['NCR_InTransit', 'PickupScheduled', 'JobAccepted', 'COL_JobAccepted'], // Shared start?
+    'NCR_InTransit': ['NCR_HubReceived', 'DirectReturn'],
+    'NCR_HubReceived': ['NCR_QCCompleted'],
+    'NCR_QCCompleted': ['NCR_Documented'],
+    'NCR_Documented': ['Completed'],
+
+    // Collection Flow
+    'COL_JobAccepted': ['COL_BranchReceived'],
+    'COL_BranchReceived': ['COL_Consolidated'],
+    'COL_Consolidated': ['COL_InTransit', 'DirectReturn'],
+    'COL_InTransit': ['COL_HubReceived'],
+    'COL_HubReceived': ['COL_Documented'],
+    'COL_Documented': ['Completed'],
+
+    // Direct Returns
+    'DirectReturn': ['Completed'],
+    'ReturnToSupplier': ['Completed'],
+
+    // Legacy / Fallback
+    'JobAccepted': ['BranchReceived'],
+    'BranchReceived': ['ReadyForLogistics'],
+    'ReadyForLogistics': ['InTransitToHub', 'ReturnToSupplier'],
+    'InTransitToHub': ['HubReceived'],
+    'HubReceived': ['DocsCompleted'],
+    'DocsCompleted': ['Completed']
+};
+
+export const canTransition = (current: string, next: string): boolean => {
+    const allowed = VALID_TRANSITIONS[current];
+    return allowed ? allowed.includes(next) : false; // verification mode
+};

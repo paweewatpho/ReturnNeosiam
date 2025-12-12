@@ -18,13 +18,14 @@ export const ProductFormSection: React.FC<ProductFormSectionProps> = ({
 }) => {
     return (
         <>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                     <label className="block text-sm font-bold text-slate-700 mb-1">เลขที่อ้างอิง (Ref No.) <span className="text-red-500">*</span></label>
                     <input
                         type="text"
                         required
-                        value={formData.refNo}
+                        value={formData.refNo || ''}
                         onChange={e => updateField('refNo', e.target.value)}
                         className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all font-mono"
                         placeholder="ระบุเลขที่บิล..."
@@ -70,7 +71,7 @@ export const ProductFormSection: React.FC<ProductFormSectionProps> = ({
                         type="number"
                         required
                         min="1"
-                        value={formData.quantity}
+                        value={formData.quantity || ''}
                         onChange={e => {
                             const qty = parseFloat(e.target.value) || 0;
                             updateField('quantity', qty);
@@ -84,7 +85,7 @@ export const ProductFormSection: React.FC<ProductFormSectionProps> = ({
                     <label className="block text-sm font-bold text-slate-700 mb-1">หน่วย</label>
                     <input
                         type="text"
-                        value={formData.unit}
+                        value={formData.unit || 'ชิ้น'}
                         onChange={e => updateField('unit', e.target.value)}
                         className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all text-center"
                     />
@@ -112,7 +113,7 @@ export const ProductFormSection: React.FC<ProductFormSectionProps> = ({
                     <label className="block text-sm font-bold text-slate-700 mb-1">วันหมดอายุ</label>
                     <input
                         type="date"
-                        value={formData.expiryDate}
+                        value={formData.expiryDate || ''}
                         onChange={e => updateField('expiryDate', e.target.value)}
                         className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                     />
@@ -126,7 +127,7 @@ export const ProductFormSection: React.FC<ProductFormSectionProps> = ({
                         <input
                             type="number"
                             step="0.01"
-                            value={formData.priceBill}
+                            value={formData.priceBill || 0}
                             readOnly
                             className="w-full p-2.5 pl-9 bg-slate-100 border border-slate-300 rounded text-sm outline-none font-bold text-slate-700"
                             placeholder="Auto-calculated"
@@ -140,9 +141,9 @@ export const ProductFormSection: React.FC<ProductFormSectionProps> = ({
                         <input
                             type="number"
                             step="0.01"
-                            value={formData.priceSell}
+                            value={formData.priceSell || ''}
                             onChange={e => updateField('priceSell', parseFloat(e.target.value))}
-                            onBlur={e => updateField('priceSell', parseFloat(parseFloat(e.target.value).toFixed(2)))}
+                            onBlur={e => updateField('priceSell', parseFloat(parseFloat(e.target.value as any).toFixed(2)))}
                             className="w-full p-2.5 pl-9 bg-slate-50 border border-slate-300 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                             placeholder="0.00"
                         />

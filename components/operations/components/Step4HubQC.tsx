@@ -34,9 +34,9 @@ export const Step4HubQC: React.FC = () => {
     const [splitCondition, setSplitCondition] = useState<ItemCondition>('New');
     const [splitDisposition, setSplitDisposition] = useState<DispositionAction | null>(null);
 
-    // Filter Items: Status 'ReceivedAtHub'
+    // Filter Items: Status 'NCR_HubReceived' or 'ReceivedAtHub'
     const receivedItems = React.useMemo(() => {
-        return items.filter(item => item.status === 'ReceivedAtHub');
+        return items.filter(item => item.status === 'NCR_HubReceived' || item.status === 'ReceivedAtHub');
     }, [items]);
 
     // Handlers
@@ -70,83 +70,81 @@ export const Step4HubQC: React.FC = () => {
     const handleQCSubmit = async () => {
         if (!qcSelectedItem || !selectedDisposition) return;
 
-        // Construct update object
-        const updates: Partial<ReturnRecord> = {
-            status: 'QCCompleted',
-            condition: qcSelectedItem.condition,
-            disposition: selectedDisposition,
-            // Flatten disposition details into relevant fields or notes
-            // mapping similar to original logic
-            destinationCustomer: selectedDisposition === 'RTV' ? dispositionDetails.route :
-                selectedDisposition === 'Restock' ? dispositionDetails.sellerName :
-                    selectedDisposition === 'InternalUse' ? dispositionDetails.internalUseDetail : '',
-            problemDetail: selectedDisposition === 'Claim' ? `Claim: ${dispositionDetails.claimCompany} / ${dispositionDetails.claimCoordinator}` : qcSelectedItem.problemDetail
-        };
+        try {
+            // Construct update object
+            const updates: Partial<ReturnRecord> = {
+                status: 'NCR_QCCompleted',
+                condition: qcSelectedItem.condition,
+                disposition: selectedDisposition,
+                // Flatten disposition details into relevant fields or notes
+                // mapping similar to original logic
+                destinationCustomer: selectedDisposition === 'RTV' ? dispositionDetails.route :
+                    selectedDisposition === 'Restock' ? dispositionDetails.sellerName :
+                        selectedDisposition === 'InternalUse' ? dispositionDetails.internalUseDetail : '',
+                problemDetail: selectedDisposition === 'Claim' ? `Claim: ${dispositionDetails.claimCompany} / ${dispositionDetails.claimCoordinator}` : qcSelectedItem.problemDetail
+            };
 
-        await updateReturnRecord(qcSelectedItem.id, updates);
-        setQcSelectedItem(null);
+            await updateReturnRecord(qcSelectedItem.id, updates);
+            setQcSelectedItem(null);
+            alert('บันทึกผล QC เรียบร้อย');
+        } catch (error) {
+            console.error('QC Submit Error:', error);
+            alert(`เกิดข้อผิดพลาด: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
     };
 
     const handleSplitSubmit = async () => {
         if (!qcSelectedItem || splitQty <= 0) return;
 
-        // 1. Calculate quantities
-        const originalQty = qcSelectedItem.quantity;
-        const totalUnits = isBreakdownUnit ? originalQty * conversionRate : originalQty;
+        try {
+            // 1. Calculate quantities
+            const originalQty = qcSelectedItem.quantity;
+            const totalUnits = isBreakdownUnit ? originalQty * conversionRate : originalQty;
 
-        // Validation
-        if (splitQty >= totalUnits) {
-            alert('Cannot split entire quantity via split function. Use normal Submit.');
-            return;
+            // Validation
+            if (splitQty >= totalUnits) {
+                alert('Cannot split entire quantity via split function. Use normal Submit.');
+                return;
+            }
+
+            const remainingUnits = totalUnits - splitQty;
+
+            // 2. Update Original Item (Remaining)
+            const remainingUnitsFinal = (isBreakdownUnit && remainingUnits > 0) ? remainingUnits : remainingUnits;
+
+            const updateMain: Partial<ReturnRecord> = {
+                quantity: remainingUnitsFinal,
+                unit: isBreakdownUnit ? newUnitName : qcSelectedItem.unit,
+                status: 'NCR_QCCompleted',
+                disposition: selectedDisposition || 'Pending',
+                condition: qcSelectedItem.condition
+            };
+
+            await updateReturnRecord(qcSelectedItem.id, updateMain);
+
+
+            // 3. Create New Item (Split Part)
+            const newItem: ReturnRecord = {
+                ...qcSelectedItem,
+                id: `${qcSelectedItem.id}-SP${Date.now().toString().slice(-4)}`,
+                quantity: splitQty,
+                unit: isBreakdownUnit ? newUnitName : qcSelectedItem.unit,
+                condition: splitCondition,
+                disposition: splitDisposition || 'Pending', // If immediate disposition selected
+                status: splitDisposition ? 'NCR_QCCompleted' : 'NCR_HubReceived', // Return to QC queue if pending
+                refNo: `${qcSelectedItem.refNo}-SP`
+            };
+
+            await addReturnRecord(newItem);
+            setQcSelectedItem(null);
+            alert('แยกรายการเรียบร้อย');
+        } catch (error) {
+            console.error('Split Error:', error);
+            alert(`เกิดข้อผิดพลาดในการแยกรายการ: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
-
-        const remainingUnits = totalUnits - splitQty;
-
-        // 2. Update Original Item (Remaining)
-        const updatedOriginalQty = isBreakdownUnit
-            ? Math.floor(remainingUnits / conversionRate)  // Approximate back to packs if needed, or stick to logic
-            // Actually if we breakdown, we might convert the unit of the original item? or keep it as packs but reduce qty?
-            // If I have 10 packs (12 pcs each) = 120 pcs. I split 10 pcs. Remaining 110 pcs.
-            // 110 pcs = 9.16 packs. This is tricky for integer quantity steps.
-            // Usually we convert the MAIN item to pieces if breakdown happens?
-            : remainingUnits;
-
-        // Simplified Logic: If breakdown, we might need complex unit conversion.
-        // For now, let's assume we update the original quantity. 
-        // If isBreakdownUnit is true, we usually convert the original item's unit to the sub-unit?
-
-        const updateMain: Partial<ReturnRecord> = {
-            quantity: (isBreakdownUnit && remainingUnits > 0) ? remainingUnits : remainingUnits,
-            unit: isBreakdownUnit ? newUnitName : qcSelectedItem.unit,
-            // If we broke down, the price per unit changes?
-            // Not handling deep pricing logic here for brevity, keeping simple flow.
-            status: 'QCCompleted', // The main part is also processed? Or remains?
-            // Usually the main part is what we are "Keeping" or processing with the MAIN disposition.
-            // But here we are just splitting.
-            // Let's assume the main item is NOT finished yet? Or we finish it now?
-            // The UI shows a Disposition selector for the main item. So yes, we finish it.
-            disposition: selectedDisposition || 'Pending',
-            condition: qcSelectedItem.condition
-        };
-
-        await updateReturnRecord(qcSelectedItem.id, updateMain);
-
-
-        // 3. Create New Item (Split Part)
-        const newItem: ReturnRecord = {
-            ...qcSelectedItem,
-            id: `${qcSelectedItem.id}-SP${Date.now().toString().slice(-4)}`,
-            quantity: splitQty,
-            unit: isBreakdownUnit ? newUnitName : qcSelectedItem.unit,
-            condition: splitCondition,
-            disposition: splitDisposition || 'Pending', // If immediate disposition selected
-            status: splitDisposition ? 'QCCompleted' : 'ReceivedAtHub', // If pending, go back to QC queue
-            refNo: `${qcSelectedItem.refNo}-SP`
-        };
-
-        await addReturnRecord(newItem);
-        setQcSelectedItem(null);
     };
+
+
 
     return (
         <div className="h-full flex">

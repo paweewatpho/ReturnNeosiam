@@ -7,9 +7,9 @@ import { KanbanColumn } from './KanbanColumn';
 export const Step5HubDocs: React.FC = () => {
     const { items, updateReturnRecord } = useData();
 
-    // Filter Items: Status 'ReceivedAtHub' (Direct from Hub Receive, No QC as per new 8-step flow)
+    // Filter Items: Status 'NCR_QCCompleted' or 'QCCompleted' (Legacy)
     const processedItems = React.useMemo(() => {
-        return items.filter(item => item.status === 'ReceivedAtHub');
+        return items.filter(item => item.status === 'NCR_QCCompleted' || item.status === 'QCCompleted');
     }, [items]);
 
     const handlePrintClick = async (status: DispositionAction, list: ReturnRecord[]) => {
@@ -17,7 +17,7 @@ export const Step5HubDocs: React.FC = () => {
         if (window.confirm(`ยืนยันการสร้างเอกสารและส่งต่อ ${list.length} รายการไปยังขั้นตอนปิดงาน?`)) {
             for (const item of list) {
                 await updateReturnRecord(item.id, {
-                    status: 'Documented',
+                    status: 'NCR_Documented',
                     dateDocumented: new Date().toISOString()
                 });
             }

@@ -337,6 +337,7 @@ const NCRSystem: React.FC = () => {
                     branch: item.branch || 'Head Office',
                     category: 'General', // Added required field
                     ncrNumber: newNcrNo,
+                    documentType: 'NCR', // Required for Step 2 Visibility
                     status: 'Requested',
                     disposition: 'Pending',
                     reason: `Created via NCR System (${formData.problemDetail || 'No Detail'})`,

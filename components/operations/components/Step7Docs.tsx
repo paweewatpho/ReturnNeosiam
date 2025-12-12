@@ -8,9 +8,9 @@ import { KanbanColumn } from './KanbanColumn';
 export const Step7Docs: React.FC = () => {
     const { items, updateReturnRecord } = useData();
 
-    // Filter Items: Status 'HubReceived' (Passed from Hub Receive)
+    // Filter Items: Status 'COL_HubReceived' or 'HubReceived' (Legacy)
     const processedItems = React.useMemo(() => {
-        return items.filter(item => item.status === 'HubReceived');
+        return items.filter(item => item.status === 'COL_HubReceived' || item.status === 'HubReceived');
     }, [items]);
 
     const handlePrintClick = async (status: DispositionAction, list: ReturnRecord[]) => {
@@ -18,7 +18,7 @@ export const Step7Docs: React.FC = () => {
         if (window.confirm(`ยืนยันการสร้างเอกสารและส่งต่อ ${list.length} รายการไปยังขั้นตอนปิดงาน?`)) {
             for (const item of list) {
                 await updateReturnRecord(item.id, {
-                    status: 'DocsCompleted',
+                    status: 'COL_Documented',
                     dateDocumented: new Date().toISOString()
                 });
             }

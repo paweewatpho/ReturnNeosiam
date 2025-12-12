@@ -7,15 +7,15 @@ import { ReturnRecord } from '../../../types';
 export const Step3BranchReceive: React.FC = () => {
     const { items, updateReturnRecord } = useData();
 
-    // Filter Items: Status 'JobAccepted'
+    // Filter Items: Status 'JobAccepted' or 'COL_JobAccepted'
     const acceptedItems = React.useMemo(() => {
-        return items.filter(item => item.status === 'JobAccepted');
+        return items.filter(item => item.status === 'JobAccepted' || item.status === 'COL_JobAccepted');
     }, [items]);
 
     const handleReceiveItem = async (id: string) => {
         if (window.confirm('ยืนยันว่าได้รับสินค้าจริง (Physical Receive)?')) {
             await updateReturnRecord(id, {
-                status: 'BranchReceived',
+                status: 'COL_BranchReceived',
                 dateReceived: new Date().toISOString().split('T')[0]
             });
         }
@@ -26,7 +26,7 @@ export const Step3BranchReceive: React.FC = () => {
         if (window.confirm(`ยืนยันการรับสินค้าทั้งหมด ${acceptedItems.length} รายการ?`)) {
             for (const item of acceptedItems) {
                 await updateReturnRecord(item.id, {
-                    status: 'BranchReceived',
+                    status: 'COL_BranchReceived',
                     dateReceived: new Date().toISOString().split('T')[0]
                 });
             }

@@ -57,6 +57,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         signatory2: 'ผู้ตรวจสอบ (Checked By)',
         signatory3: 'ผู้อนุมัติ (Approved By)'
     });
+    // Refreshed imports
 
     // Document Selection State
     const [showSelectionModal, setShowSelectionModal] = useState(false);
@@ -125,8 +126,9 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
 
     // Derived Data (filtered items) - 8 Step Workflow
 
-    // Step 2 Input: Requested
-    const step2Items = items.filter(i => i.status === 'Requested');
+    // Step 2 Input: Requested (Exclude NCR)
+    const step2Items = items.filter(i => i.status === 'Requested' && i.documentType !== 'NCR');
+    const ncrStep2Items = items.filter(i => i.status === 'Requested' && (i.documentType === 'NCR' || i.documentType === 'LOGISTICS'));
 
     // Step 3 Input: JobAccepted
     const step3Items = items.filter(i => i.status === 'JobAccepted');
@@ -419,12 +421,13 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             }
 
             if (successCount > 0) {
-                alert(`บันทึกรายการเรียบร้อย! กรุณาไปที่ขั้นตอน "2. รวบรวมและระบุขนส่ง" เพื่อจัดการต่อ`);
+                alert(`บันทึกรายการเรียบร้อย! ระบบจะนำคุณไปยังขั้นตอนถัดไป`);
                 setFormData(initialFormState);
                 setRequestItems([]);
                 setCustomProblemType('');
                 setCustomRootCause('');
                 setIsCustomBranch(false);
+                setActiveStep(2);
             }
         } catch (error) {
             console.error("Submission error:", error);
@@ -776,27 +779,12 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             docSelectedItem, showStep4SplitModal
         },
         derived: {
-            uniqueCustomers, uniqueDestinations, uniqueProductCodes, uniqueProductNames, uniqueFounders,
-            step2Items,
-            step3Items,
-            step4Items,
-            step5Items,
-            step6Items,
-            step7Items,
-            step8Items,
+            uniqueCustomers, uniqueDestinations, uniqueFounders, uniqueProductCodes, uniqueProductNames,
+            step2Items, step3Items, step4Items, step5Items, step6Items, step7Items, step8Items,
+            ncrStep2Items,
             completedItems,
-
-            // Legacy/Alias
-            logisticItems,
-            hubReceiveItems,
-            hubQCItems: [],
-            hubDocItems,
-            closureItems,
-            requestedItems,
-            receivedItems,
-            gradedItems: [],
-            docItems,
-            processedItems: step7Items
+            logisticItems, hubReceiveItems, hubDocItems, closureItems,
+            requestedItems, receivedItems, gradedItems, docItems, processedItems: step7Items
         },
         actions: {
             setActiveStep, setIsCustomBranch, setFormData, setRequestItems,
