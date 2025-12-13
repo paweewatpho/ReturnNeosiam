@@ -303,10 +303,11 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
     const handleAddItem = (e: React.FormEvent | null, overrideData?: Partial<ReturnRecord>) => {
         if (e) e.preventDefault();
         const dataToUse = overrideData || formData;
-        if (!dataToUse.productName || !dataToUse.productCode || !dataToUse.founder || !dataToUse.problemAnalysis) {
-            alert("กรุณาระบุชื่อสินค้า, รหัสสินค้า, ผู้พบปัญหา (Founder) และสาเหตุ (Problem Source)");
-            return;
-        }
+        // Validation removed for Collection Step as per request
+        // if (!dataToUse.productName || !dataToUse.productCode || !dataToUse.founder || !dataToUse.problemAnalysis) {
+        //     alert("กรุณาระบุชื่อสินค้า, รหัสสินค้า, ผู้พบปัญหา (Founder) และสาเหตุ (Problem Source)");
+        //     return;
+        // }
         const newItem = { ...dataToUse };
 
         setRequestItems(prev => [...prev, newItem]);
