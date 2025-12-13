@@ -495,15 +495,25 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
     }
     const config: Record<string, { text: string, color: string }> = {
       'Requested': { text: 'รอรับเข้า', color: 'bg-slate-100 text-slate-600' },
+      'COL_JobAccepted': { text: 'สาขารับงานแล้ว', color: 'bg-blue-100 text-blue-800' },
       'PickupScheduled': { text: 'รอรถรับ (Job)', color: 'bg-indigo-100 text-indigo-700' },
       'PickedUp': { text: 'รับของแล้ว', color: 'bg-pink-100 text-pink-700' },
+      'COL_Consolidated': { text: 'รวมของแล้ว (Consolidated)', color: 'bg-slate-100 text-slate-800' },
       'InTransitHub': { text: 'กำลังขนส่ง', color: 'bg-orange-100 text-orange-800' },
+      'NCR_InTransit': { text: 'กำลังขนส่ง (NCR)', color: 'bg-orange-100 text-orange-800' },
+      'COL_InTransit': { text: 'กำลังขนส่ง (COL)', color: 'bg-orange-100 text-orange-800' },
       'ReceivedAtHub': { text: 'สินค้าถึง Hub (รอ QC)', color: 'bg-yellow-100 text-yellow-800' },
+      'NCR_HubReceived': { text: 'ถึง Hub (รอ QC)', color: 'bg-yellow-100 text-yellow-800' },
+      'COL_HubReceived': { text: 'ถึง Hub (COL)', color: 'bg-yellow-100 text-yellow-800' },
       'Received': { text: 'สินค้าถึง Hub (รอ QC)', color: 'bg-yellow-100 text-yellow-800' },
       'QCPassed': { text: 'ผ่าน QC (รอเอกสาร)', color: 'bg-blue-100 text-blue-700' },
+      'NCR_QCPassed': { text: 'ผ่าน QC', color: 'bg-blue-100 text-blue-700' },
+      'NCR_QCCompleted': { text: 'ผ่าน QC (รอเอกสาร)', color: 'bg-blue-100 text-blue-700' },
       'Graded': { text: 'ผ่าน QC (รอเอกสาร)', color: 'bg-blue-100 text-blue-700' },
       'ReturnToSupplier': { text: 'ส่งคืน/รอปิดงาน', color: 'bg-purple-100 text-purple-700' },
+      'DirectReturn': { text: 'ส่งคืนตรง (Direct)', color: 'bg-green-100 text-green-800' },
       'Documented': { text: 'ส่งคืน/รอปิดงาน', color: 'bg-purple-100 text-purple-700' },
+      'DocsCompleted': { text: 'รอปิดงาน (Docs)', color: 'bg-purple-100 text-purple-700' },
       'Completed': { text: 'จบงาน', color: 'bg-green-100 text-green-700' },
     };
 
