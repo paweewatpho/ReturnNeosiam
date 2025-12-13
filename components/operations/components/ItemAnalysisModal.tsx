@@ -3,6 +3,7 @@ import { X, Save, ClipboardList, Share2, Truck, DollarSign, Trash2, Home, FileTe
 import { ReturnRecord } from '../../../types';
 import { BRANCH_LIST } from '../../../constants';
 import { RESPONSIBLE_MAPPING } from '../utils';
+import Swal from 'sweetalert2';
 
 interface ItemAnalysisModalProps {
     isOpen: boolean;
@@ -137,20 +138,36 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
         // Or we stick to the validation we grabbed earlier:
 
         if (!formData.problemAnalysis) {
-            alert("กรุณาระบุที่มาของปัญหา (Problem Analysis)");
+            Swal.fire({
+                icon: 'warning',
+                title: 'ข้อมูลไม่ครบถ้วน',
+                text: 'กรุณาระบุที่มาของปัญหา (Problem Analysis)'
+            });
             return;
         }
 
         if (!preliminaryDecision) {
-            alert("กรุณาเลือกการตัดสินใจเบื้องต้น (Preliminary Decision)");
+            Swal.fire({
+                icon: 'warning',
+                title: 'ข้อมูลไม่ครบถ้วน',
+                text: 'กรุณาเลือกการตัดสินใจเบื้องต้น (Preliminary Decision)'
+            });
             return;
         }
         if (preliminaryDecision === 'Return' && !preliminaryRoute) {
-            alert("กรุณาระบุเส้นทางส่งคืน");
+            Swal.fire({
+                icon: 'warning',
+                title: 'ข้อมูลไม่ครบถ้วน',
+                text: 'กรุณาระบุเส้นทางส่งคืน'
+            });
             return;
         }
         if (preliminaryDecision === 'Return' && preliminaryRoute === 'Other' && !preliminaryOtherRoute) {
-            alert("กรุณาระบุเส้นทางอื่นๆ");
+            Swal.fire({
+                icon: 'warning',
+                title: 'ข้อมูลไม่ครบถ้วน',
+                text: 'กรุณาระบุเส้นทางอื่นๆ'
+            });
             return;
         }
 

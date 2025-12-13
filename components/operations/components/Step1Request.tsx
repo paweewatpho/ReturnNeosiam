@@ -3,6 +3,7 @@ import { FileText, PlusCircle, Save, Trash2, Package, Truck } from 'lucide-react
 import { ReturnRecord } from '../../../types';
 import { ConfirmSubmitModal } from './ConfirmSubmitModal';
 import { ItemAnalysisModal } from './ItemAnalysisModal';
+import Swal from 'sweetalert2';
 
 // Sub-components for NCR Form
 import { HeaderSection } from './sections/HeaderSection';
@@ -81,11 +82,19 @@ export const Step1Request: React.FC<Step1RequestProps> = ({
 
         // NCR Validation
         if (!formData.productName || !formData.productCode || !formData.founder) {
-            alert("กรุณาระบุชื่อสินค้า, รหัสสินค้า และผู้พบปัญหา (Founder)");
+            Swal.fire({
+                icon: 'warning',
+                title: 'ข้อมูลไม่ครบถ้วน',
+                text: 'กรุณาระบุชื่อสินค้า, รหัสสินค้า และผู้พบปัญหา (Founder)'
+            });
             return;
         }
         if (!formData.quantity || formData.quantity <= 0) {
-            alert("กรุณาระบุจำนวนสินค้า");
+            Swal.fire({
+                icon: 'warning',
+                title: 'ข้อมูลไม่ถูกต้อง',
+                text: 'กรุณาระบุจำนวนสินค้าให้ถูกต้อง (> 0)'
+            });
             return;
         }
         handleAddItem(null, formData);
@@ -93,19 +102,31 @@ export const Step1Request: React.FC<Step1RequestProps> = ({
 
     const onSaveClick = () => {
         if (requestItems.length === 0) {
-            alert("กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ");
+            Swal.fire({
+                icon: 'warning',
+                title: 'ไม่มีรายการสินค้า',
+                text: 'กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ'
+            });
             return;
         }
 
         // Check if form data is lingering
         if (formData.productName || formData.productCode) {
-            alert("คุณมีข้อมูลที่กรอกค้างอยู่ กรุณากดปุ่ม 'เพิ่มรายการ' หรือลบข้อมูลออกก่อน");
+            Swal.fire({
+                icon: 'warning',
+                title: 'มีข้อมูลค้างอยู่',
+                text: "คุณมีข้อมูลที่กรอกค้างอยู่ กรุณากดปุ่ม 'เพิ่มรายการ' หรือลบข้อมูลออกก่อน"
+            });
             return;
         }
         // Detailed Validation
         const incompleteItems = requestItems.filter(item => !item.problemAnalysis);
         if (incompleteItems.length > 0) {
-            alert(`ไม่สามารถยืนยันได้: มีรายการที่ยังไม่ได้ระบุสาเหตุปัญหา (Problem Source) จำนวน ${incompleteItems.length} รายการ`);
+            Swal.fire({
+                icon: 'warning',
+                title: 'ข้อมูลไม่ครบถ้วน',
+                text: `ไม่สามารถยืนยันได้: มีรายการที่ยังไม่ได้ระบุสาเหตุปัญหา (Problem Source) จำนวน ${incompleteItems.length} รายการ`
+            });
             return;
         }
 

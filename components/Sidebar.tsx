@@ -18,6 +18,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView }) => {
     { id: AppView.NCR_REPORT, label: 'รายงาน NCR', icon: FileBarChart },
     { id: AppView.INVENTORY, label: 'คลังสินค้า (Inventory)', icon: LayoutGrid },
     { id: AppView.COLLECTION, label: 'งานรับสินค้า (Collection Tasks)', icon: Truck },
+    { id: AppView.COL_REPORT, label: 'รายงาน COL', icon: BarChart },
   ];
 
   const handleTestConnection = async () => {

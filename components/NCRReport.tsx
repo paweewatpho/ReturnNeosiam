@@ -490,7 +490,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                             ) : report.status === 'Closed' ? (
                               <span className="inline-flex items-center gap-0.5 text-[8px] text-green-600 font-bold bg-green-50 px-1 py-0 rounded border border-green-100"><CircleCheck className="w-2 h-2" /> Closed</span>
                             ) : (
-                              <span className="inline-flex items-center gap-0.5 text-[8px] text-amber-500 font-bold bg-amber-50 px-1 py-0 rounded border border-amber-100"><Clock className="w-2 h-2" /> {report.status || 'Open'}</span>
+                              <span className="inline-flex items-center gap-0.5 text-[8px] text-amber-500 font-bold bg-amber-50 px-1 py-0 rounded border border-amber-100"><Clock className="w-2 h-2" /> {report.status === 'Open' ? (correspondingReturn ? correspondingReturn.status : 'Open') : report.status}</span>
                             )}
                           </div>
                         </td>

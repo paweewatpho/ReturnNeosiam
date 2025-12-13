@@ -5,14 +5,17 @@ import Dashboard from './components/Dashboard';
 import Operations from './components/Operations';
 import NCRSystem from './components/NCRSystem';
 import NCRReport from './components/NCRReport';
+import COLReport from './components/COLReport';
 import Inventory from './components/Inventory';
 import CollectionSystem from './components/CollectionSystem';
 
 import { AppView, ReturnRecord } from './types';
 import { Bell } from 'lucide-react';
 import { DataProvider } from './DataContext';
+import { AuthProvider, useAuth } from './AuthContext';
 
 const MainApp: React.FC = () => {
+  const { user, login } = useAuth();
   const [currentView, setCurrentView] = useState<AppView>(AppView.DASHBOARD);
   const [transferData, setTransferData] = useState<Partial<ReturnRecord> | null>(null);
   const [operationsInitialStep, setOperationsInitialStep] = useState<number | undefined>(undefined);
@@ -38,6 +41,8 @@ const MainApp: React.FC = () => {
         return <NCRSystem />;
       case AppView.NCR_REPORT:
         return <NCRReport onTransfer={handleNCRTransfer} />;
+      case AppView.COL_REPORT:
+        return <COLReport />;
       case AppView.INVENTORY:
         return <Inventory />;
       case AppView.COLLECTION:
@@ -57,6 +62,7 @@ const MainApp: React.FC = () => {
       case AppView.OPERATIONS: return 'ศูนย์ปฏิบัติการคืนสินค้า (Return Operations Hub)';
       case AppView.NCR: return 'ระบบแจ้งปัญหาคุณภาพ (NCR System)';
       case AppView.NCR_REPORT: return 'รายงาน NCR (NCR Report)';
+      case AppView.COL_REPORT: return 'รายงาน COL (Collection Report)';
       case AppView.INVENTORY: return 'คลังสินค้า (Inventory)';
       case AppView.COLLECTION: return 'ระบบงานรับสินค้า (Inbound Collection System)';
       default: return 'ReturnNeosiam Pro';
@@ -79,9 +85,9 @@ const MainApp: React.FC = () => {
               <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
             </button>
             <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-              <div className="text-right hidden md:block">
-                <p className="text-sm font-bold text-slate-800">แผนกควบคุมคุณภาพ</p>
-                <p className="text-xs text-slate-500">และคืนสินค้า</p>
+              <div className="text-right hidden md:block cursor-pointer" onClick={() => !user && login('ADMIN')} title={!user ? "Click to Mock Login" : "User Logged In"}>
+                <p className="text-sm font-bold text-slate-800">{user ? (user.displayName || 'User') : 'Guest (Click to Login)'}</p>
+                <p className="text-xs text-slate-500">{user ? (user.role || 'No Role') : 'Access Restricted'}</p>
               </div>
               <img
                 src="https://img2.pic.in.th/pic/logo-neo.png"
@@ -103,7 +109,9 @@ const MainApp: React.FC = () => {
 const App: React.FC = () => {
   return (
     <DataProvider>
-      <MainApp />
+      <AuthProvider>
+        <MainApp />
+      </AuthProvider>
     </DataProvider>
   );
 }

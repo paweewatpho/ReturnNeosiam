@@ -3,6 +3,7 @@ import { Truck, RotateCcw, ShieldCheck, Home, Trash2, FileText, AlertOctagon } f
 import { useData } from '../../../DataContext';
 import { ReturnRecord, DispositionAction } from '../../../types';
 import { KanbanColumn } from './KanbanColumn';
+import Swal from 'sweetalert2';
 
 // This component now delegates the document logic to the parent via props or context if available.
 // However, since useOperationsLogic is the main controller, we should emit an event or used a shared context.
@@ -36,7 +37,12 @@ export const Step5HubDocs: React.FC<Step5HubDocsProps> = ({ onPrintDocs }) => {
 
     const handleSplitClick = (item: ReturnRecord) => {
         // Placeholder for split logic
-        alert('Split functionality in Docs step is under construction.');
+        Swal.fire({
+            icon: 'info',
+            title: 'ฟีเจอร์ยังไม่เปิดใช้งาน (Under Construction)',
+            text: 'การแยกรายการ (Split) ในขั้นตอนนี้กำลังพัฒนา',
+            confirmButtonText: 'รับทราบ'
+        });
     };
 
     // Helper: Identify NCR items

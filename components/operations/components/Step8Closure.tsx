@@ -1,8 +1,8 @@
-
 import React from 'react';
-import { FileText, MapPin, CheckCircle } from 'lucide-react';
+import { FileText, MapPin, CheckCircle, RotateCcw } from 'lucide-react';
 import { useData } from '../../../DataContext';
 import { DispositionBadge } from './DispositionBadge';
+import Swal from 'sweetalert2';
 
 export const Step8Closure: React.FC = () => {
     const { items, updateReturnRecord } = useData();
@@ -26,18 +26,94 @@ export const Step8Closure: React.FC = () => {
     }, [items]);
 
     const handleCompleteJob = async (id: string) => {
-        if (window.confirm('ยืนยันปิดงานรายการนี้ (Complete Job)?')) {
+        const result = await Swal.fire({
+            title: 'ยืนยันปิดงาน',
+            text: 'ยืนยันปิดงานรายการนี้ (Complete Job)?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'ยืนยัน',
+            cancelButtonText: 'ยกเลิก'
+        });
+
+        if (result.isConfirmed) {
             await updateReturnRecord(id, {
                 status: 'Completed',
                 dateCompleted: new Date().toISOString().split('T')[0]
             });
+
+            await Swal.fire({
+                icon: 'success',
+                title: 'ปิดงานเรียบร้อย',
+                timer: 1500,
+                showConfirmButton: false
+            });
         }
+    };
+
+    const handleUndo = async (item: any) => {
+        // 1. Password Protection
+        const { value: password } = await Swal.fire({
+            title: 'ย้อนกลับสถานะ (Undo)',
+            text: 'กรอกรหัสผ่านเพื่อย้อนกลับไปขั้นตอน "เอกสาร (Docs)"',
+            input: 'password',
+            inputPlaceholder: 'Enter password',
+            showCancelButton: true,
+            confirmButtonText: 'ยืนยัน',
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#f59e0b', // Amber for Warning/Undo
+            inputAttributes: {
+                autocapitalize: 'off',
+                autocorrect: 'off'
+            }
+        });
+
+        if (!password) return;
+
+        if (password !== '1234') {
+            await Swal.fire('รหัสผ่านไม่ถูกต้อง', 'กรุณาลองใหม่อีกครั้ง', 'error');
+            return;
+        }
+
+        // 2. Determine Previous Status
+        // Logic: Send back to Step 5 (Docs)
+        // If NCR -> 'QCPassed'
+        // If Collection -> 'ReceivedAtHub' (or 'COL_HubReceived')
+
+        let targetStatus = 'ReceivedAtHub'; // Default Safe
+        const isNCR = item.documentType === 'NCR' || item.ncrNumber || (item.id && item.id.startsWith('NCR'));
+
+        if (isNCR) {
+            targetStatus = 'QCPassed';
+        } else {
+            // Collection flow
+            targetStatus = 'ReceivedAtHub';
+        }
+
+        // 3. Execute Update
+        await updateReturnRecord(item.id, {
+            status: targetStatus as any,
+            // Clear docs/completion info if needed, but keeping history is usually fine.
+            // Maybe clear specific flags if logic requires, but simple status revert is usually enough for the UI.
+        });
+
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true
+        });
+
+        Toast.fire({
+            icon: 'success',
+            title: `ย้อนกลับรายการ ${item.id} เรียบร้อย`
+        });
     };
 
     return (
         <div className="h-full flex flex-col p-6 animate-fade-in overflow-hidden">
             <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <FileText className="w-6 h-6 text-green-600" /> 8. ปิดงาน (Closure)
+                <FileText className="w-6 h-6 text-green-600" /> 6. รายการรอปิดงาน (Pending Completion)
             </h3>
 
             {/* Pending Items Table */}
@@ -50,7 +126,7 @@ export const Step8Closure: React.FC = () => {
                     <table className="w-full text-sm text-left">
                         <thead className="bg-slate-50 text-slate-600 font-bold sticky top-0 shadow-sm z-10">
                             <tr>
-                                <th className="p-3 border-b text-center w-24">Action</th>
+                                <th className="p-3 border-b text-center w-32">Action</th>
                                 <th className="p-3 border-b">ID</th>
                                 <th className="p-3 border-b">สาขา</th>
                                 <th className="p-3 border-b">สินค้า</th>
@@ -71,12 +147,20 @@ export const Step8Closure: React.FC = () => {
                             ) : (
                                 documentedItems.map(item => (
                                     <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="p-2 text-center">
+                                        <td className="p-2 text-center flex items-center justify-center gap-1">
                                             <button
                                                 onClick={() => handleCompleteJob(item.id)}
-                                                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-xs font-bold shadow-sm inline-flex items-center gap-1 transition-all active:scale-95"
+                                                className="bg-green-600 hover:bg-green-700 text-white px-2 py-1.5 rounded text-xs font-bold shadow-sm flex items-center gap-1 transition-all active:scale-95"
+                                                title="ปิดงาน (Complete)"
                                             >
                                                 <CheckCircle className="w-3 h-3" /> ปิดงาน
+                                            </button>
+                                            <button
+                                                onClick={() => handleUndo(item)}
+                                                className="bg-amber-100 hover:bg-amber-200 text-amber-700 px-2 py-1.5 rounded text-xs font-bold shadow-sm flex items-center gap-1 transition-all active:scale-95 border border-amber-300"
+                                                title="ย้อนกลับ (Undo to Docs)"
+                                            >
+                                                <RotateCcw className="w-3 h-3" />
                                             </button>
                                         </td>
                                         <td className="p-3 font-mono text-xs text-slate-500">{item.id}</td>

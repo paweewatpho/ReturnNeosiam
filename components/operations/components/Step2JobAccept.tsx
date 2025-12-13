@@ -1,5 +1,5 @@
 import React from 'react';
-import { ClipboardList, Truck, X, Calendar } from 'lucide-react';
+import { ClipboardList, Truck, X, Calendar, RotateCcw } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useData } from '../../../DataContext';
 import { ReturnRecord, CollectionOrder } from '../../../types';
@@ -11,7 +11,7 @@ interface Step2JobAcceptProps {
 }
 
 export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) => {
-    const { items, updateReturnRecord } = useData();
+    const { items, updateReturnRecord, deleteReturnRecord } = useData();
 
     const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
     const [showModal, setShowModal] = React.useState(false);
@@ -21,6 +21,39 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
     const [plateNumber, setPlateNumber] = React.useState('');
 
     const [pickupDate, setPickupDate] = React.useState(new Date().toISOString().split('T')[0]);
+
+    // Handle Undo (Step 2 -> Step 1) implies deleting the request so it can be re-created or just removed
+    const handleUndo = async (id: string) => {
+        const { value: password } = await Swal.fire({
+            title: 'ใส่รหัสผ่านเพื่อแก้ไข (Undo)',
+            input: 'password',
+            inputLabel: 'รหัสผ่าน (Password)',
+            inputPlaceholder: 'ใส่รหัสผ่าน...',
+            showCancelButton: true,
+            confirmButtonText: 'ยืนยัน',
+            cancelButtonText: 'ยกเลิก'
+        });
+
+        if (password === '1234') {
+            const confirmResult = await Swal.fire({
+                title: 'ยืนยันการลบใบงาน?',
+                text: "การกระทำนี้จะลบใบงานนี้ถาวร คุณต้องสร้างใหม่ในขั้นตอนที่ 1",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'ลบใบงาน (Delete)'
+            });
+
+            if (confirmResult.isConfirmed) {
+                // Actual delete call
+                await deleteReturnRecord(id);
+                Swal.fire('ลบเรียบร้อย', '', 'success');
+            }
+        } else if (password) {
+            Swal.fire('รหัสผ่านไม่ถูกต้อง', '', 'error');
+        }
+    };
 
     // Filter Items: Status 'Requested' BUT exclude NCR (which go to NCR Hub Step 2)
     // Fix: Allow items with NCR Number IF they are explicitly marked as LOGISTICS (Legacy Fix)
@@ -138,6 +171,7 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
                                 <th className="p-4 border-b">เลขที่เอกสาร (Doc Info)</th>
                                 <th className="p-4 border-b">ลูกค้าปลายทาง</th>
                                 <th className="p-4 border-b">หมายเหตุ</th>
+                                <th className="p-4 border-b text-center">Action</th>
                                 <th className="p-4 border-b text-center">สถานะ</th>
                             </tr>
                         </thead>
@@ -178,6 +212,10 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
                                                     <span className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">{item.tmNo || '-'}</span>
                                                 </div>
                                                 <div className="flex items-center gap-1 text-xs">
+                                                    <span className="font-bold text-indigo-500 w-6">COL:</span>
+                                                    <span className="font-mono text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">{item.collectionOrderId || '-'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 text-xs">
                                                     <span className="font-bold text-blue-500 w-6">ID:</span>
                                                     <span className="font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">{item.id}</span>
                                                 </div>
@@ -188,6 +226,18 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
                                         </td>
                                         <td className="p-4 align-top">
                                             <div className="text-sm text-slate-600 max-w-xs">{item.notes || '-'}</div>
+                                        </td>
+                                        <td className="p-4 align-top text-center">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleUndo(item.id);
+                                                }}
+                                                className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                                                title="ยกเลิก/ลบ (Undo)"
+                                            >
+                                                <RotateCcw className="w-4 h-4" />
+                                            </button>
                                         </td>
                                         <td className="p-4 align-top text-center">
                                             <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">{item.status}</span>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FileText, Save, PlusCircle } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { ReturnRecord } from '../../../types';
 import { BRANCH_LIST } from '../../../constants';
 // Logistics Request Form
@@ -42,13 +43,14 @@ interface Step1LogisticsRequestProps {
     uniqueDestinations?: string[];
     uniqueProductCodes?: string[];
     uniqueProductNames?: string[];
+    existingItems?: ReturnRecord[];
 }
 
 export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
     formData, requestItems, isCustomBranch, initialData,
     setFormData, setIsCustomBranch, setRequestItems,
     handleAddItem, handleRemoveItem, handleRequestSubmit,
-    uniqueCustomers = [], uniqueDestinations = [], uniqueProductCodes = [], uniqueProductNames = []
+    uniqueCustomers = [], uniqueDestinations = [], uniqueProductCodes = [], uniqueProductNames = [], existingItems = []
 }) => {
 
     // Ensure Document Type is LOGISTICS
@@ -265,20 +267,54 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                     <div className="flex justify-end pt-8 mt-4 border-t border-slate-100">
                         <button
                             onClick={() => {
-                                // Add a dummy item if list is empty to allow submission
+                                // 1. Validate Mandatory Fields
+                                const missingFields = [];
+                                if (!formData.branch) missingFields.push('สาขา (Branch)');
+                                if (!formData.controlDate && !formData.date) missingFields.push('วันที่ใบคุมรถ (Control Date)');
+                                if (!formData.customerName) missingFields.push('ลูกค้าต้นทาง (Source Customer)');
+
+                                if (missingFields.length > 0) {
+                                    Swal.fire({
+                                        icon: 'warning',
+                                        title: 'กรุณากรอกข้อมูลให้ครบถ้วน',
+                                        text: `ขาดข้อมูล: ${missingFields.join(', ')}`,
+                                        confirmButtonColor: '#f59e0b'
+                                    });
+                                    return;
+                                }
+
+                                // 2. Check for Duplicates
+                                // Duplicate Definition: Same Invoice No AND Same Branch AND Same Document No (if exists)
+                                const isDuplicate = existingItems.some(item => {
+                                    const sameBranch = item.branch === formData.branch;
+                                    const sameInvoice = formData.invoiceNo && item.invoiceNo === formData.invoiceNo;
+                                    const sameDocNo = formData.documentNo && (item.documentNo === formData.documentNo || item.refNo === formData.documentNo);
+
+                                    // If Invoice is present, it must be unique per branch? Or globally?
+                                    // Let's assume Invoice + Branch combination should be unique if Invoice is provided.
+                                    if (formData.invoiceNo && sameBranch && sameInvoice) return true;
+
+                                    // If Doc No is present
+                                    if (formData.documentNo && sameBranch && sameDocNo) return true;
+
+                                    return false;
+                                });
+
+                                if (isDuplicate) {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'พบข้อมูลซ้ำ (Duplicate)',
+                                        text: `มีรายการที่ใช้เลข Invoice: ${formData.invoiceNo} หรือ Doc No: ${formData.documentNo} ในสาขานี้แล้ว`,
+                                        footer: 'กรุณาตรวจสอบเลขเอกสารอีกครั้ง',
+                                        confirmButtonColor: '#ef4444'
+                                    });
+                                    return;
+                                }
+
+                                // 3. Allow Submission
                                 if (requestItems.length === 0) {
                                     const dummyItem = { ...formData, productName: 'General Request', quantity: 1, unit: 'Lot' };
-
-                                    // Submit with Swal confirmation
                                     handleRequestSubmit([dummyItem]);
-
-                                    // Optional: Success message could be handled inside handleRequestSubmit or here
-                                    // But since handleRequestSubmit is void, we assume it handles it or we trust the flow.
-                                    // Given the user wants Modern Modal, let's assume handleRequestSubmit might trigger a success alert,
-                                    // OR we can wrap it. But handleRequestSubmit in useOperationsLogic might use alert(). 
-                                    // I should check useOperationsLogic.ts next to be thorough, but for now let's just trigger the action.
-                                    // Wait, if I change the UI here, the logic inside handleRequestSubmit might still alert().
-
                                 } else {
                                     handleRequestSubmit();
                                 }

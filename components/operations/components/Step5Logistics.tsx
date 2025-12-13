@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { Truck, MapPin, Printer, ArrowRight, Package, Box, Calendar, Layers } from 'lucide-react';
 import { useData } from '../../../DataContext';
 import { ReturnRecord } from '../../../types';
+import Swal from 'sweetalert2';
 
 interface Step5LogisticsProps {
     onConfirm: (selectedIds: string[], routeType: 'Hub' | 'Direct', transportInfo: any) => void;
@@ -54,11 +55,24 @@ export const Step5Logistics: React.FC<Step5LogisticsProps> = ({ onConfirm }) => 
 
     const confirmSelection = async () => {
         if (selectedIds.size === 0) {
-            alert('กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ');
+            Swal.fire({
+                icon: 'warning',
+                title: 'ไม่ได้เลือกรายการ',
+                text: 'กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ'
+            });
             return;
         }
         if (!transportInfo.driverName || !transportInfo.plateNumber) {
-            if (!window.confirm('คุณยังไม่ได้ระบุชื่อพนักงานขับรถหรือทะเบียนรถ ต้องการดำเนินการต่อหรือไม่?')) {
+            const confirmResult = await Swal.fire({
+                title: 'ข้อมูลไม่ครบถ้วน',
+                text: 'คุณยังไม่ได้ระบุชื่อพนักงานขับรถหรือทะเบียนรถ ต้องการดำเนินการต่อหรือไม่?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'ดำเนินการต่อ',
+                cancelButtonText: 'ยกเลิก'
+            });
+
+            if (!confirmResult.isConfirmed) {
                 return;
             }
         }
@@ -66,11 +80,19 @@ export const Step5Logistics: React.FC<Step5LogisticsProps> = ({ onConfirm }) => 
         let finalDestination = '';
         if (routeType === 'Direct') {
             if (!directDestination) {
-                alert('กรุณาระบุปลายทางสำหรับการส่งตรง (Direct Return)');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ข้อมูลไม่ครบถ้วน',
+                    text: 'กรุณาระบุปลายทางสำหรับการส่งตรง (Direct Return)'
+                });
                 return;
             }
             if (directDestination === 'Other' && !customDestination) {
-                alert('กรุณาระบุชื่อปลายทาง (อื่นๆ)');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ข้อมูลไม่ครบถ้วน',
+                    text: 'กรุณาระบุชื่อปลายทาง (อื่นๆ)'
+                });
                 return;
             }
             finalDestination = directDestination === 'Other' ? customDestination : directDestination;
@@ -80,7 +102,16 @@ export const Step5Logistics: React.FC<Step5LogisticsProps> = ({ onConfirm }) => 
             ? 'ยืนยันการส่งเข้า Hub (รวบรวมและระบุขนส่ง)?'
             : `ยืนยันการส่งคืนตรงผู้ผลิต (Direct Return) ไปยัง "${finalDestination}"?`;
 
-        if (window.confirm(confirmMsg)) {
+        const finalConfirm = await Swal.fire({
+            title: 'ยืนยันการส่งของ',
+            text: confirmMsg,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'ยืนยัน',
+            cancelButtonText: 'ยกเลิก'
+        });
+
+        if (finalConfirm.isConfirmed) {
             const driverDetails = `Driver: ${transportInfo.driverName}, Plate: ${transportInfo.plateNumber}, Transport: ${transportInfo.transportCompany}`;
 
             try {
@@ -104,10 +135,22 @@ export const Step5Logistics: React.FC<Step5LogisticsProps> = ({ onConfirm }) => 
                 // Notify parent to handle additional logic (like PDF generation for Direct)
                 onConfirm(Array.from(selectedIds), routeType, { ...transportInfo, destination: finalDestination });
                 setSelectedIds(new Set());
-                alert('บันทึกข้อมูลการขนส่งเรียบร้อย');
+
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'เรียบร้อย',
+                    text: 'บันทึกข้อมูลการขนส่งเรียบร้อย',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
             } catch (error) {
                 console.error('Logistics Error:', error);
-                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูลการขนส่ง');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'เกิดข้อผิดพลาดในการบันทึกข้อมูลการขนส่ง'
+                });
             }
         }
     };

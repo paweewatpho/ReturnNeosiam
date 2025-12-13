@@ -71,8 +71,7 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                 icon: 'warning',
                 title: 'ไม่มีรายการที่เลือก',
                 text: 'กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ',
-                confirmButtonText: 'ตกลง',
-                confirmButtonColor: '#f39c12'
+                confirmButtonText: 'ตกลง'
             });
             return;
         }
@@ -86,8 +85,7 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                     icon: 'warning',
                     title: 'ข้อมูลไม่ครบถ้วน',
                     text: 'กรุณาระบุชื่อพนักงานขับรถและทะเบียนรถสำหรับรถบริษัท',
-                    confirmButtonText: 'ตกลง',
-                    confirmButtonColor: '#f39c12'
+                    confirmButtonText: 'ตกลง'
                 });
                 return;
             }
@@ -97,8 +95,7 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                     icon: 'warning',
                     title: 'ข้อมูลไม่ครบถ้วน',
                     text: 'กรุณาระบุชื่อบริษัทขนส่ง (3PL)',
-                    confirmButtonText: 'ตกลง',
-                    confirmButtonColor: '#f39c12'
+                    confirmButtonText: 'ตกลง'
                 });
                 return;
             }
@@ -107,8 +104,7 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                     icon: 'warning',
                     title: 'ข้อมูลไม่ครบถ้วน',
                     text: 'กรุณาระบุชื่อพนักงานขับรถและทะเบียนรถสำหรับ 3PL',
-                    confirmButtonText: 'ตกลง',
-                    confirmButtonColor: '#f39c12'
+                    confirmButtonText: 'ตกลง'
                 });
                 return;
             }
@@ -118,8 +114,7 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                     icon: 'warning',
                     title: 'ข้อมูลไม่ครบถ้วน',
                     text: 'กรุณาระบุรายละเอียดการขนส่ง (อื่นๆ)',
-                    confirmButtonText: 'ตกลง',
-                    confirmButtonColor: '#f39c12'
+                    confirmButtonText: 'ตกลง'
                 });
                 return;
             }
@@ -132,8 +127,7 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                     icon: 'warning',
                     title: 'ข้อมูลไม่ครบถ้วน',
                     text: 'กรุณาระบุปลายทางสำหรับการส่งตรง (Direct Return)',
-                    confirmButtonText: 'ตกลง',
-                    confirmButtonColor: '#f39c12'
+                    confirmButtonText: 'ตกลง'
                 });
                 return;
             }
@@ -142,8 +136,7 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                     icon: 'warning',
                     title: 'ข้อมูลไม่ครบถ้วน',
                     text: 'กรุณาระบุชื่อปลายทาง (อื่นๆ)',
-                    confirmButtonText: 'ตกลง',
-                    confirmButtonColor: '#f39c12'
+                    confirmButtonText: 'ตกลง'
                 });
                 return;
             }

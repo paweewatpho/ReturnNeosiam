@@ -1,4 +1,14 @@
 
+export type UserRole = 'ADMIN' | 'MANAGER' | 'OPERATOR' | 'VIEWER';
+
+export interface User {
+  uid: string;
+  email: string;
+  displayName: string;
+  role: UserRole;
+  photoURL?: string;
+}
+
 export interface ProcessStep {
   id: number;
   title: string;
@@ -28,7 +38,8 @@ export enum AppView {
   NCR = 'NCR',
   NCR_REPORT = 'NCR_REPORT',
   INVENTORY = 'INVENTORY',
-  COLLECTION = 'COLLECTION'
+  COLLECTION = 'COLLECTION',
+  COL_REPORT = 'COL_REPORT'
 }
 
 export type CollectionStatus = 'PENDING' | 'ASSIGNED' | 'COLLECTED' | 'CONSOLIDATED' | 'FAILED';

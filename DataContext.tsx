@@ -115,6 +115,7 @@ interface DataContextType {
   deleteNCRReport: (id: string) => Promise<boolean>; // This will now be a "cancel" operation
   getNextNCRNumber: () => Promise<string>;
   getNextReturnNumber: () => Promise<string>;
+  getNextCollectionNumber: () => Promise<string>;
   runDataIntegrityCheck: () => Promise<number>;
 }
 
@@ -130,6 +131,7 @@ const DataContext = createContext<DataContextType>({
   deleteNCRReport: async () => false,
   getNextNCRNumber: async () => 'NCR-ERROR-0000',
   getNextReturnNumber: async () => 'RT-ERROR-0000',
+  getNextCollectionNumber: async () => 'COL-ERROR-0000',
   runDataIntegrityCheck: async () => 0,
 });
 
@@ -400,6 +402,37 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const getNextCollectionNumber = async (): Promise<string> => {
+    const counterRef = ref(db, 'counters/collection_counter');
+    const currentYear = new Date().getFullYear();
+
+    try {
+      const { committed, snapshot } = await runTransaction(counterRef, (currentData) => {
+        if (currentData === null) {
+          return { year: currentYear, lastNumber: 1 };
+        }
+        if (currentData.year === currentYear) {
+          currentData.lastNumber++;
+        } else {
+          currentData.year = currentYear;
+          currentData.lastNumber = 1;
+        }
+        return currentData;
+      });
+
+      if (committed) {
+        const data = snapshot.val();
+        const paddedNumber = String(data.lastNumber).padStart(4, '0');
+        return `COL-${data.year}-${paddedNumber}`;
+      } else {
+        throw new Error("Failed to get next Collection number, transaction aborted.");
+      }
+    } catch (error) {
+      console.error("Error getting next Collection number:", error);
+      return `COL-${currentYear}-ERR${Math.floor(Math.random() * 100)}`;
+    }
+  };
+
   const runDataIntegrityCheck = async (): Promise<number> => {
     console.log("🔄 Starting Data Integrity Check...");
     // Force a fresh read of the latest state effectively by using the current 'items' and 'ncrReports' from closure
@@ -461,7 +494,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <DataContext.Provider value={{
       items, ncrReports, loading, addReturnRecord, updateReturnRecord, deleteReturnRecord,
-      addNCRReport, updateNCRReport, deleteNCRReport, getNextNCRNumber, getNextReturnNumber,
+      addNCRReport, updateNCRReport, deleteNCRReport, getNextNCRNumber, getNextReturnNumber, getNextCollectionNumber,
       runDataIntegrityCheck
     }}>
       {children}

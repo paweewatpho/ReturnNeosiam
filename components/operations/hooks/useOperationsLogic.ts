@@ -6,7 +6,7 @@ import { getISODetails, RESPONSIBLE_MAPPING } from '../utils';
 import Swal from 'sweetalert2';
 
 export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, onClearInitialData?: () => void) => {
-    const { items, addReturnRecord, updateReturnRecord, addNCRReport, getNextNCRNumber, getNextReturnNumber } = useData();
+    const { items, addReturnRecord, updateReturnRecord, addNCRReport, getNextNCRNumber, getNextReturnNumber, getNextCollectionNumber } = useData();
 
     // Workflow State
     const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8>(1);
@@ -363,11 +363,19 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                     finalNcrNumber = await getNextNCRNumber();
                 }
 
+                // Generate COL Number if Logicstics/Collection Request
+                let finalColNumber = item.collectionOrderId;
+                if (item.documentType === 'LOGISTICS' && !finalColNumber) {
+                    finalColNumber = await getNextCollectionNumber();
+                }
+
                 const runningId = await getNextReturnNumber();
                 const record: ReturnRecord = {
                     ...item as ReturnRecord,
                     id: runningId,
                     refNo: runningId,
+                    // Use the generated COL number
+                    collectionOrderId: finalColNumber,
                     amount: (item.quantity || 0) * (item.priceBill || 0),
                     reason: item.problemDetail || item.notes || 'แจ้งคืนสินค้า',
                     status: 'Requested',
@@ -508,7 +516,11 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             console.log(`[Logistics] HandleSubmit Called. IDs: ${selectedIds.length}, Route: ${routeType}`);
 
             if (!selectedIds || selectedIds.length === 0) {
-                alert("ไม่พบรายการที่เลือก (No items selected)");
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ไม่พบรายการที่เลือก',
+                    text: 'กรุณาเลือกรายการอย่างน้อย 1 รายการ',
+                });
                 return;
             }
 
@@ -552,7 +564,11 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             if (!selectedItems || selectedItems.length === 0) {
                 console.error("Critical Error: Items not found for IDs:", selectedIds);
                 console.log("Current Items:", items.map(i => i.id));
-                alert(`เกิดข้อผิดพลาด: ไม่พบข้อมูลสินค้าที่เลือกในระบบ (Items Not Found in Memory)\nSelected: ${selectedIds.join(', ')}`);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: `ไม่พบข้อมูลสินค้าที่เลือกในระบบ\nSelected: ${selectedIds.join(', ')}`,
+                });
                 return;
             }
 
@@ -581,7 +597,11 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
 
         } catch (error) {
             console.error("HandleLogisticsSubmit Error:", error);
-            alert("เกิดข้อผิดพลาดในระบบ (System Error): " + error);
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาดในระบบ',
+                text: String(error),
+            });
         }
     };
 
@@ -606,7 +626,13 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                 condition: 'Good',
                 notes: (item.notes || '') + ' [Auto-Pass QC: Collection Item]'
             });
-            alert('รับสินค้าเรียบร้อย! (รายการ Collection ข้ามขั้นตอน QC ไปยังเอกสารส่งคืน)');
+            await Swal.fire({
+                icon: 'success',
+                title: 'รับสินค้าเรียบร้อย!',
+                text: 'รายการ Collection ข้ามขั้นตอน QC ไปยังเอกสารส่งคืน',
+                timer: 2000,
+                showConfirmButton: false
+            });
         } else {
             // Standard Flow -> Go to QC
             await updateReturnRecord(id, { status: 'ReceivedAtHub', dateReceived: today });
@@ -616,7 +642,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
     const handleQCSubmit = async () => {
         if (!qcSelectedItem || !selectedDisposition) return;
         if (!qcSelectedItem.condition || qcSelectedItem.condition === 'Unknown') {
-            alert("กรุณาระบุสภาพสินค้า");
+            Swal.fire('กรุณาระบุสภาพสินค้า', '', 'warning');
             return;
         }
         const today = new Date().toISOString().split('T')[0];
@@ -639,7 +665,13 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             setSelectedDisposition(null);
             setCustomInputType(null);
             setIsCustomRoute(false);
-            alert('บันทึกผล QC เรียบร้อย (Ready for Docs)');
+            Swal.fire({
+                icon: 'success',
+                title: 'บันทึกผล QC เรียบร้อย',
+                text: 'Ready for Docs',
+                timer: 1500,
+                showConfirmButton: false
+            });
         }
     };
 
@@ -648,20 +680,20 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         const totalAvailable = isBreakdownUnit ? (currentQty * conversionRate) : currentQty;
 
         if (!Number.isInteger(splitQty)) {
-            alert("กรุณาระบุจำนวนเป็นจำนวนเต็ม");
+            Swal.fire('กรุณาระบุจำนวนเป็นจำนวนเต็ม', '', 'warning');
             return;
         }
 
         if (!qcSelectedItem || splitQty <= 0 || splitQty >= totalAvailable) {
-            alert(`จำนวนที่แยกต้องมากกว่า 0 และน้อยกว่าจำนวนทั้งหมด (${totalAvailable})`);
+            Swal.fire('จำนวนไม่ถูกต้อง', `จำนวนที่แยกต้องมากกว่า 0 และน้อยกว่าจำนวนทั้งหมด (${totalAvailable})`, 'warning');
             return;
         }
         if (!qcSelectedItem.condition || qcSelectedItem.condition === 'Unknown') {
-            alert("กรุณาระบุสภาพสินค้าหลัก");
+            Swal.fire('กรุณาระบุสภาพสินค้าหลัก', '', 'warning');
             return;
         }
         if (!selectedDisposition) {
-            alert("กรุณาเลือกการตัดสินใจ (Disposition)");
+            Swal.fire('กรุณาเลือกการตัดสินใจ (Disposition)', '', 'warning');
             return;
         }
 
@@ -744,9 +776,14 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             setConversionRate(1);
             setNewUnitName('');
             setSplitDisposition(null);
-            alert(`ดำเนินการแยกรายการเรียบร้อย`);
+            Swal.fire({
+                icon: 'success',
+                title: 'ดำเนินการแยกรายการเรียบร้อย',
+                timer: 1500,
+                showConfirmButton: false
+            });
         } else {
-            alert("เกิดข้อผิดพลาดในการแยกรายการ");
+            Swal.fire('เกิดข้อผิดพลาดในการแยกรายการ', '', 'error');
         }
     };
 
@@ -764,7 +801,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
 
     const handlePrintClick = (status: DispositionAction, list: ReturnRecord[]) => {
         if (!list || list.length === 0) {
-            alert('ไม่พบรายการสินค้าในสถานะนี้');
+            Swal.fire('ไม่พบรายการสินค้าในสถานะนี้', '', 'info');
             return;
         }
         setSelectionStatus(status);
@@ -777,7 +814,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         if (!selectionStatus) return;
         const selectedList = selectionItems.filter(item => selectedItemIds.has(item.id));
         if (selectedList.length === 0) {
-            alert("กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการก่อนสร้างเอกสาร");
+            Swal.fire('กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการก่อนสร้างเอกสาร', '', 'warning');
             return;
         }
         const details = getISODetails(selectionStatus);
@@ -805,11 +842,17 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                 if (success) successCount++;
             }
             if (successCount > 0) {
-                alert(`สร้างเอกสารและบันทึกรายการเรียบร้อย! (${successCount} รายการ)`);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ดำเนินการสำเร็จ',
+                    text: `สร้างเอกสารและบันทึกรายการเรียบร้อย! (${successCount} รายการ)`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
                 setShowDocModal(false);
                 setPendingLogisticsTx(null);
             } else {
-                alert("ไม่สามารถบันทึกรายการได้ (Update Failed). กรุณาลองใหม่อีกครั้ง หรือตรวจสอบ Console");
+                Swal.fire('ไม่สามารถบันทึกรายการได้ (Update Failed)', 'กรุณาลองใหม่อีกครั้ง หรือตรวจสอบ Console', 'error');
             }
             return;
         }
@@ -822,7 +865,13 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         }
 
         if (successCount > 0) {
-            alert(`สร้างเอกสารเรียบร้อย ${successCount} รายการ -> ไปที่ขั้นตอน "ปิดงาน"`);
+            Swal.fire({
+                icon: 'success',
+                title: 'สร้างเอกสารเรียบร้อย',
+                text: `${successCount} รายการ -> ไปที่ขั้นตอน "ปิดงาน"`,
+                timer: 2000,
+                showConfirmButton: false
+            });
             setShowDocModal(false);
         }
     };
@@ -894,7 +943,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                 const totalAvailable = isBreakdown ? (currentQty * rate) : currentQty;
 
                 // Add split logic logic if needed, previously was empty in some contexts but let's keep it safe
-                alert("Split functionality pending implementation for Step 4 direct usage.");
+                Swal.fire('Split functionality pending', 'This feature is pending implementation for Step 4 direct usage.', 'info');
             }
         }
     };

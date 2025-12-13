@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FileText, Edit3, Printer, CheckCircle, X, FileSpreadsheet } from 'lucide-react';
 import { ThaiBahtText, getISODetails, calculateTotal } from '../utils';
+import Swal from 'sweetalert2';
 
 interface DocumentPreviewModalProps {
     isOpen: boolean;
@@ -203,8 +204,17 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                         <Printer className="w-4 h-4" /> พิมพ์
                     </button>
 
-                    <button onClick={() => {
-                        if (window.confirm('ยืนยันการบันทึกข้อมูลและสร้างเอกสาร? (Confirm Save & Generate Document)')) {
+                    <button onClick={async () => {
+                        const result = await Swal.fire({
+                            title: 'ยืนยันการบันทึก',
+                            text: 'ยืนยันการบันทึกข้อมูลและสร้างเอกสาร? (Confirm Save & Generate Document)',
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonText: 'ยืนยัน (Confirm)',
+                            cancelButtonText: 'ยกเลิก (Cancel)'
+                        });
+
+                        if (result.isConfirmed) {
                             handleConfirmDocGeneration();
                         }
                     }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold text-sm flex items-center gap-2">

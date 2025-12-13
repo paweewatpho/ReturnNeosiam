@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Box, CheckSquare, Calendar } from 'lucide-react';
+import { Activity, Box, CheckSquare, Calendar, RotateCcw } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useData } from '../../../DataContext';
 import { ReturnRecord } from '../../../types';
@@ -97,6 +97,27 @@ export const Step3BranchReceive: React.FC<Step3BranchReceiveProps> = ({ onComple
         }
     };
 
+    const handleUndo = async (id: string) => {
+        const { value: password } = await Swal.fire({
+            title: 'ใส่รหัสผ่านเพื่อแก้ไข (Undo)',
+            input: 'password',
+            inputLabel: 'รหัสผ่าน (Password)',
+            inputPlaceholder: 'ใส่รหัสผ่าน...',
+            showCancelButton: true,
+            confirmButtonText: 'ยืนยัน',
+            cancelButtonText: 'ยกเลิก'
+        });
+
+        if (password === '1234') {
+            await updateReturnRecord(id, {
+                status: 'COL_JobAccepted'
+            });
+            Swal.fire('ย้อนกลับเรียบร้อย', '', 'success');
+        } else if (password) {
+            Swal.fire('รหัสผ่านไม่ถูกต้อง', '', 'error');
+        }
+    };
+
     return (
         <div className="h-full flex flex-col p-6 animate-fade-in">
             <div className="flex justify-between items-center mb-6">
@@ -177,6 +198,13 @@ export const Step3BranchReceive: React.FC<Step3BranchReceiveProps> = ({ onComple
                                                 className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-2 mx-auto whitespace-nowrap"
                                             >
                                                 <CheckSquare className="w-4 h-4" /> ยืนยันรับของ
+                                            </button>
+                                            <button
+                                                onClick={() => handleUndo(item.id)}
+                                                className="mt-2 text-slate-400 hover:text-red-500 hover:bg-red-50 p-1 rounded transition-colors flex items-center gap-1 mx-auto text-xs"
+                                                title="ย้อนกลับ (Undo)"
+                                            >
+                                                <RotateCcw className="w-3 h-3" /> แก้ไข/ย้อนกลับ
                                             </button>
                                         </td>
                                     </tr>

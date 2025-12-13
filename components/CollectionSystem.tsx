@@ -3,6 +3,7 @@ import {
     Truck, CheckCircle2, Boxes, FileText,
     User, X, Lock
 } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { useData } from '../DataContext';
 import { useOperationsLogic } from './operations/hooks/useOperationsLogic';
 import { Step1LogisticsRequest } from './operations/components/Step1LogisticsRequest';
@@ -78,7 +79,12 @@ const CollectionSystem: React.FC<CollectionSystemProps> = ({ onNavigate }) => {
 
     const handleAuthSubmit = () => {
         if (authPassword !== '1234') {
-            alert('รหัสผ่านไม่ถูกต้อง');
+            Swal.fire({
+                icon: 'error',
+                title: 'รหัสผ่านไม่ถูกต้อง',
+                text: 'กรุณาลองใหม่อีกครั้ง',
+                confirmButtonColor: '#ef4444'
+            });
             return;
         }
         setShowAuthModal(false);
@@ -168,6 +174,7 @@ const CollectionSystem: React.FC<CollectionSystemProps> = ({ onNavigate }) => {
                                 uniqueDestinations={derived.uniqueDestinations}
                                 uniqueProductCodes={derived.uniqueProductCodes}
                                 uniqueProductNames={derived.uniqueProductNames}
+                                existingItems={items}
                                 setFormData={actions.setFormData}
                                 setIsCustomBranch={actions.setIsCustomBranch}
                                 setRequestItems={actions.setRequestItems}
@@ -192,7 +199,13 @@ const CollectionSystem: React.FC<CollectionSystemProps> = ({ onNavigate }) => {
                                     if (onNavigate) {
                                         onNavigate(AppView.OPERATIONS, 2);
                                     } else {
-                                        alert('Navigation not configured');
+                                        Swal.fire({
+                                            icon: 'info',
+                                            title: 'Navigation Info',
+                                            text: 'Navigation not configured',
+                                            timer: 1500,
+                                            showConfirmButton: false
+                                        });
                                     }
                                 }} />
                             </div>
@@ -231,5 +244,7 @@ const CollectionSystem: React.FC<CollectionSystemProps> = ({ onNavigate }) => {
         </ErrorBoundary>
     );
 };
+
+
 
 export default CollectionSystem;
