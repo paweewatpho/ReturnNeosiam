@@ -173,19 +173,37 @@ export const Step3HubReceive: React.FC = () => {
                                     </div>
                                     <div className="font-bold text-slate-900 text-base mb-1 truncate" title={item.productName}>{item.productName}</div>
 
-                                    <div className="flex flex-col gap-1 mt-2">
-                                        <div className="flex gap-2 items-center flex-wrap">
-                                            {item.preliminaryDecision && (
-                                                <div className={`text-xs px-2 py-0.5 rounded-full border flex items-center gap-1
-                                                    ${item.preliminaryDecision === 'Return' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
-                                                        item.preliminaryDecision === 'Sell' ? 'bg-green-50 text-green-700 border-green-200' :
-                                                            item.preliminaryDecision === 'Scrap' ? 'bg-red-50 text-red-700 border-red-200' :
-                                                                item.preliminaryDecision === 'Internal' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                                                    'bg-blue-50 text-blue-700 border-blue-200'}`}>
-                                                    <span className="font-bold">{item.preliminaryDecision}</span>
-                                                    {item.preliminaryRoute && <span>({item.preliminaryRoute})</span>}
+                                    {/* Preliminary Decision - Enhanced Display */}
+                                    {item.preliminaryDecision && (
+                                        <div className="mt-2 p-2 bg-gradient-to-r from-indigo-50/50 to-blue-50/50 rounded-lg border border-indigo-100">
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="text-slate-600 font-semibold">การตัดสินใจเบื้องต้น:</span>
+                                                <span className={`px-2 py-1 rounded-full font-bold text-xs shadow-sm ${item.preliminaryDecision === 'Return' ? 'bg-blue-500 text-white' :
+                                                        item.preliminaryDecision === 'Sell' ? 'bg-green-500 text-white' :
+                                                            item.preliminaryDecision === 'Scrap' ? 'bg-red-500 text-white' :
+                                                                item.preliminaryDecision === 'Internal' ? 'bg-amber-500 text-white' :
+                                                                    item.preliminaryDecision === 'Claim' ? 'bg-orange-500 text-white' :
+                                                                        'bg-slate-500 text-white'
+                                                    }`}>
+                                                    {item.preliminaryDecision === 'Return' ? '🚚 คืนสินค้า' :
+                                                        item.preliminaryDecision === 'Sell' ? '💵 ขาย' :
+                                                            item.preliminaryDecision === 'Scrap' ? '🗑️ ทำลาย' :
+                                                                item.preliminaryDecision === 'Internal' ? '🏠 ใช้ภายใน' :
+                                                                    item.preliminaryDecision === 'Claim' ? '📄 เคลม' :
+                                                                        item.preliminaryDecision}
+                                                </span>
+                                            </div>
+                                            {item.preliminaryRoute && (
+                                                <div className="flex items-center justify-between text-xs mt-1 bg-white/70 rounded px-2 py-0.5">
+                                                    <span className="text-slate-600">เส้นทาง:</span>
+                                                    <span className="text-indigo-700 font-bold">{item.preliminaryRoute}</span>
                                                 </div>
                                             )}
+                                        </div>
+                                    )}
+
+                                    <div className="flex flex-col gap-1 mt-2">
+                                        <div className="flex gap-2 items-center flex-wrap">
                                             {item.expiryDate && <div className="text-red-500 text-xs font-bold bg-white px-2 py-0.5 rounded border border-red-100">Exp: {item.expiryDate}</div>}
                                         </div>
                                         {item.reason && <div className="text-slate-500 text-xs italic">เหตุผล: {item.reason}</div>}

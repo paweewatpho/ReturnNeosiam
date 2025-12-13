@@ -249,18 +249,33 @@ export const Step4HubQC: React.FC = () => {
                                         <span>Ref: {qcSelectedItem.refNo}</span>
                                         <span>Qty: <b>{qcSelectedItem.quantity} {qcSelectedItem.unit}</b></span>
                                     </div>
+
+                                    {/* Preliminary Decision - Enhanced Display */}
                                     {qcSelectedItem.preliminaryDecision && (
-                                        <div className="flex items-center gap-2 mt-2">
-                                            <span className="text-xs font-bold text-slate-500">Preliminary Decision:</span>
-                                            <div className={`text-xs px-2 py-0.5 rounded-full border flex items-center gap-1
-                                                ${qcSelectedItem.preliminaryDecision === 'Return' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
-                                                    qcSelectedItem.preliminaryDecision === 'Sell' ? 'bg-green-50 text-green-700 border-green-200' :
-                                                        qcSelectedItem.preliminaryDecision === 'Scrap' ? 'bg-red-50 text-red-700 border-red-200' :
-                                                            qcSelectedItem.preliminaryDecision === 'Internal' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                                                'bg-blue-50 text-blue-700 border-blue-200'}`}>
-                                                <span className="font-bold">{qcSelectedItem.preliminaryDecision}</span>
-                                                {qcSelectedItem.preliminaryRoute && <span>({qcSelectedItem.preliminaryRoute})</span>}
+                                        <div className="mt-3 p-3 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg border border-indigo-200">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm font-bold text-slate-700">การตัดสินใจเบื้องต้น:</span>
+                                                <span className={`px-3 py-1.5 rounded-full font-bold text-sm shadow-sm ${qcSelectedItem.preliminaryDecision === 'Return' ? 'bg-blue-500 text-white' :
+                                                        qcSelectedItem.preliminaryDecision === 'Sell' ? 'bg-green-500 text-white' :
+                                                            qcSelectedItem.preliminaryDecision === 'Scrap' ? 'bg-red-500 text-white' :
+                                                                qcSelectedItem.preliminaryDecision === 'Internal' ? 'bg-amber-500 text-white' :
+                                                                    qcSelectedItem.preliminaryDecision === 'Claim' ? 'bg-orange-500 text-white' :
+                                                                        'bg-slate-500 text-white'
+                                                    }`}>
+                                                    {qcSelectedItem.preliminaryDecision === 'Return' ? '🚚 คืนสินค้า' :
+                                                        qcSelectedItem.preliminaryDecision === 'Sell' ? '💵 ขาย' :
+                                                            qcSelectedItem.preliminaryDecision === 'Scrap' ? '🗑️ ทำลาย' :
+                                                                qcSelectedItem.preliminaryDecision === 'Internal' ? '🏠 ใช้ภายใน' :
+                                                                    qcSelectedItem.preliminaryDecision === 'Claim' ? '📄 เคลม' :
+                                                                        qcSelectedItem.preliminaryDecision}
+                                                </span>
                                             </div>
+                                            {qcSelectedItem.preliminaryRoute && (
+                                                <div className="flex items-center justify-between mt-2 bg-white/70 rounded px-3 py-1">
+                                                    <span className="text-sm text-slate-600">เส้นทางแนะนำ:</span>
+                                                    <span className="text-sm text-indigo-700 font-bold">{qcSelectedItem.preliminaryRoute}</span>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>

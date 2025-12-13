@@ -3,6 +3,7 @@ import { FileText, PlusCircle, Save, Trash2, Package, Truck } from 'lucide-react
 import { ReturnRecord } from '../../../types';
 import { ConfirmSubmitModal } from './ConfirmSubmitModal';
 import { ItemAnalysisModal } from './ItemAnalysisModal';
+import { PreliminaryDecisionModal } from './PreliminaryDecisionModal';
 import Swal from 'sweetalert2';
 
 // Sub-components for NCR Form
@@ -47,6 +48,10 @@ export const Step1Request: React.FC<Step1RequestProps> = ({
     // Fixed to 'NCR' mode
     const [docType] = useState<DocumentType>('NCR');
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+    // Preliminary Decision Modal State
+    const [showDecisionModal, setShowDecisionModal] = useState(false);
+    const [pendingItemData, setPendingItemData] = useState<Partial<ReturnRecord> | null>(null);
 
     // Sync docType to formData CONSTANTLY to be safe, though initial logic might handle it.
     React.useEffect(() => {
@@ -97,7 +102,24 @@ export const Step1Request: React.FC<Step1RequestProps> = ({
             });
             return;
         }
-        handleAddItem(null, formData);
+
+        // เก็บข้อมูลชั่วคราวและเปิด Modal เลือกการตัดสินใจเบื้องต้น
+        setPendingItemData(formData);
+        setShowDecisionModal(true);
+    };
+
+    // Handle Preliminary Decision Confirmation
+    const handleDecisionConfirm = (decision: string, route?: string) => {
+        if (pendingItemData) {
+            const itemWithDecision = {
+                ...pendingItemData,
+                preliminaryDecision: decision as 'Return' | 'Sell' | 'Scrap' | 'Internal' | 'Claim',
+                preliminaryRoute: route || ''
+            };
+            handleAddItem(null, itemWithDecision);
+            setPendingItemData(null);
+        }
+        setShowDecisionModal(false);
     };
 
     const onSaveClick = () => {
@@ -270,6 +292,16 @@ export const Step1Request: React.FC<Step1RequestProps> = ({
                     </form>
                 </div>
             </div>
+
+            {/* Preliminary Decision Modal */}
+            <PreliminaryDecisionModal
+                isOpen={showDecisionModal}
+                onClose={() => {
+                    setShowDecisionModal(false);
+                    setPendingItemData(null);
+                }}
+                onConfirm={handleDecisionConfirm}
+            />
         </>
     );
 };
