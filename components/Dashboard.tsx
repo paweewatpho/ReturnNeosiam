@@ -11,6 +11,7 @@ import {
   Truck, CheckCircle, Clock, FileText, Package, AlertOctagon, DollarSign, Trash2, MapPin, Box,
   TrendingUp, Activity, AlertTriangle, Lock, X, RotateCcw
 } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 const COLORS = {
   Restock: '#22c55e', // Green
@@ -22,40 +23,149 @@ const COLORS = {
 };
 
 const Dashboard: React.FC = () => {
-  const { items, ncrReports, runDataIntegrityCheck } = useData();
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authPassword, setAuthPassword] = useState('');
-  const [isResetting, setIsResetting] = useState(false);
 
-  const handleAuthSubmit = async () => {
-    if (authPassword !== '1234') {
-      alert('รหัสผ่านไม่ถูกต้อง (Incorrect Password)');
+  const { items, ncrReports, runDataIntegrityCheck } = useData();
+
+  const handleFactoryReset = async () => {
+    // 1. Password Check
+    const { value: password } = await Swal.fire({
+      title: 'ยืนยันรหัสผ่าน (Authentication)',
+      text: "กรุณากรอกรหัสผ่านเพื่อล้างข้อมูลทั้งหมด",
+      input: 'password',
+      inputPlaceholder: 'Enter password',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'ตรวจสอบ (Verify)',
+      cancelButtonText: 'ยกเลิก (Cancel)',
+      inputAttributes: {
+        autocapitalize: 'off',
+        autocorrect: 'off'
+      }
+    });
+
+    if (!password) return; // User cancelled
+
+    if (password !== '1234') {
+      await Swal.fire({
+        title: 'รหัสผ่านไม่ถูกต้อง',
+        text: 'Access Denied',
+        icon: 'error',
+        confirmButtonColor: '#ef4444'
+      });
       return;
     }
 
-    if (confirm("คำเตือนครั้งสุดท้าย: ข้อมูลทั้งหมดจะถูกลบถาวร! ยืนยันทำรายการหรือไม่?")) {
-      setIsResetting(true);
+    // 2. Final Confirmation
+    const result = await Swal.fire({
+      title: 'คำเตือน: ลบข้อมูลทั้งหมด?',
+      text: "ข้อมูลทั้งหมดจะหายไปถาวร ไม่สามารถกู้คืนได้! ยืนยันที่จะดำเนินการต่อหรือไม่?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'ใช่, ฉันต้องการลบข้อมูลทั้งหมด',
+      cancelButtonText: 'ยกเลิก'
+    });
+
+    if (result.isConfirmed) {
+      // 3. Execute Reset
       try {
+        Swal.fire({
+          title: 'กำลังล้างข้อมูล...',
+          text: 'Please wait while we reset the system',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
         await remove(ref(db, 'return_records'));
         await remove(ref(db, 'ncr_reports'));
         await set(ref(db, 'ncr_counter'), 0);
+
+        await Swal.fire(
+          'เสร็จสิ้น!',
+          'ระบบได้รับการรีเซ็ตเรียบร้อยแล้ว',
+          'success'
+        );
         location.reload();
       } catch (error) {
         console.error(error);
-        alert("เกิดข้อผิดพลาดในการลบข้อมูล");
-        setIsResetting(false);
+        Swal.fire(
+          'เกิดข้อผิดพลาด',
+          'ไม่สามารถล้างข้อมูลได้ กรุณาลองใหม่',
+          'error'
+        );
       }
     }
   };
 
   const handleIntegrityCheck = async () => {
-    if (confirm("ต้องการตรวจสอบระบบและล้างข้อมูลตกค้างหรือไม่? (Start Data Integrity Scan?)")) {
-      const count = await runDataIntegrityCheck();
-      if (count > 0) {
-        alert(`ดำเนินการเสร็จสิ้น: ลบข้อมูลตกค้าง (Orphaned Records) ไปทั้งสิ้น ${count} รายการ`);
-      } else {
-        alert("ระบบปกติ: ไม่พบข้อมูลตกค้าง");
+    // 1. Password Check
+    const { value: password } = await Swal.fire({
+      title: 'ยืนยันรหัสผ่าน (Authentication)',
+      text: "กรุณากรอกรหัสผ่านเพื่อตรวจสอบและล้างข้อมูลขยะ",
+      input: 'password',
+      inputPlaceholder: 'Enter password',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#3b82f6', // Blue for Sync
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'ยืนยัน (Verify)',
+      cancelButtonText: 'ยกเลิก (Cancel)',
+      inputAttributes: {
+        autocapitalize: 'off',
+        autocorrect: 'off'
       }
+    });
+
+    if (!password) return;
+
+    if (password !== '1234') {
+      await Swal.fire({
+        title: 'รหัสผ่านไม่ถูกต้อง',
+        text: 'Access Denied',
+        icon: 'error',
+        confirmButtonColor: '#ef4444'
+      });
+      return;
+    }
+
+    // 2. Execute Check
+    Swal.fire({
+      title: 'กำลังตรวจสอบระบบ...',
+      text: 'Scanning for orphaned records...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    try {
+      const count = await runDataIntegrityCheck();
+
+      if (count > 0) {
+        await Swal.fire(
+          'ดำเนินการเสร็จสิ้น',
+          `ลบข้อมูลตกค้าง (Orphaned Records) ไปทั้งสิ้น ${count} รายการ`,
+          'success'
+        );
+      } else {
+        await Swal.fire(
+          'ระบบปกติ',
+          'ไม่พบข้อมูลตกค้างในระบบ',
+          'success'
+        );
+      }
+    } catch (error) {
+      console.error(error);
+      Swal.fire(
+        'เกิดข้อผิดพลาด',
+        'ไม่สามารถตรวจสอบระบบได้',
+        'error'
+      );
     }
   };
 
@@ -113,34 +223,26 @@ const Dashboard: React.FC = () => {
     };
   }, [items]);
 
-  // 1.2 Inbound Collection Stats (Mock Data / System 1 + Real Ops Data)
+  // 1.2 Inbound Collection Stats (Synced with COL Report)
   const collectionStats = useMemo(() => {
-    // Link to Operations: Find items originating from Collection System
-    // Strictly filter for COL/RMA IDs and EXCLUDE NCR items to match user request
-    const collectionItems = items.filter(i => {
-      const isNCR = i.ncrNumber || i.id.startsWith('NCR');
-      if (isNCR) return false; // Strictly exclude NCR
-
-      return (i.refNo && (i.refNo.startsWith('R-') || i.refNo.startsWith('COL-') || i.refNo.startsWith('RT-'))) ||
-        (i.neoRefNo && (i.neoRefNo.startsWith('R-') || i.neoRefNo.startsWith('COL-')));
+    // Exact Filter Logic from COLReport.tsx
+    const collectionItems = items.filter(item => {
+      // Must NOT be NCR (unless LOGISTICS type, but usually COL items are distinct)
+      if (item.documentType === 'NCR' || (item.ncrNumber && item.documentType !== 'LOGISTICS')) {
+        return false;
+      }
+      return true;
     });
-
-    // Pending Completion = Received at Hub, QC, or Direct Return (waiting for close)
-    // Exclude: Draft/Requested (Step 1-2 Ops), InTransitHub (Step 5 Collection), Completed
-    const pendingCompletionCount = collectionItems.filter(i =>
-      !['Draft', 'Requested', 'InTransitHub', 'Completed'].includes(i.status)
-    ).length;
-
-    const completedCount = collectionItems.filter(i => i.status === 'Completed').length;
 
     return {
       requests: collectionItems.filter(i => i.status === 'Requested').length,
-      assigned: collectionItems.filter(i => i.status === 'PickupScheduled').length,
-      collected: collectionItems.filter(i => i.status === 'PickedUp').length,
-      consolidated: 0, // Internal state not yet persisted globally
-      transit: collectionItems.filter(i => i.status === 'InTransitHub').length,
-      pendingCompletion: pendingCompletionCount,
-      completed: completedCount
+      assigned: collectionItems.filter(i => i.status === 'COL_JobAccepted').length,
+      collected: collectionItems.filter(i => i.status === 'COL_BranchReceived').length,
+      consolidated: collectionItems.filter(i => i.status === 'COL_Consolidated').length,
+      transit: collectionItems.filter(i => i.status === 'COL_InTransit').length,
+      // Hub Received + Documented = Step 6 (Pending Closure)
+      pendingCompletion: collectionItems.filter(i => i.status === 'COL_HubReceived' || i.status === 'COL_Documented').length,
+      completed: collectionItems.filter(i => i.status === 'Completed').length
     };
   }, [items]);
 
@@ -486,7 +588,7 @@ const Dashboard: React.FC = () => {
             <Trash2 className="w-4 h-4" /> Data Factory Reset
           </h3>
           <button
-            onClick={() => setShowAuthModal(true)}
+            onClick={handleFactoryReset}
             className="text-red-600 underline text-xs cursor-pointer hover:text-red-800"
           >
             ล้างข้อมูลทั้งหมด (Reset All)
@@ -496,42 +598,7 @@ const Dashboard: React.FC = () => {
 
       </div>
 
-      {/* Password Modal */}
-      {showAuthModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-          <div className="bg-white p-6 rounded-xl shadow-2xl w-96 transform scale-100 transition-all">
-            <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                <Lock className="w-5 h-5 text-amber-500" />
-                ยืนยันสิทธิ์ (Authentication)
-              </h3>
-              <button onClick={() => setShowAuthModal(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">รหัสผ่าน (Password)</label>
-                <input
-                  type="password"
-                  className="w-full p-2 border border-slate-300 rounded-lg text-lg tracking-widest outline-none focus:ring-2 focus:ring-amber-500"
-                  autoFocus
-                  value={authPassword}
-                  onChange={(e) => setAuthPassword(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAuthSubmit()}
-                  placeholder="Enter password..."
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button onClick={() => setShowAuthModal(false)} className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold">ยกเลิก</button>
-                <button onClick={handleAuthSubmit} disabled={isResetting} className="px-4 py-2 rounded-lg bg-red-600 text-white font-bold hover:bg-red-700 shadow-md flex items-center gap-2">
-                  {isResetting ? 'กำลังล้าง...' : 'ยืนยันลบข้อมูล'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Password Modal - REMOVED, REPLACED BY SWAL */}
 
     </div >
   );

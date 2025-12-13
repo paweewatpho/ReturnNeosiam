@@ -22,11 +22,18 @@ import { Step4SplitModal } from './operations/components/Step4SplitModal';
 interface OperationsProps {
   initialData?: Partial<ReturnRecord> | null;
   onClearInitialData?: () => void;
+  initialStep?: number;
 }
 
-export const Operations: React.FC<OperationsProps> = ({ initialData, onClearInitialData }) => {
+export const Operations: React.FC<OperationsProps> = ({ initialData, onClearInitialData, initialStep }) => {
   const { state, actions, derived } = useOperationsLogic(initialData, onClearInitialData);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  React.useEffect(() => {
+    if (initialStep) {
+      actions.setActiveStep(initialStep as any);
+    }
+  }, [initialStep]);
 
   // New Menu Structure mapping to the Flowchart
   const MENU_ITEMS = [

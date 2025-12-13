@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FileText, Save, PlusCircle } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { ReturnRecord } from '../../../types';
 import { BRANCH_LIST } from '../../../constants';
 // Logistics Request Form
@@ -35,20 +36,21 @@ interface Step1LogisticsRequestProps {
     setRequestItems: React.Dispatch<React.SetStateAction<Partial<ReturnRecord>[]>>;
     handleAddItem: (e: React.FormEvent | null, overrideData?: Partial<ReturnRecord>) => void;
     handleRemoveItem: (index: number) => void;
-    handleRequestSubmit: () => void;
+    handleRequestSubmit: (manualItems?: Partial<ReturnRecord>[]) => void;
 
     // Dropdown Data
     uniqueCustomers?: string[];
     uniqueDestinations?: string[];
     uniqueProductCodes?: string[];
     uniqueProductNames?: string[];
+    existingItems?: ReturnRecord[];
 }
 
 export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
     formData, requestItems, isCustomBranch, initialData,
     setFormData, setIsCustomBranch, setRequestItems,
     handleAddItem, handleRemoveItem, handleRequestSubmit,
-    uniqueCustomers = [], uniqueDestinations = [], uniqueProductCodes = [], uniqueProductNames = []
+    uniqueCustomers = [], uniqueDestinations = [], uniqueProductCodes = [], uniqueProductNames = [], existingItems = []
 }) => {
 
     // Ensure Document Type is LOGISTICS
@@ -103,7 +105,7 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                 >
                                     <option value="" disabled>-- เลือกสาขา --</option>
                                     <option value="พิษณุโลก">พิษณุโลก</option>
-                                    {BRANCH_LIST.filter(b => b !== 'พิษณุโลก').map(b => <option key={b} value={b}>{b}</option>)}
+                                    {(BRANCH_LIST && Array.isArray(BRANCH_LIST) ? BRANCH_LIST : ['กำแพงเพชร', 'แม่สอด', 'เชียงใหม่', 'EKP ลำปาง', 'นครสวรรค์', 'สาย 3', 'คลอง 13', 'ซีโน่', 'ประดู่']).filter(b => b !== 'พิษณุโลก').map(b => <option key={b} value={b}>{b}</option>)}
                                     <option value="Other">อื่นๆ (Other)</option>
                                 </select>
                             </div>
@@ -265,11 +267,57 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                     <div className="flex justify-end pt-8 mt-4 border-t border-slate-100">
                         <button
                             onClick={() => {
-                                // Add a dummy item if list is empty to allow submission
-                                if (requestItems.length === 0) {
-                                    handleAddItem(null, { ...formData, productName: 'General Request', quantity: 1, unit: 'Lot' });
+                                // 1. Validate Mandatory Fields
+                                const missingFields = [];
+                                if (!formData.branch) missingFields.push('สาขา (Branch)');
+                                if (!formData.controlDate && !formData.date) missingFields.push('วันที่ใบคุมรถ (Control Date)');
+                                if (!formData.customerName) missingFields.push('ลูกค้าต้นทาง (Source Customer)');
+
+                                if (missingFields.length > 0) {
+                                    Swal.fire({
+                                        icon: 'warning',
+                                        title: 'กรุณากรอกข้อมูลให้ครบถ้วน',
+                                        text: `ขาดข้อมูล: ${missingFields.join(', ')}`,
+                                        confirmButtonColor: '#f59e0b'
+                                    });
+                                    return;
                                 }
-                                handleRequestSubmit();
+
+                                // 2. Check for Duplicates
+                                // Duplicate Definition: Same Invoice No AND Same Branch AND Same Document No (if exists)
+                                const isDuplicate = existingItems.some(item => {
+                                    const sameBranch = item.branch === formData.branch;
+                                    const sameInvoice = formData.invoiceNo && item.invoiceNo === formData.invoiceNo;
+                                    const sameDocNo = formData.documentNo && (item.documentNo === formData.documentNo || item.refNo === formData.documentNo);
+
+                                    // If Invoice is present, it must be unique per branch? Or globally?
+                                    // Let's assume Invoice + Branch combination should be unique if Invoice is provided.
+                                    if (formData.invoiceNo && sameBranch && sameInvoice) return true;
+
+                                    // If Doc No is present
+                                    if (formData.documentNo && sameBranch && sameDocNo) return true;
+
+                                    return false;
+                                });
+
+                                if (isDuplicate) {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'พบข้อมูลซ้ำ (Duplicate)',
+                                        text: `มีรายการที่ใช้เลข Invoice: ${formData.invoiceNo} หรือ Doc No: ${formData.documentNo} ในสาขานี้แล้ว`,
+                                        footer: 'กรุณาตรวจสอบเลขเอกสารอีกครั้ง',
+                                        confirmButtonColor: '#ef4444'
+                                    });
+                                    return;
+                                }
+
+                                // 3. Allow Submission
+                                if (requestItems.length === 0) {
+                                    const dummyItem = { ...formData, productName: 'General Request', quantity: 1, unit: 'Lot' };
+                                    handleRequestSubmit([dummyItem]);
+                                } else {
+                                    handleRequestSubmit();
+                                }
                             }}
                             className="px-8 py-4 bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all flex items-center gap-2"
                         >

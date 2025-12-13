@@ -2,6 +2,7 @@
 import { useData, NCRRecord, NCRItem } from '../DataContext';
 import { ReturnRecord } from '../types';
 import { Save, Printer, Image as ImageIcon, AlertTriangle, Plus, Trash2, X, Loader, CheckCircle, XCircle, HelpCircle, Download, Lock, PenTool } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { RESPONSIBLE_MAPPING } from './operations/utils';
 import { LineAutocomplete } from './LineAutocomplete';
 import { exportNCRToExcel } from './NCRExcelExport';
@@ -52,7 +53,13 @@ const NCRSystem: React.FC = () => {
 
     const handleAuthSubmit = () => {
         if (authPassword !== '1234') {
-            alert('รหัสผ่านไม่ถูกต้อง');
+            Swal.fire({
+                icon: 'error',
+                title: 'รหัสผ่านไม่ถูกต้อง',
+                text: 'กรุณาลองใหม่อีกครั้ง',
+                timer: 1500,
+                showConfirmButton: false
+            });
             return;
         }
 
@@ -62,12 +69,9 @@ const NCRSystem: React.FC = () => {
             const item = ncrItems.find(i => i.id === authTargetId);
             if (item) {
                 setNewItem(item);
-                // For editing, we remove the old one and re-open the form with its data
-                setNcrItems(ncrItems.filter(i => i.id !== authTargetId));
+                const remaining = ncrItems.filter(i => i.id !== authTargetId);
+                setNcrItems(remaining);
                 setShowItemModal(true);
-                // Note: Complex sourceSelection state is not automatically restored here, 
-                // deeper implementation would be needed for full edit fidelity of those specific dropdowns.
-                // This provides basic edit capability (restore values to inputs).
             }
         }
 
@@ -89,18 +93,12 @@ const NCRSystem: React.FC = () => {
         setShowAuthModal(true);
     };
 
-
     useEffect(() => {
         if (showItemModal) {
-            setSourceSelection({ category: '', whBranch: '', whCause: '', whOtherText: '', transType: '', transName: '', transPlate: '', transVehicleType: '', transAffiliation: '', transCompany: '', otherText: '' });
+            setSourceSelection({ category: '', whBranch: '', whCause: '', whOtherText: '', transType: '', transName: '', transPlate: '', transVehicleType: '', transAffiliation: '', transCompany: '', otherText: '', problemScenario: '' });
             setIsCustomReportBranch(false);
         }
     }, [showItemModal]);
-
-    // Removal of old effect (newItem.hasCost && sourceSelection.problemScenario) as it is replaced by newItem.problemSource
-    useEffect(() => {
-        // Cleaning up old logic hook
-    }, []);
 
     // Auto-map responsible person based on problem source dropdown
     useEffect(() => {
@@ -113,7 +111,14 @@ const NCRSystem: React.FC = () => {
     }, [newItem.hasCost, newItem.problemSource]);
 
     const handleAddItem = (closeModal: boolean = true) => {
-        if (!newItem.productCode || !newItem.branch) { alert("กรุณาระบุรหัสสินค้าและสาขา"); return; }
+        if (!newItem.productCode || !newItem.branch) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'ข้อมูลไม่ครบถ้วน',
+                text: 'กรุณาระบุรหัสสินค้าและสาขา'
+            });
+            return;
+        }
         let formattedSource = '';
         const s = sourceSelection;
         if (s.category === 'Customer') formattedSource = 'ลูกค้าต้นทาง';
@@ -142,9 +147,6 @@ const NCRSystem: React.FC = () => {
         if (newItem.problemSource) parts.push(newItem.problemSource);
         const finalProblemSource = parts.join(' / ') || '-';
 
-        // formattedSource is stored in rootCause for reference
-        const finalRootCause = formattedSource || '-';
-
         const item: NCRItem = {
             ...newItem as NCRItem,
             id: Date.now().toString(),
@@ -154,26 +156,32 @@ const NCRSystem: React.FC = () => {
             priceBill: Number(newItem.priceBill) || 0,
             costAmount: Number(newItem.costAmount) || 0,
             problemSource: finalProblemSource,
-            // We might need to ensure NCRItem type has rootCause or similar if we want to save formattedSource separately
-            // For now, if cost tracking is used, problemSource takes precedence as the key classifier 
         };
         setNcrItems([...ncrItems, item]);
 
-        // Keep Branch and other sticky fields if needed, but for now reset product info
+        // Reset inputs
         setNewItem(prev => ({
             ...prev,
             refNo: '', neoRefNo: '', productCode: '', productName: '', customerName: '', destinationCustomer: '', quantity: 0, unit: '', pricePerUnit: 0, priceBill: 0, expiryDate: '', hasCost: false, costAmount: 0, costResponsible: '', problemSource: ''
         }));
-        setSourceSelection({ category: '', whBranch: '', whCause: '', whOtherText: '', transType: '', transName: '', transPlate: '', transVehicleType: '', transAffiliation: '', transCompany: '', otherText: '' });
+        setSourceSelection({ category: '', whBranch: '', whCause: '', whOtherText: '', transType: '', transName: '', transPlate: '', transVehicleType: '', transAffiliation: '', transCompany: '', otherText: '', problemScenario: '' });
 
         if (closeModal) {
             setShowItemModal(false);
         } else {
-            // Optional: Show toast or feedback
+            Swal.fire({
+                icon: 'success',
+                title: 'เพิ่มรายการสำเร็จ',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 1500
+            });
         }
     };
 
     const handleDeleteItem = (id: string) => { setNcrItems(ncrItems.filter(i => i.id !== id)); };
+
     const validateForm = () => {
         const errors = [];
         if (!formData.founder.trim()) errors.push("ผู้พบปัญหา");
@@ -182,7 +190,7 @@ const NCRSystem: React.FC = () => {
             formData.problemDamaged || formData.problemDamagedInBox || formData.problemLost || formData.problemMixed || formData.problemWrongInv ||
             formData.problemLate || formData.problemDuplicate || formData.problemWrong || formData.problemIncomplete ||
             formData.problemOver || formData.problemWrongInfo || formData.problemShortExpiry || formData.problemTransportDamage ||
-            formData.problemAccident || (formData.problemOther && formData.problemOtherText.trim());
+            formData.problemAccident || formData.problemPOExpired || formData.problemNoBarcode || formData.problemNotOrdered || (formData.problemOther && formData.problemOtherText.trim());
 
         if (!isProblemChecked && !formData.problemDetail.trim()) {
             errors.push("ระบุปัญหาที่พบ (ติ๊กเลือกหัวข้อ หรือ กรอกรายละเอียด)");
@@ -207,24 +215,13 @@ const NCRSystem: React.FC = () => {
             if (newValue) {
                 return {
                     ...prev,
-                    problemDamaged: false,
-                    problemDamagedInBox: false,
-                    problemLost: false,
-                    problemMixed: false,
-                    problemWrongInv: false,
-                    problemLate: false,
-                    problemDuplicate: false,
-                    problemWrong: false,
-                    problemIncomplete: false,
-                    problemOver: false,
-                    problemWrongInfo: false,
-                    problemShortExpiry: false,
-                    problemTransportDamage: false,
-                    problemAccident: false,
-                    problemPOExpired: false,
-                    problemNoBarcode: false,
-                    problemNotOrdered: false,
+                    problemDamaged: false, itemDamagedInBox: false, problemLost: false, problemMixed: false, problemWrongInv: false,
+                    problemLate: false, problemDuplicate: false, problemWrong: false, problemIncomplete: false,
+                    problemOver: false, problemWrongInfo: false, problemShortExpiry: false, problemTransportDamage: false,
+                    problemAccident: false, problemPOExpired: false, problemNoBarcode: false, problemNotOrdered: false,
                     problemOther: false,
+                    // Note: Manual expansion for 'problemDamagedInBox' check below as I might have missed it in short list above
+                    problemDamagedInBox: false,
                     [field]: true
                 };
             } else {
@@ -254,11 +251,19 @@ const NCRSystem: React.FC = () => {
         });
     };
 
-    // EXPORT EXCEL FUNCTION
-    const handleExportExcel = () => {
+    const handleExportExcel = async () => {
         const errors = validateForm();
         if (errors.length > 0) {
-            if (!confirm("ข้อมูลยังไม่ครบถ้วน คุณต้องการ Export ต่อไปหรือไม่?\n\n(ข้อมูลที่ขาด: " + errors.join(", ") + ")")) {
+            const result = await Swal.fire({
+                title: 'ข้อมูลยังไม่ครบถ้วน',
+                html: `คุณต้องการ Export ต่อไปหรือไม่?<br/><br/><ul style="text-align: left; font-size: 0.9em; color: red;">${errors.map(e => `<li>- ${e}</li>`).join('')}</ul>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Export ทั้งที่ข้อมูลไม่ครบ',
+                cancelButtonText: 'ยกเลิก'
+            });
+
+            if (!result.isConfirmed) {
                 return;
             }
         }
@@ -267,17 +272,14 @@ const NCRSystem: React.FC = () => {
         exportNCRToExcel(formData, ncrItems, ncrNos);
     };
 
-
-
-
-
-
-
-
     const handlePrint = () => {
         const errors = validateForm();
         if (errors.length > 0) {
-            alert("กรุณากรอกข้อมูลให้ครบถ้วนก่อนพิมพ์ (ระบบจะทำการบันทึกข้อมูลก่อนพิมพ์):\n\n" + errors.map(e => "- " + e).join("\n"));
+            Swal.fire({
+                icon: 'warning',
+                title: 'กรุณากรอกข้อมูลให้ครบถ้วน',
+                html: `<ul style="text-align: left; font-size: 0.9em;">${errors.map(e => `<li>- ${e}</li>`).join('')}</ul>`
+            });
             return;
         }
         setIsPrinting(true);
@@ -287,7 +289,11 @@ const NCRSystem: React.FC = () => {
     const handleSaveRecord = () => {
         const errors = validateForm();
         if (errors.length > 0) {
-            alert("กรุณากรอกข้อมูลต่อไปนี้ให้ครบถ้วนก่อนบันทึก:\n\n" + errors.map(e => "- " + e).join("\n"));
+            Swal.fire({
+                icon: 'warning',
+                title: 'กรุณากรอกข้อมูลให้ครบถ้วน',
+                html: `<ul style="text-align: left; font-size: 0.9em;">${errors.map(e => `<li>- ${e}</li>`).join('')}</ul>`
+            });
             return;
         }
         setIsPrinting(false);
@@ -383,7 +389,11 @@ const NCRSystem: React.FC = () => {
 
                 if (!syncSuccess) {
                     console.error("❌ Failed to sync record to Operations Hub", returnRecord);
-                    alert(`แจ้งเตือน: บันทึก NCR สำเร็จ แต่ไม่สามารถส่งข้อมูลไปยัง Hub ได้ (Item: ${item.productCode})`);
+                    await Swal.fire({
+                        icon: 'warning',
+                        title: 'Sync Failed',
+                        text: `แจ้งเตือน: บันทึก NCR สำเร็จ แต่ไม่สามารถส่งข้อมูลไปยัง Hub ได้ (Item: ${item.productCode})`
+                    });
                 }
 
                 successCount++;
@@ -445,33 +455,6 @@ const NCRSystem: React.FC = () => {
 
                 @media print {
                     @page {
-                        size: A4;
-                        margin: 15mm; /* Standard print margin */
-                    }
-                    body {
-                        -webkit-print-color-adjust: exact;
-                        print-color-adjust: exact;
-                        background: white !important;
-                    }
-                    /* Reset container for print */
-                    .a4-paper {
-                        width: 100% !important;
-                        height: auto !important;
-                        min-height: auto !important;
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        box-shadow: none !important;
-                        border: none !important;
-                        overflow: visible !important;
-                    }
-                    
-                    /* Typography & Layout */
-                    .print-scale { transform-origin: top left; }
-                    .print-text-readable { font-size: 12pt !important; line-height: 1.4; }
-                    .print-text-sm { font-size: 10pt !important; }
-                    
-                    /* Tables */
-                    table { width: 100% !important; border-collapse: collapse; }
                     thead { display: table-header-group; }
                     tfoot { display: table-footer-group; }
                     tr { page-break-inside: avoid; }

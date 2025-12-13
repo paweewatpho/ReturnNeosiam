@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Truck, MapPin, Printer, ArrowRight, Package, Box, Calendar, Layers } from 'lucide-react';
 import { useData } from '../../../DataContext';
 import { ReturnRecord } from '../../../types';
+import Swal from 'sweetalert2';
 
 interface Step2LogisticsProps {
     // items: ReturnRecord[]; // Removed as we use global state
@@ -56,11 +57,24 @@ export const Step2Logistics: React.FC<Step2LogisticsProps> = ({ onConfirm }) => 
 
     const confirmSelection = async () => {
         if (selectedIds.size === 0) {
-            alert('กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ');
+            Swal.fire({
+                icon: 'warning',
+                title: 'ไม่ได้เลือกรายการ',
+                text: 'กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ'
+            });
             return;
         }
         if (!transportInfo.driverName || !transportInfo.plateNumber) {
-            if (!window.confirm('คุณยังไม่ได้ระบุชื่อพนักงานขับรถหรือทะเบียนรถ ต้องการดำเนินการต่อหรือไม่?')) {
+            const confirmResult = await Swal.fire({
+                title: 'ข้อมูลไม่ครบถ้วน',
+                text: 'คุณยังไม่ได้ระบุชื่อพนักงานขับรถหรือทะเบียนรถ ต้องการดำเนินการต่อหรือไม่?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'ดำเนินการต่อ',
+                cancelButtonText: 'ยกเลิก'
+            });
+
+            if (!confirmResult.isConfirmed) {
                 return;
             }
         }
@@ -68,11 +82,19 @@ export const Step2Logistics: React.FC<Step2LogisticsProps> = ({ onConfirm }) => 
         let finalDestination = '';
         if (routeType === 'Direct') {
             if (!directDestination) {
-                alert('กรุณาระบุปลายทางสำหรับการส่งตรง (Direct Return)');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ข้อมูลไม่ครบถ้วน',
+                    text: 'กรุณาระบุปลายทางสำหรับการส่งตรง (Direct Return)'
+                });
                 return;
             }
             if (directDestination === 'Other' && !customDestination) {
-                alert('กรุณาระบุชื่อปลายทาง (อื่นๆ)');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ข้อมูลไม่ครบถ้วน',
+                    text: 'กรุณาระบุชื่อปลายทาง (อื่นๆ)'
+                });
                 return;
             }
             finalDestination = directDestination === 'Other' ? customDestination : directDestination;
@@ -82,39 +104,65 @@ export const Step2Logistics: React.FC<Step2LogisticsProps> = ({ onConfirm }) => 
             ? 'ยืนยันการเปลี่ยนสถานะเป็น "รอรถรับ" (PickupScheduled) และบันทึกข้อมูลรถ?'
             : `ยืนยันการส่งคืนตรงผู้ผลิต (Direct Return) ไปยัง "${finalDestination}"?`;
 
-        if (window.confirm(confirmMsg)) {
+        const finalConfirm = await Swal.fire({
+            title: 'ยืนยันการบันทึก',
+            text: confirmMsg,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'ยืนยัน',
+            cancelButtonText: 'ยกเลิก'
+        });
+
+        if (finalConfirm.isConfirmed) {
             // Update Records Directly
             const driverDetails = `Driver: ${transportInfo.driverName}, Plate: ${transportInfo.plateNumber}, Transport: ${transportInfo.transportCompany}`;
 
-            for (const id of Array.from(selectedIds)) {
-                if (routeType === 'Hub') {
-                    await updateReturnRecord(id, {
-                        status: 'PickupScheduled',
-                        // Store driver info in notes or relevant field
-                        notes: `[Logistics] ${driverDetails}`,
-                        // problemDetail: `${driverDetails}` 
-                    });
-                } else {
-                    // Direct Return Logic (Might default to Completed or Documented?)
-                    // User asked for "DriverAssigned", usually leading to Hub. Direct might just skip?
-                    // For Direct, let's assume it goes to 'Documented' or remains 'Requested' but with notes?
-                    // Adhering to User Request: "Update... to 'DriverAssigned' (or 'CollectionScheduled')"
-                    // Assuming this is for Hub route mainly. for Direct, maybe 'ReturnToSupplier'?
-                    // Let's stick to user request for status update.
-                    await updateReturnRecord(id, {
-                        status: 'ReturnToSupplier', // Direct return usually skips Hub logic
-                        disposition: 'RTV',
-                        destinationCustomer: finalDestination,
-                        notes: `[Direct Logistics] ${driverDetails}`
-                    });
+            try {
+                for (const id of Array.from(selectedIds)) {
+                    if (routeType === 'Hub') {
+                        await updateReturnRecord(id, {
+                            status: 'PickupScheduled',
+                            // Store driver info in notes or relevant field
+                            notes: `[Logistics] ${driverDetails}`,
+                            // problemDetail: `${driverDetails}` 
+                        });
+                    } else {
+                        // Direct Return Logic (Might default to Completed or Documented?)
+                        // User asked for "DriverAssigned", usually leading to Hub. Direct might just skip?
+                        // For Direct, let's assume it goes to 'Documented' or remains 'Requested' but with notes?
+                        // Adhering to User Request: "Update... to 'DriverAssigned' (or 'CollectionScheduled')"
+                        // Assuming this is for Hub route mainly. for Direct, maybe 'ReturnToSupplier'?
+                        // Let's stick to user request for status update.
+                        await updateReturnRecord(id, {
+                            status: 'ReturnToSupplier', // Direct return usually skips Hub logic
+                            disposition: 'RTV',
+                            destinationCustomer: finalDestination,
+                            notes: `[Direct Logistics] ${driverDetails}`
+                        });
+                    }
                 }
+
+                // Call onConfirm to notify parent (maybe to clear selection or show success msg)
+                onConfirm(Array.from(selectedIds), routeType, { ...transportInfo, destination: finalDestination });
+
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'เรียบร้อย',
+                    text: 'บันทึกข้อมูลการขนส่งเรียบร้อย',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
+                // Clear selection
+                setSelectedIds(new Set());
+            } catch (error) {
+                console.error('Logistics Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล'
+                });
             }
-
-            // Call onConfirm to notify parent (maybe to clear selection or show success msg)
-            onConfirm(Array.from(selectedIds), routeType, { ...transportInfo, destination: finalDestination });
-
-            // Clear selection
-            setSelectedIds(new Set());
         }
     };
 

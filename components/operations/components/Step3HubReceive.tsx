@@ -1,7 +1,8 @@
 import React from 'react';
-import { Truck, Inbox, MapPin, CheckCircle } from 'lucide-react';
+import { Truck, Inbox, MapPin, CheckCircle, Undo as IconUndo } from 'lucide-react';
 import { useData } from '../../../DataContext';
 import { ReturnRecord } from '../../../types';
+import Swal from 'sweetalert2';
 
 export const Step3HubReceive: React.FC = () => {
     const { items, updateReturnRecord } = useData();
@@ -15,10 +16,55 @@ export const Step3HubReceive: React.FC = () => {
     }, [items]);
 
     const handleIntakeReceive = async (id: string) => {
-        if (window.confirm('ยืนยันรับเข้าสินค้านี้เข้าสู่ Hub?')) {
+        const result = await Swal.fire({
+            title: 'ยืนยันการรับของ',
+            text: 'ยืนยันรับเข้าสินค้านี้เข้าสู่ Hub?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'ยืนยัน',
+            cancelButtonText: 'ยกเลิก'
+        });
+
+        if (result.isConfirmed) {
             await updateReturnRecord(id, {
                 status: 'NCR_HubReceived'
             });
+
+            await Swal.fire({
+                icon: 'success',
+                title: 'รับของเรียบร้อย',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+    };
+
+    const handleUndo = async (id: string) => {
+        const { value: password } = await Swal.fire({
+            title: 'ยืนยันการส่งกลับ (Undo)',
+            text: 'กรุณาใส่รหัสผ่านเพื่อส่งรายการกลับไป Step 2',
+            input: 'password',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'ตกลง',
+            cancelButtonText: 'ยกเลิก',
+            inputPlaceholder: 'รหัสผ่าน'
+        });
+
+        if (password === '1234') {
+            await updateReturnRecord(id, {
+                status: 'COL_JobAccepted' // Back to Step 2 List (Consolidation)
+                // Note: Step 2 filters for 'Requested' or 'COL_JobAccepted'
+            });
+
+            await Swal.fire({
+                icon: 'success',
+                title: 'ส่งกลับ Step 2 เรียบร้อย',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        } else if (password) {
+            Swal.fire('รหัสผ่านไม่ถูกต้อง', '', 'error');
         }
     };
 
@@ -162,9 +208,14 @@ export const Step3HubReceive: React.FC = () => {
                                     <span className="font-bold text-lg text-blue-600">{item.quantity}</span> <span className="text-xs text-slate-500">{item.unit}</span>
                                 </div>
 
-                                <button onClick={() => handleIntakeReceive(item.id)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 transition-colors whitespace-nowrap ml-auto self-stretch md:self-auto justify-center">
-                                    <CheckCircle className="w-4 h-4" /> รับของ
-                                </button>
+                                <div className="flex gap-2 ml-auto self-stretch md:self-auto">
+                                    <button onClick={() => handleUndo(item.id)} className="bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 px-4 py-2 rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 transition-colors whitespace-nowrap border border-slate-200 hover:border-red-200">
+                                        <IconUndo className="w-4 h-4" /> ส่งกลับ Step 2
+                                    </button>
+                                    <button onClick={() => handleIntakeReceive(item.id)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 transition-colors whitespace-nowrap">
+                                        <CheckCircle className="w-4 h-4" /> รับของ
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))}
@@ -173,3 +224,4 @@ export const Step3HubReceive: React.FC = () => {
         </div>
     );
 };
+

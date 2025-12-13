@@ -1,8 +1,9 @@
 
 
 import React, { useState, useEffect } from 'react';
-import { Activity, ClipboardList, GitFork, Save, Truck, Search } from 'lucide-react';
+import { Activity, ClipboardList, GitFork, Save, Truck, Search, Undo } from 'lucide-react';
 import { useData } from '../../../DataContext';
+import Swal from 'sweetalert2';
 import { ReturnRecord, ItemCondition, DispositionAction } from '../../../types';
 import { conditionLabels, dispositionLabels } from '../utils';
 import { RETURN_ROUTES } from '../../../constants';
@@ -74,7 +75,39 @@ export const Step4HubQC: React.FC = () => {
         setShowSplitMode(!showSplitMode);
     };
 
+    const handleUndoQC = async () => {
+        if (!qcSelectedItem) return;
+
+        const { value: password } = await Swal.fire({
+            title: 'ยืนยันการส่งกลับ (Undo)',
+            text: 'กรุณาใส่รหัสผ่านเพื่อส่งรายการกลับไป Step 3 (Receive)',
+            input: 'password',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'ตกลง',
+            cancelButtonText: 'ยกเลิก',
+            inputPlaceholder: 'รหัสผ่าน'
+        });
+
+        if (password === '1234') {
+            await updateReturnRecord(qcSelectedItem.id, {
+                status: 'NCR_InTransit' // Back to Step 3 Input (Receive)
+            });
+            setQcSelectedItem(null);
+
+            await Swal.fire({
+                icon: 'success',
+                title: 'ส่งกลับ Step 3 เรียบร้อย',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        } else if (password) {
+            Swal.fire('รหัสผ่านไม่ถูกต้อง', '', 'error');
+        }
+    };
+
     const handleQCSubmit = async () => {
+        // ...
         if (!qcSelectedItem || !selectedDisposition) return;
 
         try {
@@ -93,10 +126,20 @@ export const Step4HubQC: React.FC = () => {
 
             await updateReturnRecord(qcSelectedItem.id, updates);
             setQcSelectedItem(null);
-            alert('บันทึกผล QC เรียบร้อย');
+
+            await Swal.fire({
+                icon: 'success',
+                title: 'บันทึกผล QC เรียบร้อย',
+                timer: 1500,
+                showConfirmButton: false
+            });
         } catch (error) {
             console.error('QC Submit Error:', error);
-            alert(`เกิดข้อผิดพลาด: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                text: error instanceof Error ? error.message : 'Unknown error'
+            });
         }
     };
 
@@ -110,7 +153,11 @@ export const Step4HubQC: React.FC = () => {
 
             // Validation
             if (splitQty >= totalUnits) {
-                alert('Cannot split entire quantity via split function. Use normal Submit.');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ไม่สามารถแยกรายการ',
+                    text: 'Cannot split entire quantity via split function. Use normal Submit.'
+                });
                 return;
             }
 
@@ -144,10 +191,20 @@ export const Step4HubQC: React.FC = () => {
 
             await addReturnRecord(newItem);
             setQcSelectedItem(null);
-            alert('แยกรายการเรียบร้อย');
+
+            await Swal.fire({
+                icon: 'success',
+                title: 'แยกรายการเรียบร้อย',
+                timer: 1500,
+                showConfirmButton: false
+            });
         } catch (error) {
             console.error('Split Error:', error);
-            alert(`เกิดข้อผิดพลาดในการแยกรายการ: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาดในการแยกรายการ',
+                text: error instanceof Error ? error.message : 'Unknown error'
+            });
         }
     };
 
@@ -452,9 +509,14 @@ export const Step4HubQC: React.FC = () => {
                                         <GitFork className="w-5 h-5" /> ยืนยันการแยกรายการ (Confirm Split)
                                     </button>
                                 ) : (
-                                    <button onClick={handleQCSubmit} disabled={!selectedDisposition || !qcSelectedItem?.condition || qcSelectedItem.condition === 'Unknown'} className="px-8 py-3 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                                        <Save className="w-5 h-5" /> ยืนยันผลการตรวจสอบ (Confirm QC)
-                                    </button>
+                                    <>
+                                        <button onClick={handleUndoQC} className="px-6 py-3 rounded-lg bg-white border border-slate-300 text-slate-600 font-bold hover:bg-red-50 hover:text-red-600 hover:border-red-200 shadow-sm flex items-center gap-2 mr-auto" title="ส่งกลับไปขั้นตอนรับสินค้า (Step 3)">
+                                            <Undo className="w-5 h-5" /> ส่งกลับ Step 3
+                                        </button>
+                                        <button onClick={handleQCSubmit} disabled={!selectedDisposition || !qcSelectedItem?.condition || qcSelectedItem.condition === 'Unknown'} className="px-8 py-3 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <Save className="w-5 h-5" /> ยืนยันผลการตรวจสอบ (Confirm QC)
+                                        </button>
+                                    </>
                                 )}
                             </div>
                         </div>

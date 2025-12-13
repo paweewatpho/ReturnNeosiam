@@ -1,10 +1,14 @@
-
 import React from 'react';
-import { LayoutGrid, PackageCheck } from 'lucide-react';
+import { LayoutGrid, PackageCheck, Calendar, RotateCcw } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { useData } from '../../../DataContext';
 import { ReturnRecord } from '../../../types';
 
-export const Step4Consolidation: React.FC = () => {
+interface Step4ConsolidationProps {
+    onComplete?: () => void;
+}
+
+export const Step4Consolidation: React.FC<Step4ConsolidationProps> = ({ onComplete }) => {
     const { items, updateReturnRecord } = useData();
 
     // Filter Items: Status 'BranchReceived' or 'COL_BranchReceived'
@@ -13,18 +17,81 @@ export const Step4Consolidation: React.FC = () => {
     }, [items]);
 
     const handleConsolidate = async (id: string) => {
-        // Prepare for Logistics
-        if (window.confirm('ยืนยันการรวมสินค้าเพื่อเตรียมขนส่ง (Ready for Logistics)?')) {
+        const result = await Swal.fire({
+            title: 'ยืนยันการรวมสินค้า?',
+            text: "ต้องการรวมสินค้าเพื่อเตรียมขนส่ง (Ready for Logistics) หรือไม่?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#1e293b', // slate-800
+            cancelButtonColor: '#94a3b8', // slate-400
+            confirmButtonText: 'ยืนยัน',
+            cancelButtonText: 'ยกเลิก'
+        });
+
+        if (result.isConfirmed) {
             await updateReturnRecord(id, { status: 'COL_Consolidated' });
+
+            await Swal.fire({
+                icon: 'success',
+                title: 'สำเร็จ',
+                text: 'รวมสินค้าเรียบร้อยแล้ว',
+                timer: 1500,
+                showConfirmButton: false
+            });
         }
     };
 
     const handleConsolidateAll = async () => {
         if (receivedItems.length === 0) return;
-        if (window.confirm(`ยืนยันการรวมสินค้าทั้งหมด ${receivedItems.length} รายการ?`)) {
+
+        const result = await Swal.fire({
+            title: `ยืนยันรวมสินค้าทั้งหมด ${receivedItems.length} รายการ?`,
+            text: "ต้องการเปลี่ยนสถานะสินค้าทั้งหมดเป็น 'พร้อมขนส่ง' หรือไม่?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#1e293b',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'ยืนยันทั้งหมด',
+            cancelButtonText: 'ยกเลิก'
+        });
+
+        if (result.isConfirmed) {
             for (const item of receivedItems) {
                 await updateReturnRecord(item.id, { status: 'COL_Consolidated' });
             }
+
+            await Swal.fire({
+                icon: 'success',
+                title: 'ดำเนินการเสร็จสิ้น',
+                text: 'รวมสินค้าทั้งหมดเรียบร้อยแล้ว',
+                timer: 1500,
+                showConfirmButton: false
+            });
+
+            if (onComplete) {
+                onComplete();
+            }
+        }
+    };
+
+    const handleUndo = async (id: string) => {
+        const { value: password } = await Swal.fire({
+            title: 'ใส่รหัสผ่านเพื่อแก้ไข (Undo)',
+            input: 'password',
+            inputLabel: 'รหัสผ่าน (Password)',
+            inputPlaceholder: 'ใส่รหัสผ่าน...',
+            showCancelButton: true,
+            confirmButtonText: 'ยืนยัน',
+            cancelButtonText: 'ยกเลิก'
+        });
+
+        if (password === '1234') {
+            await updateReturnRecord(id, {
+                status: 'COL_BranchReceived'
+            });
+            Swal.fire('ย้อนกลับเรียบร้อย', '', 'success');
+        } else if (password) {
+            Swal.fire('รหัสผ่านไม่ถูกต้อง', '', 'error');
         }
     };
 
@@ -50,7 +117,7 @@ export const Step4Consolidation: React.FC = () => {
                         <thead className="bg-slate-50 text-slate-600 font-bold sticky top-0 shadow-sm z-10">
                             <tr>
                                 <th className="p-4 border-b">สาขา (Branch)</th>
-                                <th className="p-4 border-b">ใบกำกับ/วันที่ (Inv/Date)</th>
+                                <th className="p-4 border-b">ใบกำกับ / วันที่ (Inv / Date)</th>
                                 <th className="p-4 border-b">เลขที่เอกสาร (Doc Info)</th>
                                 <th className="p-4 border-b">ลูกค้าปลายทาง</th>
                                 <th className="p-4 border-b">หมายเหตุ</th>
@@ -76,13 +143,25 @@ export const Step4Consolidation: React.FC = () => {
                                         </td>
                                         <td className="p-4 align-top">
                                             <div className="text-sm font-semibold text-slate-700">{item.invoiceNo || '-'}</div>
-                                            <div className="text-xs text-slate-500">{item.controlDate || item.date || '-'}</div>
+                                            <div className="text-xs text-slate-500 flex items-center gap-1 mt-1">
+                                                <Calendar className="w-3 h-3" />
+                                                <span title="วันที่ใบคุมรถ">{item.controlDate || item.date || '-'}</span>
+                                            </div>
                                         </td>
                                         <td className="p-4 align-top">
-                                            <div className="flex flex-col gap-0.5">
-                                                <span className="text-xs font-mono text-slate-600 bg-slate-100 px-1 rounded w-fit">R: {item.refNo || '-'}</span>
-                                                <span className="text-xs font-mono text-slate-600 bg-slate-100 px-1 rounded w-fit">TM: {item.tmNo || '-'}</span>
-                                                <span className="text-xs font-mono text-slate-600 bg-slate-100 px-1 rounded w-fit">COL: {item.id}</span>
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-1 text-xs">
+                                                    <span className="font-bold text-slate-500 w-8">R:</span>
+                                                    <span className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">{item.documentNo || '-'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 text-xs">
+                                                    <span className="font-bold text-slate-500 w-8">TM:</span>
+                                                    <span className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">{item.tmNo || '-'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 text-xs">
+                                                    <span className="font-bold text-indigo-500 w-8">COL:</span>
+                                                    <span className="font-mono text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">{item.collectionOrderId || '-'}</span>
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="p-4 align-top text-slate-600">
@@ -102,6 +181,13 @@ export const Step4Consolidation: React.FC = () => {
                                                 className="bg-slate-800 hover:bg-black text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-2 mx-auto whitespace-nowrap"
                                             >
                                                 <PackageCheck className="w-4 h-4" /> รวมของ (Pack)
+                                            </button>
+                                            <button
+                                                onClick={() => handleUndo(item.id)}
+                                                className="mt-2 text-slate-400 hover:text-red-500 hover:bg-red-50 p-1 rounded transition-colors flex items-center gap-1 mx-auto text-xs"
+                                                title="ย้อนกลับ (Undo)"
+                                            >
+                                                <RotateCcw className="w-3 h-3" /> แก้ไข/ย้อนกลับ
                                             </button>
                                         </td>
                                     </tr>

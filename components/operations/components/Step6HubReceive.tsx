@@ -3,6 +3,7 @@ import React from 'react';
 import { Truck, Inbox, MapPin, CheckCircle } from 'lucide-react';
 import { useData } from '../../../DataContext';
 import { ReturnRecord } from '../../../types';
+import Swal from 'sweetalert2';
 
 export const Step6HubReceive: React.FC = () => {
     const { items, updateReturnRecord } = useData();
@@ -27,17 +28,51 @@ export const Step6HubReceive: React.FC = () => {
             ? 'ยืนยันรับสินค้า NCR เข้าสู่ Hub เพื่อตรวจสอบคุณภาพ (QC)?'
             : 'ยืนยันรับสินค้า Collection เข้าสู่ Hub (ข้าม QC ไปยังเอกสาร)?';
 
-        if (window.confirm(confirmMsg)) {
+        const result = await Swal.fire({
+            title: 'ยืนยันการรับเข้า',
+            text: confirmMsg,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'ยืนยัน (Confirm)',
+            cancelButtonText: 'ยกเลิก (Cancel)'
+        });
+
+        if (result.isConfirmed) {
             await updateReturnRecord(id, {
                 status: newStatus,
                 dateReceived: new Date().toISOString().split('T')[0]
+            });
+
+            await Swal.fire({
+                icon: 'success',
+                title: 'รับเข้า Hub สำเร็จ',
+                timer: 1500,
+                showConfirmButton: false
             });
         }
     };
 
     const handleHubReceiveAll = async () => {
         if (filteredItems.length === 0) return;
-        if (window.confirm(`ยืนยันการรับสินค้าเข้า Hub ทั้งหมด ${filteredItems.length} รายการ?`)) {
+
+        const result = await Swal.fire({
+            title: 'ยืนยันรับทั้งหมด?',
+            text: `ยืนยันการรับสินค้าเข้า Hub ทั้งหมด ${filteredItems.length} รายการ?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'รับทั้งหมด (Receive All)',
+            cancelButtonText: 'ยกเลิก'
+        });
+
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'กำลังดำเนินการ...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
             for (const item of filteredItems) {
                 const isNCR = item.documentType === 'NCR' || !!item.ncrNumber || item.status === 'NCR_InTransit';
                 const newStatus = isNCR ? 'NCR_HubReceived' : 'COL_HubReceived';
@@ -47,6 +82,13 @@ export const Step6HubReceive: React.FC = () => {
                     dateReceived: new Date().toISOString().split('T')[0]
                 });
             }
+
+            await Swal.fire({
+                icon: 'success',
+                title: 'รับเข้า Hub ทั้งหมดเรียบร้อย',
+                timer: 1500,
+                showConfirmButton: false
+            });
         }
     };
 

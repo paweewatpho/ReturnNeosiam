@@ -4,6 +4,7 @@ import { Truck, RotateCcw, ShieldCheck, Home, Trash2, FileText, AlertOctagon } f
 import { useData } from '../../../DataContext';
 import { ReturnRecord, DispositionAction } from '../../../types';
 import { KanbanColumn } from './KanbanColumn';
+import Swal from 'sweetalert2';
 
 interface Step7DocsProps {
     onPrintDocs?: (status: DispositionAction, list: ReturnRecord[]) => void;
@@ -53,7 +54,12 @@ export const Step7Docs: React.FC<Step7DocsProps> = ({ onPrintDocs }) => {
     };
 
     const handleSplitClick = (item: ReturnRecord) => {
-        alert('Split functionality in Docs step is under construction.');
+        Swal.fire({
+            icon: 'info',
+            title: 'ฟีเจอร์ยังไม่เปิดใช้งาน (Under Construction)',
+            text: 'การแยกรายการ (Split) ในขั้นตอนนี้กำลังพัฒนา',
+            confirmButtonText: 'รับทราบ'
+        });
     };
 
     // Fallback for items with missing disposition

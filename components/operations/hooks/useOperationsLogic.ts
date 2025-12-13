@@ -3,9 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { useData } from '../../../DataContext';
 import { ReturnRecord, ItemCondition, DispositionAction, ReturnStatus, TransportInfo } from '../../../types';
 import { getISODetails, RESPONSIBLE_MAPPING } from '../utils';
+import Swal from 'sweetalert2';
 
 export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, onClearInitialData?: () => void) => {
-    const { items, addReturnRecord, updateReturnRecord, addNCRReport, getNextNCRNumber, getNextReturnNumber } = useData();
+    const { items, addReturnRecord, updateReturnRecord, addNCRReport, getNextNCRNumber, getNextReturnNumber, getNextCollectionNumber } = useData();
 
     // Workflow State
     const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8>(1);
@@ -129,11 +130,18 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
     // Step 2 Input: Requested (Exclude NCR)
     const step2Items = items.filter(i => i.status === 'Requested' && i.documentType !== 'NCR');
     const ncrStep2Items = items.filter(i => {
+        // Condition 1: NCR Items
         const isNCR = i.documentType === 'NCR' || !!i.ncrNumber;
         if (isNCR) {
             return i.status === 'Requested' || i.status === 'COL_JobAccepted';
         }
-        return i.status === 'COL_Consolidated';
+
+        // Condition 2: COL Items (must come from Branch Consolidation)
+        // Check for 'COL_Consolidated' OR 'JobAccepted' if bypassing branch receive? 
+        // Flow: Step 4 Inbound (COL_Consolidated) -> Step 2 Hub
+        if (i.status === 'COL_Consolidated') return true;
+
+        return false;
     });
 
     // Step 3 Input: JobAccepted
@@ -330,10 +338,15 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         setRequestItems(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleRequestSubmit = async () => {
-        let itemsToProcess = [...requestItems];
+    const handleRequestSubmit = async (manualItems?: Partial<ReturnRecord>[]) => {
+        let itemsToProcess = manualItems && manualItems.length > 0 ? manualItems : [...requestItems];
         if (itemsToProcess.length === 0) {
-            alert("กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการก่อนยืนยัน");
+            Swal.fire({
+                icon: 'warning',
+                title: 'ไม่พบรายการสินค้า',
+                text: 'กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการก่อนยืนยัน',
+                confirmButtonColor: '#3085d6',
+            });
             return;
         }
         if (isSubmitting) return;
@@ -345,8 +358,15 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
 
             for (const item of itemsToProcess) {
                 let finalNcrNumber = item.ncrNumber;
-                if (!finalNcrNumber) {
+                // Only generate NCR Number if it is an NCR document
+                if (item.documentType === 'NCR' && !finalNcrNumber) {
                     finalNcrNumber = await getNextNCRNumber();
+                }
+
+                // Generate COL Number if Logicstics/Collection Request
+                let finalColNumber = item.collectionOrderId;
+                if (item.documentType === 'LOGISTICS' && !finalColNumber) {
+                    finalColNumber = await getNextCollectionNumber();
                 }
 
                 const runningId = await getNextReturnNumber();
@@ -354,6 +374,8 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                     ...item as ReturnRecord,
                     id: runningId,
                     refNo: runningId,
+                    // Use the generated COL number
+                    collectionOrderId: finalColNumber,
                     amount: (item.quantity || 0) * (item.priceBill || 0),
                     reason: item.problemDetail || item.notes || 'แจ้งคืนสินค้า',
                     status: 'Requested',
@@ -367,92 +389,107 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                     ncrNumber: finalNcrNumber,
                 };
 
-                const success = await addReturnRecord(record);
+                // Sanitize record to remove undefined values for Firebase
+                const sanitizedRecord = JSON.parse(JSON.stringify(record));
+
+                const success = await addReturnRecord(sanitizedRecord);
 
                 if (success) {
-                    const ncrRecord: any = {
-                        id: finalNcrNumber + '-' + record.id,
-                        ncrNo: finalNcrNumber,
-                        date: record.dateRequested,
-                        toDept: 'แผนกควบคุมคุณภาพ',
-                        founder: record.founder || 'Operations Hub',
-                        poNo: '', copyTo: '',
-                        problemDamaged: record.problemDamaged,
-                        problemDamagedInBox: record.problemDamagedInBox,
-                        problemLost: record.problemLost,
-                        problemMixed: record.problemMixed,
-                        problemWrongInv: record.problemWrongInv,
-                        problemLate: record.problemLate,
-                        problemDuplicate: record.problemDuplicate,
-                        problemWrong: record.problemWrong,
-                        problemIncomplete: record.problemIncomplete,
-                        problemOver: record.problemOver,
-                        problemWrongInfo: record.problemWrongInfo,
-                        problemShortExpiry: record.problemShortExpiry,
-                        problemTransportDamage: record.problemTransportDamage,
-                        problemAccident: record.problemAccident,
-                        problemPOExpired: record.problemPOExpired,
-                        problemNoBarcode: record.problemNoBarcode,
-                        problemNotOrdered: record.problemNotOrdered,
-                        problemOther: record.problemOther,
-                        problemOtherText: record.problemOtherText,
-                        problemDetail: record.problemDetail || record.reason || '',
-                        problemAnalysis: record.problemAnalysis,
-                        problemAnalysisSub: record.problemAnalysisSub,
-                        problemAnalysisCause: record.problemAnalysisCause,
-                        problemAnalysisDetail: record.problemAnalysisDetail,
-                        item: {
-                            id: record.id,
-                            branch: record.branch,
-                            refNo: record.refNo,
-                            neoRefNo: record.neoRefNo,
-                            productCode: record.productCode,
-                            productName: record.productName,
-                            customerName: record.customerName,
-                            destinationCustomer: record.destinationCustomer,
-                            quantity: record.quantity,
-                            unit: record.unit || 'PCS',
-                            priceBill: record.priceBill,
-                            pricePerUnit: record.pricePerUnit || 0,
-                            expiryDate: record.expiryDate,
-                            hasCost: record.hasCost,
-                            costAmount: record.costAmount,
-                            costResponsible: record.costResponsible,
-                            problemSource: record.problemSource || record.problemAnalysis || '-'
-                        },
-                        actionReject: record.actionReject,
-                        actionRejectQty: record.actionRejectQty,
-                        actionRejectSort: record.actionRejectSort,
-                        actionRejectSortQty: record.actionRejectSortQty,
-                        actionRework: record.actionRework,
-                        actionReworkQty: record.actionReworkQty,
-                        actionReworkMethod: record.actionReworkMethod,
-                        actionSpecialAccept: record.actionSpecialAcceptance,
-                        actionSpecialAcceptQty: record.actionSpecialAcceptanceQty,
-                        actionSpecialAcceptReason: record.actionSpecialAcceptanceReason,
-                        actionScrap: record.actionScrap,
-                        actionScrapQty: record.actionScrapQty,
-                        actionReplace: record.actionScrapReplace,
-                        actionReplaceQty: record.actionScrapReplaceQty,
-                        causePackaging: record.causePackaging,
-                        causeTransport: record.causeTransport,
-                        causeOperation: record.causeOperation,
-                        causeEnv: record.causeEnv,
-                        causeDetail: record.causeDetail,
-                        preventionDetail: record.preventionDetail,
-                        preventionDueDate: '', responsiblePerson: '', responsiblePosition: '',
-                        qaAccept: false, qaReject: false, qaReason: '',
-                        dueDate: '', approver: '', approverPosition: '', approverDate: '',
-                        status: 'Open'
-                    };
+                    // Only create NCR Report if it is explicitly an NCR document
+                    if (record.documentType === 'NCR') {
+                        const ncrRecord: any = {
+                            id: finalNcrNumber + '-' + record.id,
+                            ncrNo: finalNcrNumber,
+                            date: record.dateRequested,
+                            toDept: 'แผนกควบคุมคุณภาพ',
+                            founder: record.founder || 'Operations Hub',
+                            poNo: '', copyTo: '',
+                            problemDamaged: record.problemDamaged,
+                            problemDamagedInBox: record.problemDamagedInBox,
+                            problemLost: record.problemLost,
+                            problemMixed: record.problemMixed,
+                            problemWrongInv: record.problemWrongInv,
+                            problemLate: record.problemLate,
+                            problemDuplicate: record.problemDuplicate,
+                            problemWrong: record.problemWrong,
+                            problemIncomplete: record.problemIncomplete,
+                            problemOver: record.problemOver,
+                            problemWrongInfo: record.problemWrongInfo,
+                            problemShortExpiry: record.problemShortExpiry,
+                            problemTransportDamage: record.problemTransportDamage,
+                            problemAccident: record.problemAccident,
+                            problemPOExpired: record.problemPOExpired,
+                            problemNoBarcode: record.problemNoBarcode,
+                            problemNotOrdered: record.problemNotOrdered,
+                            problemOther: record.problemOther,
+                            problemOtherText: record.problemOtherText,
+                            problemDetail: record.problemDetail || record.reason || '',
+                            problemAnalysis: record.problemAnalysis,
+                            problemAnalysisSub: record.problemAnalysisSub,
+                            problemAnalysisCause: record.problemAnalysisCause,
+                            problemAnalysisDetail: record.problemAnalysisDetail,
+                            item: {
+                                id: record.id,
+                                branch: record.branch,
+                                refNo: record.refNo,
+                                neoRefNo: record.neoRefNo,
+                                productCode: record.productCode,
+                                productName: record.productName,
+                                customerName: record.customerName,
+                                destinationCustomer: record.destinationCustomer,
+                                quantity: record.quantity,
+                                unit: record.unit || 'PCS',
+                                priceBill: record.priceBill,
+                                pricePerUnit: record.pricePerUnit || 0,
+                                expiryDate: record.expiryDate,
+                                hasCost: record.hasCost,
+                                costAmount: record.costAmount,
+                                costResponsible: record.costResponsible,
+                                problemSource: record.problemSource || record.problemAnalysis || '-'
+                            },
+                            actionReject: record.actionReject,
+                            actionRejectQty: record.actionRejectQty,
+                            actionRejectSort: record.actionRejectSort,
+                            actionRejectSortQty: record.actionRejectSortQty,
+                            actionRework: record.actionRework,
+                            actionReworkQty: record.actionReworkQty,
+                            actionReworkMethod: record.actionReworkMethod,
+                            actionSpecialAccept: record.actionSpecialAcceptance,
+                            actionSpecialAcceptQty: record.actionSpecialAcceptanceQty,
+                            actionSpecialAcceptReason: record.actionSpecialAcceptanceReason,
+                            actionScrap: record.actionScrap,
+                            actionScrapQty: record.actionScrapQty,
+                            actionReplace: record.actionScrapReplace,
+                            actionReplaceQty: record.actionScrapReplaceQty,
+                            causePackaging: record.causePackaging,
+                            causeTransport: record.causeTransport,
+                            causeOperation: record.causeOperation,
+                            causeEnv: record.causeEnv,
+                            causeDetail: record.causeDetail,
+                            preventionDetail: record.preventionDetail,
+                            preventionDueDate: '', responsiblePerson: '', responsiblePosition: '',
+                            qaAccept: false, qaReject: false, qaReason: '',
+                            dueDate: '', approver: '', approverPosition: '', approverDate: '',
+                            status: 'Open'
+                        };
 
-                    const ncrSuccess = await addNCRReport(ncrRecord);
+                        // Sanitize NCR Record as well
+                        const sanitizedNCR = JSON.parse(JSON.stringify(ncrRecord));
+                        await addNCRReport(sanitizedNCR);
+                    }
                     successCount++;
                 }
             }
 
             if (successCount > 0) {
-                alert(`บันทึกรายการเรียบร้อย! ระบบจะนำคุณไปยังขั้นตอนถัดไป`);
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'บันทึกสำเร็จ',
+                    text: `บันทึกรายการเรียบร้อย! ระบบจะนำคุณไปยังขั้นตอนถัดไป`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
                 setFormData(initialFormState);
                 setRequestItems([]);
                 setCustomProblemType('');
@@ -462,7 +499,12 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             }
         } catch (error) {
             console.error("Submission error:", error);
-            alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง");
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                text: 'ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่',
+                confirmButtonColor: '#d33'
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -474,7 +516,11 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             console.log(`[Logistics] HandleSubmit Called. IDs: ${selectedIds.length}, Route: ${routeType}`);
 
             if (!selectedIds || selectedIds.length === 0) {
-                alert("ไม่พบรายการที่เลือก (No items selected)");
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ไม่พบรายการที่เลือก',
+                    text: 'กรุณาเลือกรายการอย่างน้อย 1 รายการ',
+                });
                 return;
             }
 
@@ -518,7 +564,11 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             if (!selectedItems || selectedItems.length === 0) {
                 console.error("Critical Error: Items not found for IDs:", selectedIds);
                 console.log("Current Items:", items.map(i => i.id));
-                alert(`เกิดข้อผิดพลาด: ไม่พบข้อมูลสินค้าที่เลือกในระบบ (Items Not Found in Memory)\nSelected: ${selectedIds.join(', ')}`);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: `ไม่พบข้อมูลสินค้าที่เลือกในระบบ\nSelected: ${selectedIds.join(', ')}`,
+                });
                 return;
             }
 
@@ -547,7 +597,11 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
 
         } catch (error) {
             console.error("HandleLogisticsSubmit Error:", error);
-            alert("เกิดข้อผิดพลาดในระบบ (System Error): " + error);
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาดในระบบ',
+                text: String(error),
+            });
         }
     };
 
@@ -572,7 +626,13 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                 condition: 'Good',
                 notes: (item.notes || '') + ' [Auto-Pass QC: Collection Item]'
             });
-            alert('รับสินค้าเรียบร้อย! (รายการ Collection ข้ามขั้นตอน QC ไปยังเอกสารส่งคืน)');
+            await Swal.fire({
+                icon: 'success',
+                title: 'รับสินค้าเรียบร้อย!',
+                text: 'รายการ Collection ข้ามขั้นตอน QC ไปยังเอกสารส่งคืน',
+                timer: 2000,
+                showConfirmButton: false
+            });
         } else {
             // Standard Flow -> Go to QC
             await updateReturnRecord(id, { status: 'ReceivedAtHub', dateReceived: today });
@@ -582,7 +642,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
     const handleQCSubmit = async () => {
         if (!qcSelectedItem || !selectedDisposition) return;
         if (!qcSelectedItem.condition || qcSelectedItem.condition === 'Unknown') {
-            alert("กรุณาระบุสภาพสินค้า");
+            Swal.fire('กรุณาระบุสภาพสินค้า', '', 'warning');
             return;
         }
         const today = new Date().toISOString().split('T')[0];
@@ -605,7 +665,13 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             setSelectedDisposition(null);
             setCustomInputType(null);
             setIsCustomRoute(false);
-            alert('บันทึกผล QC เรียบร้อย (Ready for Docs)');
+            Swal.fire({
+                icon: 'success',
+                title: 'บันทึกผล QC เรียบร้อย',
+                text: 'Ready for Docs',
+                timer: 1500,
+                showConfirmButton: false
+            });
         }
     };
 
@@ -614,20 +680,20 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         const totalAvailable = isBreakdownUnit ? (currentQty * conversionRate) : currentQty;
 
         if (!Number.isInteger(splitQty)) {
-            alert("กรุณาระบุจำนวนเป็นจำนวนเต็ม");
+            Swal.fire('กรุณาระบุจำนวนเป็นจำนวนเต็ม', '', 'warning');
             return;
         }
 
         if (!qcSelectedItem || splitQty <= 0 || splitQty >= totalAvailable) {
-            alert(`จำนวนที่แยกต้องมากกว่า 0 และน้อยกว่าจำนวนทั้งหมด (${totalAvailable})`);
+            Swal.fire('จำนวนไม่ถูกต้อง', `จำนวนที่แยกต้องมากกว่า 0 และน้อยกว่าจำนวนทั้งหมด (${totalAvailable})`, 'warning');
             return;
         }
         if (!qcSelectedItem.condition || qcSelectedItem.condition === 'Unknown') {
-            alert("กรุณาระบุสภาพสินค้าหลัก");
+            Swal.fire('กรุณาระบุสภาพสินค้าหลัก', '', 'warning');
             return;
         }
         if (!selectedDisposition) {
-            alert("กรุณาเลือกการตัดสินใจ (Disposition)");
+            Swal.fire('กรุณาเลือกการตัดสินใจ (Disposition)', '', 'warning');
             return;
         }
 
@@ -710,9 +776,14 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             setConversionRate(1);
             setNewUnitName('');
             setSplitDisposition(null);
-            alert(`ดำเนินการแยกรายการเรียบร้อย`);
+            Swal.fire({
+                icon: 'success',
+                title: 'ดำเนินการแยกรายการเรียบร้อย',
+                timer: 1500,
+                showConfirmButton: false
+            });
         } else {
-            alert("เกิดข้อผิดพลาดในการแยกรายการ");
+            Swal.fire('เกิดข้อผิดพลาดในการแยกรายการ', '', 'error');
         }
     };
 
@@ -730,7 +801,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
 
     const handlePrintClick = (status: DispositionAction, list: ReturnRecord[]) => {
         if (!list || list.length === 0) {
-            alert('ไม่พบรายการสินค้าในสถานะนี้');
+            Swal.fire('ไม่พบรายการสินค้าในสถานะนี้', '', 'info');
             return;
         }
         setSelectionStatus(status);
@@ -743,7 +814,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         if (!selectionStatus) return;
         const selectedList = selectionItems.filter(item => selectedItemIds.has(item.id));
         if (selectedList.length === 0) {
-            alert("กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการก่อนสร้างเอกสาร");
+            Swal.fire('กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการก่อนสร้างเอกสาร', '', 'warning');
             return;
         }
         const details = getISODetails(selectionStatus);
@@ -771,11 +842,17 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                 if (success) successCount++;
             }
             if (successCount > 0) {
-                alert(`สร้างเอกสารและบันทึกรายการเรียบร้อย! (${successCount} รายการ)`);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ดำเนินการสำเร็จ',
+                    text: `สร้างเอกสารและบันทึกรายการเรียบร้อย! (${successCount} รายการ)`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
                 setShowDocModal(false);
                 setPendingLogisticsTx(null);
             } else {
-                alert("ไม่สามารถบันทึกรายการได้ (Update Failed). กรุณาลองใหม่อีกครั้ง หรือตรวจสอบ Console");
+                Swal.fire('ไม่สามารถบันทึกรายการได้ (Update Failed)', 'กรุณาลองใหม่อีกครั้ง หรือตรวจสอบ Console', 'error');
             }
             return;
         }
@@ -788,7 +865,13 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         }
 
         if (successCount > 0) {
-            alert(`สร้างเอกสารเรียบร้อย ${successCount} รายการ -> ไปที่ขั้นตอน "ปิดงาน"`);
+            Swal.fire({
+                icon: 'success',
+                title: 'สร้างเอกสารเรียบร้อย',
+                text: `${successCount} รายการ -> ไปที่ขั้นตอน "ปิดงาน"`,
+                timer: 2000,
+                showConfirmButton: false
+            });
             setShowDocModal(false);
         }
     };
@@ -860,7 +943,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                 const totalAvailable = isBreakdown ? (currentQty * rate) : currentQty;
 
                 // Add split logic logic if needed, previously was empty in some contexts but let's keep it safe
-                alert("Split functionality pending implementation for Step 4 direct usage.");
+                Swal.fire('Split functionality pending', 'This feature is pending implementation for Step 4 direct usage.', 'info');
             }
         }
     };

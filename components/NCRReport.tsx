@@ -49,8 +49,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
     returnStatus: 'All',
     hasCost: false,
     startDate: '',
-    endDate: '',
-    docType: 'All' // New filter for Document Type
+    endDate: ''
   });
 
   // Pagination State
@@ -66,27 +65,29 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
     setShowTimelineModal(true);
   };
 
+  const uniqueFounders = useMemo(() => {
+    const founders = new Set<string>();
+    ncrReports.forEach(r => {
+      if (r.founder) founders.add(r.founder);
+      if (r.item && r.item.founder) founders.add(r.item.founder);
+    });
+    items.forEach(i => {
+      if (i.founder) founders.add(i.founder);
+    });
+    return Array.from(founders).sort();
+  }, [ncrReports, items]);
 
   const filteredNcrReports = useMemo(() => {
-    return ncrReports.filter(report => {
-      const itemData = report.item || (report as any);
+    // Only use authentic NCR Reports
+    const allReports = [...ncrReports];
 
+    return allReports.filter(report => {
+      const itemData = report.item || (report as any);
       const correspondingReturn = items.find(item => item.ncrNumber === report.ncrNo);
 
-      // Doc Type Filter (NCR vs COL)
-      if (filters.docType !== 'All') {
-        const isNCR = (report as any).documentType === 'NCR' || report.ncrNo?.startsWith('NCR');
-        // If specific check fails, fallback to ID pattern or assumptions
-
-        if (filters.docType === 'NCR' && !isNCR) return false;
-        if (filters.docType === 'COL' && isNCR) return false;
-      }
-
-      // Date Range Filter
       if (filters.startDate && report.date < filters.startDate) return false;
       if (filters.endDate && report.date > filters.endDate) return false;
 
-      // Text Query Filter including NCR Number
       const queryLower = filters.query.toLowerCase();
       if (queryLower &&
         !report.ncrNo?.toLowerCase().includes(queryLower) &&
@@ -101,13 +102,11 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
         return false;
       }
 
-      // Action Filter
       if (filters.action !== 'All') {
         if (filters.action === 'Reject' && !report.actionReject && !report.actionRejectSort) return false;
         if (filters.action === 'Scrap' && !report.actionScrap) return false;
       }
 
-      // Return Status Filter
       if (filters.returnStatus !== 'All') {
         if (filters.returnStatus === 'NotReturned' && correspondingReturn) return false;
         if (filters.returnStatus !== 'NotReturned' && (!correspondingReturn || correspondingReturn.status !== filters.returnStatus)) {
@@ -115,7 +114,6 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
         }
       }
 
-      // Has Cost Filter
       if (filters.hasCost && !itemData.hasCost) {
         return false;
       }
@@ -128,11 +126,6 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
     });
   }, [ncrReports, items, filters]);
 
-  const uniqueFounders = useMemo(() => {
-    const founders = new Set(ncrReports.map(r => r.founder).filter(Boolean));
-    return Array.from(founders).sort();
-  }, [ncrReports]);
-
   const handleExportExcel = () => {
     const headers = [
       "NCR No", "Date", "Status", "Product Code", "Product Name", "Customer",
@@ -143,66 +136,66 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
     ];
 
     const htmlTable = `
-      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-      <head>
-        <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
-        <!--[if gte mso 9]>
-        <xml>
-          <x:ExcelWorkbook>
-            <x:ExcelWorksheets>
-              <x:ExcelWorksheet>
-                <x:Name>NCR Report</x:Name>
-                <x:WorksheetOptions>
-                  <x:DisplayGridlines/>
-                </x:WorksheetOptions>
-              </x:ExcelWorksheet>
-            </x:ExcelWorksheets>
-          </x:ExcelWorkbook>
-        </xml>
-        <![endif]-->
-        <style>
-          th { font-weight: bold; background-color: #f0f0f0; border: 1px solid #000; padding: 5px; }
-          td { border: 1px solid #000; padding: 5px; vertical-align: top; }
-        </style>
-      </head>
-      <body>
-        <table>
-          <thead>
-            <tr>
-              ${headers.map(h => `<th>${h}</th>`).join('')}
-            </tr>
-          </thead>
-          <tbody>
-            ${filteredNcrReports.map(report => {
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
+          <!--[if gte mso 9]>
+          <xml>
+            <x:ExcelWorkbook>
+              <x:ExcelWorksheets>
+                <x:ExcelWorksheet>
+                  <x:Name>NCR Report</x:Name>
+                  <x:WorksheetOptions>
+                    <x:DisplayGridlines/>
+                  </x:WorksheetOptions>
+                </x:ExcelWorksheet>
+              </x:ExcelWorksheets>
+            </x:ExcelWorkbook>
+          </xml>
+          <![endif]-->
+          <style>
+            th { font-weight: bold; background-color: #f0f0f0; border: 1px solid #000; padding: 5px; }
+            td { border: 1px solid #000; padding: 5px; vertical-align: top; }
+          </style>
+        </head>
+        <body>
+          <table>
+            <thead>
+              <tr>
+                ${headers.map(h => `<th>${h}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredNcrReports.map(report => {
       const itemData = report.item || (report as any);
       const returnRecord = items.find(item => item.ncrNumber === report.ncrNo);
       const action = report.actionReject || report.actionRejectSort ? 'Reject' : report.actionScrap ? 'Scrap' : 'N/A';
 
       return `<tr>
-                <td>${report.ncrNo || ''}</td>
-                <td>${formatDate(report.date)}</td>
-                <td>${report.status || ''}</td>
-                <td style="mso-number-format:'\@'">${itemData.productCode || ''}</td>
-                <td>${itemData.productName || ''}</td>
-                <td>${itemData.customerName || ''}</td>
-                <td>${itemData.branch || ''}</td>
-                <td>${itemData.destinationCustomer || ''}</td>
-                <td style="text-align:center;">${itemData.quantity || 0}</td>
-                <td style="text-align:center;">${itemData.unit || ''}</td>
-                <td>${report.problemDetail || ''}</td>
-                <td>${itemData.problemSource || ''}</td>
-                <td style="text-align:center;">${itemData.hasCost ? 'Yes' : 'No'}</td>
-                <td style="text-align:right;">${itemData.costAmount || 0}</td>
-                <td>${itemData.costResponsible || ''}</td>
-                <td>${action}</td>
-                <td>${returnRecord?.status || 'Not Returned'}</td>
-              </tr>`;
+                  <td>${report.ncrNo || ''}</td>
+                  <td>${formatDate(report.date)}</td>
+                  <td>${report.status || ''}</td>
+                  <td style="mso-number-format:'\@'">${itemData.productCode || ''}</td>
+                  <td>${itemData.productName || ''}</td>
+                  <td>${itemData.customerName || ''}</td>
+                  <td>${itemData.branch || ''}</td>
+                  <td>${itemData.destinationCustomer || ''}</td>
+                  <td style="text-align:center;">${itemData.quantity || 0}</td>
+                  <td style="text-align:center;">${itemData.unit || ''}</td>
+                  <td>${report.problemDetail || ''}</td>
+                  <td>${itemData.problemSource || ''}</td>
+                  <td style="text-align:center;">${itemData.hasCost ? 'Yes' : 'No'}</td>
+                  <td style="text-align:right;">${itemData.costAmount || 0}</td>
+                  <td>${itemData.costResponsible || ''}</td>
+                  <td>${action}</td>
+                  <td>${returnRecord?.status || 'Not Returned'}</td>
+                </tr>`;
     }).join('')}
-          </tbody>
-        </table>
-      </body>
-      </html>
-    `;
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `;
 
     const blob = new Blob([htmlTable], { type: 'application/vnd.ms-excel;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -215,9 +208,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
   };
 
   const handleRowExportExcel = (report: NCRRecord) => {
-    // Find all records belonging to this NCR Number (reconstruct the full form)
     const targetNcrNo = report.ncrNo;
-    // Filter from the full ncrReports to ensure we get all items even if current view is filtered
     const sameFormRecords = ncrReports.filter(r => r.ncrNo === targetNcrNo);
 
     if (sameFormRecords.length === 0) {
@@ -225,12 +216,8 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
       return;
     }
 
-    // Extract Items
     const items = sameFormRecords.map(r => r.item || (r as any) as NCRItem);
-
-    // Use the clicked report as the source for Header/Form Data
     const formData = report;
-
     exportNCRToExcel(formData, items, targetNcrNo);
   };
 
@@ -241,57 +228,32 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
     return filteredNcrReports.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredNcrReports, currentPage, itemsPerPage]);
 
-  // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [filters, itemsPerPage]);
 
-  const handleCreateReturn = (ncr: NCRRecord) => {
-    const itemData = ncr.item || (ncr as any);
-
-    const returnData: Partial<ReturnRecord> = {
-      ncrNumber: ncr.ncrNo || ncr.id,
-      branch: itemData.branch,
-      date: formatDate(ncr.date),
-      productName: itemData.productName,
-      productCode: itemData.productCode,
-      customerName: itemData.customerName,
-      quantity: itemData.quantity,
-      unit: itemData.unit,
-      refNo: itemData.refNo,
-      neoRefNo: itemData.neoRefNo,
-      destinationCustomer: itemData.destinationCustomer,
-      reason: `จาก NCR: ${ncr.problemDetail} (${itemData.problemSource})`,
-      problemDetail: ncr.problemDetail,
-      rootCause: itemData.problemSource,
-      actionReject: ncr.actionReject,
-      actionRejectSort: ncr.actionRejectSort,
-      actionScrap: ncr.actionScrap
-    };
-    onTransfer(returnData);
-  };
-
-  const handleOpenPrint = (item: NCRRecord) => {
-    const correspondingReturn = items.find(r => r.ncrNumber === item.ncrNo);
-    const effectiveFounder = item.founder || correspondingReturn?.founder || '';
-    setPrintItem({ ...item, founder: effectiveFounder });
-    setShowPrintModal(true);
-  };
-
-  const handleViewNCRForm = (item: NCRRecord) => {
-    const correspondingReturn = items.find(r => r.ncrNumber === item.ncrNo);
-    const effectiveFounder = item.founder || correspondingReturn?.founder || '';
-    setNcrFormItem({ ...item, founder: effectiveFounder });
+  // Handlers
+  const handleViewNCRForm = (report: NCRRecord) => {
+    setNcrFormItem(report);
     setIsEditMode(false);
     setShowNCRFormModal(true);
   };
 
-  const handleEditClick = (item: NCRRecord) => {
-    const correspondingReturn = items.find(r => r.ncrNumber === item.ncrNo);
-    const effectiveFounder = item.founder || correspondingReturn?.founder || '';
-    setPendingEditItem({ ...item, founder: effectiveFounder });
+  const handleEditClick = (report: NCRRecord) => {
+    setPendingEditItem(report);
     setPasswordInput('');
     setShowPasswordModal(true);
+  };
+
+  const handleVerifyPassword = () => {
+    if (passwordInput === '1234') {
+      setNcrFormItem(pendingEditItem);
+      setIsEditMode(true);
+      setShowNCRFormModal(true);
+      setShowPasswordModal(false);
+    } else {
+      alert("รหัสผ่านไม่ถูกต้อง");
+    }
   };
 
   const handleDeleteClick = (id: string) => {
@@ -301,336 +263,168 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
   };
 
   const handleVerifyPasswordAndDelete = async () => {
-    if (passwordInput === '1234') {
-      if (pendingDeleteItemId) {
-        // Find the NCR Record first to get ncrNo
-        const ncrToDelete = ncrReports.find(r => r.id === pendingDeleteItemId);
-
-        // This now calls the "cancel" (soft delete) function
-        const success = await deleteNCRReport(pendingDeleteItemId);
-        if (success) {
-          // SYNC: Also Delete Linked Return Record (Hard Delete to make it "disappear")
-          if (ncrToDelete && ncrToDelete.ncrNo) {
-            const correspondingReturn = items.find(r => r.ncrNumber === ncrToDelete.ncrNo);
-            if (correspondingReturn) {
-              await deleteReturnRecord(correspondingReturn.id);
-              console.log(`Synced Delete: Removed ReturnRecord ${correspondingReturn.id}`);
-            }
-          }
-
-          alert(`ยกเลิกรายการ NCR และลบข้อมูลที่เกี่ยวข้องสำเร็จ`);
-        } else {
-          alert('การยกเลิกล้มเหลว กรุณาตรวจสอบสิทธิ์');
-        }
-      }
+    if (passwordInput === '1234' && pendingDeleteItemId) {
+      await deleteNCRReport(pendingDeleteItemId);
       setShowDeletePasswordModal(false);
       setPendingDeleteItemId(null);
     } else {
-      alert('รหัสผ่านไม่ถูกต้อง');
+      alert("รหัสผ่านไม่ถูกต้อง");
     }
   };
 
-  const handleVerifyPassword = () => {
-    if (passwordInput === '1234') {
-      if (pendingEditItem) {
-        setNcrFormItem({ ...pendingEditItem });
-        setIsEditMode(true);
-        setShowNCRFormModal(true);
-      }
-      setShowPasswordModal(false);
-    } else {
-      alert('รหัสผ่านไม่ถูกต้อง');
-    }
+  const handleInputChange = (field: string, value: any) => {
+    if (!ncrFormItem) return;
+    setNcrFormItem({ ...ncrFormItem, [field]: value });
   };
 
-  const handleCauseSelection = (field: keyof NCRRecord) => {
-    setNcrFormItem(prev => {
-      if (!prev) return null;
-      // If clicking the one that is already checked, it will toggle to unchecked (handled by current state logic?)
-      // Wait, if I use a direct handler like this, I need to know the TARGET VALUE.
-      // But for MutEx, usually clicking a new one selects it. Clicking the SAME one might deselect it.
-      // Let's assume standard behavior:
-      // If I click 'causePackaging', I want it TRUE, others FALSE.
-      // But wait, standard radio doesn't allow deselecting. Checkbox MutEx usually does.
-
-      // Let's pass the intended checked state? No, standard click on unchecked -> checked.
-      // If already checked, click -> unchecked.
-
-      const isCurrentlyChecked = prev[field] as boolean;
-      const newValue = !isCurrentlyChecked;
-
-      if (newValue) {
-        // Selecting this one -> Unselect others
-        return {
-          ...prev,
-          causePackaging: false,
-          causeTransport: false,
-          causeOperation: false,
-          causeEnv: false,
-          [field]: true
-        };
-      } else {
-        // Unselecting this one -> Just unselect it
-        return {
-          ...prev,
-          [field]: false
-        };
+  const handleItemInputChange = (field: string, value: any) => {
+    if (!ncrFormItem) return;
+    setNcrFormItem({
+      ...ncrFormItem,
+      item: {
+        ...((ncrFormItem.item || {}) as NCRItem),
+        [field]: value
       }
     });
   };
 
   const handleProblemSelection = (field: keyof NCRRecord) => {
+    if (!ncrFormItem) return;
     setNcrFormItem(prev => {
       if (!prev) return null;
-      const isCurrentlyChecked = prev[field] as boolean;
-      const newValue = !isCurrentlyChecked;
+      return { ...prev, [field]: !prev[field] };
+    });
+  };
 
-      if (newValue) {
-        return {
-          ...prev,
-          problemDamaged: false,
-          problemDamagedInBox: false,
-          problemLost: false,
-          problemMixed: false,
-          problemWrongInv: false,
-          problemLate: false,
-          problemDuplicate: false,
-          problemWrong: false,
-          problemIncomplete: false,
-          problemOver: false,
-          problemWrongInfo: false,
-          problemShortExpiry: false,
-          problemTransportDamage: false,
-          problemAccident: false,
-          problemPOExpired: false,
-          problemNoBarcode: false,
-          problemNotOrdered: false,
-          problemOther: false,
-          [field]: true
-        };
-      } else {
-        return { ...prev, [field]: false };
-      }
+  const handleCauseSelection = (field: keyof NCRRecord) => {
+    if (!ncrFormItem) return;
+    setNcrFormItem(prev => {
+      if (!prev) return null;
+      return { ...prev, [field]: !prev[field] };
     });
   };
 
   const handleSaveChanges = async () => {
     if (!ncrFormItem) return;
-
-    // Validation: Require at least one Cause
-    const isCauseChecked = ncrFormItem.causePackaging || ncrFormItem.causeTransport || ncrFormItem.causeOperation || ncrFormItem.causeEnv;
-    if (!isCauseChecked) {
-      alert("กรุณาเลือก สาเหตุ (Cause) อย่างน้อย 1 หัวข้อ");
-      return;
-    }
-
-    const success = await updateNCRReport(ncrFormItem.id, ncrFormItem);
-    if (success) {
-      // SYNC: Update Linked Return Record (Operations Hub)
-      const correspondingReturn = items.find(item => item.ncrNumber === ncrFormItem.ncrNo);
-      if (correspondingReturn) {
-        const itemData = ncrFormItem.item || (ncrFormItem as any);
-        const returnUpdateData: Partial<ReturnRecord> = {
-          branch: itemData.branch,
-          customerName: itemData.customerName,
-          productName: itemData.productName,
-          productCode: itemData.productCode,
-          quantity: itemData.quantity,
-          unit: itemData.unit,
-          problemDetail: ncrFormItem.problemDetail,
-          rootCause: itemData.problemSource,
-          actionReject: ncrFormItem.actionReject,
-          actionRejectSort: ncrFormItem.actionRejectSort,
-          actionScrap: ncrFormItem.actionScrap,
-          actionRework: ncrFormItem.actionRework,
-        };
-        await updateReturnRecord(correspondingReturn.id, returnUpdateData);
-        console.log(`Synced Edit: Updated ReturnRecord ${correspondingReturn.id}`);
-      }
-
-      alert('บันทึกการแก้ไขเรียบร้อย');
+    if (confirm("คุณต้องการบันทึกการแก้ไขนี้ลงในระบบหรือไม่?")) {
+      await updateNCRReport(ncrFormItem.id, ncrFormItem);
       setShowNCRFormModal(false);
       setIsEditMode(false);
-    } else {
-      alert('เกิดข้อผิดพลาดในการบันทึก');
     }
   };
 
-
-
-
-  const handlePrint = () => {
-    window.print();
+  const handleOpenPrint = (report: NCRRecord) => {
+    setPrintItem(report);
+    setShowPrintModal(true);
   };
 
-  const handleInputChange = (field: keyof NCRRecord, value: any) => {
-    if (ncrFormItem) {
-      setNcrFormItem({ ...ncrFormItem, [field]: value });
-    }
-  };
+  const handleCreateReturn = (report: NCRRecord) => {
+    const itemData = report.item || (report as any);
 
-  const handleItemInputChange = (field: keyof NCRItem, value: any) => {
-    if (ncrFormItem) {
-      const updatedItemData = { ...(ncrFormItem.item || ncrFormItem), [field]: value };
-      if (ncrFormItem.item) {
-        setNcrFormItem({ ...ncrFormItem, item: updatedItemData as NCRItem });
-      } else {
-        setNcrFormItem({ ...ncrFormItem, ...updatedItemData });
-      }
-    }
-  };
-
-  const getProblemStrings = (record: NCRRecord | null) => {
-    if (!record) return [];
-    const problems = [];
-    if (record.problemDamaged) problems.push("ชำรุด");
-    if (record.problemLost) problems.push("สูญหาย");
-    if (record.problemMixed) problems.push("สินค้าสลับ");
-    if (record.problemWrongInv) problems.push("สินค้าไม่ตรง INV.");
-    if (record.problemLate) problems.push("ส่งช้า");
-    if (record.problemDuplicate) problems.push("ส่งซ้ำ");
-    if (record.problemWrong) problems.push("ส่งผิด");
-    if (record.problemIncomplete) problems.push("ส่งของไม่ครบ");
-    if (record.problemOver) problems.push("ส่งของเกิน");
-    if (record.problemWrongInfo) problems.push("ข้อมูลผิด");
-    if (record.problemShortExpiry) problems.push("สินค้าอายุสั้น");
-    if (record.problemTransportDamage) problems.push("สินค้าเสียหายบนรถขนส่ง");
-    if (record.problemAccident) problems.push("อุบัติเหตุ");
-    if (record.problemOther && record.problemOtherText) problems.push(`อื่นๆ: ${record.problemOtherText}`);
-    return problems;
-  }
-
-  const getReturnStatusBadge = (status?: ReturnStatus) => {
-    if (!status) {
-      return <span className="text-slate-400 text-xs">-</span>;
-    }
-    const config: Record<string, { text: string, color: string }> = {
-      'Requested': { text: 'รอรับเข้า', color: 'bg-slate-100 text-slate-600' },
-      'COL_JobAccepted': { text: 'สาขารับงานแล้ว', color: 'bg-blue-100 text-blue-800' },
-      'PickupScheduled': { text: 'รอรถรับ (Job)', color: 'bg-indigo-100 text-indigo-700' },
-      'PickedUp': { text: 'รับของแล้ว', color: 'bg-pink-100 text-pink-700' },
-      'COL_Consolidated': { text: 'รวมของแล้ว (Consolidated)', color: 'bg-slate-100 text-slate-800' },
-      'InTransitHub': { text: 'กำลังขนส่ง', color: 'bg-orange-100 text-orange-800' },
-      'NCR_InTransit': { text: 'กำลังขนส่ง (NCR)', color: 'bg-orange-100 text-orange-800' },
-      'COL_InTransit': { text: 'กำลังขนส่ง (COL)', color: 'bg-orange-100 text-orange-800' },
-      'ReceivedAtHub': { text: 'สินค้าถึง Hub (รอ QC)', color: 'bg-yellow-100 text-yellow-800' },
-      'NCR_HubReceived': { text: 'ถึง Hub (รอ QC)', color: 'bg-yellow-100 text-yellow-800' },
-      'COL_HubReceived': { text: 'ถึง Hub (COL)', color: 'bg-yellow-100 text-yellow-800' },
-      'Received': { text: 'สินค้าถึง Hub (รอ QC)', color: 'bg-yellow-100 text-yellow-800' },
-      'QCPassed': { text: 'ผ่าน QC (รอเอกสาร)', color: 'bg-blue-100 text-blue-700' },
-      'NCR_QCPassed': { text: 'ผ่าน QC', color: 'bg-blue-100 text-blue-700' },
-      'NCR_QCCompleted': { text: 'ผ่าน QC (รอเอกสาร)', color: 'bg-blue-100 text-blue-700' },
-      'Graded': { text: 'ผ่าน QC (รอเอกสาร)', color: 'bg-blue-100 text-blue-700' },
-      'ReturnToSupplier': { text: 'ส่งคืน/รอปิดงาน', color: 'bg-purple-100 text-purple-700' },
-      'DirectReturn': { text: 'ส่งคืนตรง (Direct)', color: 'bg-green-100 text-green-800' },
-      'Documented': { text: 'ส่งคืน/รอปิดงาน', color: 'bg-purple-100 text-purple-700' },
-      'DocsCompleted': { text: 'รอปิดงาน (Docs)', color: 'bg-purple-100 text-purple-700' },
-      'Completed': { text: 'จบงาน', color: 'bg-green-100 text-green-700' },
+    const newReturn: Partial<ReturnRecord> = {
+      documentNo: report.ncrNo,
+      documentType: 'NCR',
+      status: 'Requested',
+      date: new Date().toISOString().split('T')[0],
+      productCode: itemData.productCode,
+      productName: itemData.productName,
+      quantity: itemData.quantity,
+      unit: itemData.unit,
+      customerName: itemData.customerName,
+      branch: itemData.branch,
+      ncrNumber: report.ncrNo,
+      reason: report.problemDetail,
+      notes: itemData.problemSource,
+      founder: report.founder || itemData.founder,
+      destinationCustomer: itemData.destinationCustomer,
+      // Map actions to ReturnRecord boolean flags instead of non-existent returnType
+      actionReject: report.actionReject,
+      actionScrap: report.actionScrap,
+      actionRejectSort: report.actionRejectSort
     };
 
-    const statusConfig = config[status];
-
-    if (!statusConfig) {
-      return <span className={`px-2 py-1 text-[10px] font-bold rounded bg-slate-100 text-slate-600`}>{status}</span>;
-    }
-    return <span className={`px-2 py-1 text-[10px] font-bold rounded ${statusConfig.color}`}>{statusConfig.text}</span>;
+    onTransfer(newReturn);
   };
 
-
   return (
-    <div className="p-6 h-full flex flex-col space-y-6 print:p-0">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
+    <div className="h-full flex flex-col gap-4 p-4 font-inter text-slate-800 bg-slate-50/50">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm print:hidden">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">รายงาน NCR (NCR Report)</h2>
-          <p className="text-slate-500 text-sm">ติดตามสถานะ NCR และส่งเรื่องคืนสินค้าอัตโนมัติ</p>
+          <h2 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent flex items-center gap-2">
+            <FileText className="w-6 h-6 text-blue-600" />
+            รายงาน NCR (NCR Report)
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">รายการสินค้าที่ไม่เป็นไปตามข้อกำหนด (Non-Conformance Report)</p>
         </div>
-        <div className="flex gap-2 text-sm font-medium">
-          <div className="bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm text-slate-500">
-            ทั้งหมด: {ncrReports.length}
+
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <div className="relative group">
+            <Search className="absolute left-2 top-1.5 w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors" />
+            <input
+              type="text"
+              placeholder="ค้นหา (NCR No, สินค้า, ลูกค้า)..."
+              value={filters.query}
+              onChange={e => setFilters({ ...filters, query: e.target.value })}
+              className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full md:w-64 transition-all"
+            />
           </div>
-          <div className="bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm text-green-600">
-            ปกติ: {ncrReports.filter(n => n.status !== 'Canceled').length}
+
+          <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg p-0.5">
+            <input
+              type="date"
+              value={filters.startDate}
+              onChange={e => setFilters({ ...filters, startDate: e.target.value })}
+              className="bg-transparent text-xs p-1 outline-none w-28 text-slate-600 cursor-pointer"
+              title="Start Date"
+            />
+            <span className="text-slate-400">-</span>
+            <input
+              type="date"
+              value={filters.endDate}
+              onChange={e => setFilters({ ...filters, endDate: e.target.value })}
+              className="bg-transparent text-xs p-1 outline-none w-28 text-slate-600 cursor-pointer"
+              title="End Date"
+            />
           </div>
-          <div className="bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm text-red-500">
-            ยกเลิก: {ncrReports.filter(n => n.status === 'Canceled').length}
+
+          <select value={filters.action} onChange={e => setFilters({ ...filters, action: e.target.value })} className="bg-slate-50 border border-slate-200 rounded-lg text-xs p-1 outline-none focus:ring-1 focus:ring-blue-500">
+            <option value="All">ทุกการดำเนินการ</option>
+            <option value="Reject">Reject</option>
+            <option value="Scrap">Scrap</option>
+          </select>
+          <select value={filters.returnStatus} onChange={e => setFilters({ ...filters, returnStatus: e.target.value })} className="bg-slate-50 border border-slate-200 rounded-lg text-xs p-1 outline-none focus:ring-1 focus:ring-blue-500">
+            <option value="All">ทุกสถานะคืน</option>
+            <option value="NotReturned">ยังไม่คืน</option>
+            <option value="Requested">รอรับเข้า</option>
+            <option value="PickupScheduled">รอรถรับ (Job Assigned)</option>
+            <option value="PickedUp">รับของแล้ว (Picked Up)</option>
+            <option value="InTransitHub">กำลังขนส่ง</option>
+            <option value="ReceivedAtHub">สินค้าถึง Hub (รอ QC)</option>
+            <option value="QCPassed">ผ่าน QC (รอเอกสาร)</option>
+            <option value="ReturnToSupplier">ส่งคืน/รอปิดงาน</option>
+            <option value="Completed">จบงาน</option>
+          </select>
+          <label className="flex items-center gap-1 text-xs text-slate-600 px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer whitespace-nowrap">
+            <input type="checkbox" checked={filters.hasCost} onChange={e => setFilters({ ...filters, hasCost: e.target.checked })} />
+            มีค่าใช้จ่าย
+          </label>
+
+          <div className="flex gap-1 ml-auto">
+            <button
+              onClick={handleExportExcel}
+              className="bg-green-600 text-white font-bold px-3 py-1 rounded-lg flex items-center gap-1 hover:bg-green-700 transition-colors shadow-sm text-xs whitespace-nowrap"
+            >
+              <Download className="w-3 h-3" />
+              Excel
+            </button>
+            <button
+              onClick={() => setFilters({ query: '', action: 'All', returnStatus: 'All', hasCost: false, startDate: '', endDate: '', docType: 'All' })}
+              className="px-2 py-1 text-slate-600 hover:bg-slate-100 font-medium rounded-lg border border-slate-200"
+              title="ล้างตัวกรอง (Clear)"
+            >
+              <RotateCcw className="w-3 h-3" />
+            </button>
           </div>
-        </div>
-      </div>
-
-      {/* FILTERS TOOLBAR */}
-      <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-2 print:hidden items-center">
-        <div className="relative flex-grow max-w-xs">
-          <Search className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="ค้นหา..."
-            value={filters.query}
-            onChange={e => setFilters({ ...filters, query: e.target.value })}
-            className="w-full pl-7 pr-2 py-1 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-xs"
-          />
-
-        </div>
-
-        <select value={filters.docType} onChange={e => setFilters({ ...filters, docType: e.target.value })} className="bg-slate-50 border border-slate-200 rounded-lg text-xs p-1 outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-700">
-          <option value="All">ทุกประเภทเอกสาร</option>
-          <option value="NCR">งานคุณภาพ (NCR)</option>
-          <option value="COL">งานรับสินค้า (COL)</option>
-        </select>
-
-        <div className="flex gap-1">
-          <input
-            type="date"
-            value={filters.startDate}
-            onChange={e => setFilters({ ...filters, startDate: e.target.value })}
-            className="bg-slate-50 border border-slate-200 rounded-lg text-xs p-1 outline-none focus:ring-1 focus:ring-blue-500 w-28"
-            title="Start Date"
-          />
-          <input
-            type="date"
-            value={filters.endDate}
-            onChange={e => setFilters({ ...filters, endDate: e.target.value })}
-            className="bg-slate-50 border border-slate-200 rounded-lg text-xs p-1 outline-none focus:ring-1 focus:ring-blue-500 w-28"
-            title="End Date"
-          />
-        </div>
-
-        <select value={filters.action} onChange={e => setFilters({ ...filters, action: e.target.value })} className="bg-slate-50 border border-slate-200 rounded-lg text-xs p-1 outline-none focus:ring-1 focus:ring-blue-500">
-          <option value="All">ทุกการดำเนินการ</option>
-          <option value="Reject">Reject</option>
-          <option value="Scrap">Scrap</option>
-        </select>
-        <select value={filters.returnStatus} onChange={e => setFilters({ ...filters, returnStatus: e.target.value })} className="bg-slate-50 border border-slate-200 rounded-lg text-xs p-1 outline-none focus:ring-1 focus:ring-blue-500">
-          <option value="All">ทุกสถานะคืน</option>
-          <option value="NotReturned">ยังไม่คืน</option>
-          <option value="Requested">รอรับเข้า</option>
-          <option value="PickupScheduled">รอรถรับ (Job Assigned)</option>
-          <option value="PickedUp">รับของแล้ว (Picked Up)</option>
-          <option value="InTransitHub">กำลังขนส่ง</option>
-          <option value="ReceivedAtHub">สินค้าถึง Hub (รอ QC)</option>
-          <option value="QCPassed">ผ่าน QC (รอเอกสาร)</option>
-          <option value="ReturnToSupplier">ส่งคืน/รอปิดงาน</option>
-          <option value="Completed">จบงาน</option>
-        </select>
-        <label className="flex items-center gap-1 text-xs text-slate-600 px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer whitespace-nowrap">
-          <input type="checkbox" checked={filters.hasCost} onChange={e => setFilters({ ...filters, hasCost: e.target.checked })} />
-          มีค่าใช้จ่าย
-        </label>
-
-        <div className="flex gap-1 ml-auto">
-          <button
-            onClick={handleExportExcel}
-            className="bg-green-600 text-white font-bold px-3 py-1 rounded-lg flex items-center gap-1 hover:bg-green-700 transition-colors shadow-sm text-xs whitespace-nowrap"
-          >
-            <Download className="w-3 h-3" />
-            Excel
-          </button>
-          <button
-            onClick={() => setFilters({ query: '', action: 'All', returnStatus: 'All', hasCost: false, startDate: '', endDate: '', docType: 'All' })}
-            className="px-2 py-1 text-slate-600 hover:bg-slate-100 font-medium rounded-lg border border-slate-200"
-            title="ล้างตัวกรอง (Clear)"
-          >
-            <RotateCcw className="w-3 h-3" />
-          </button>
         </div>
       </div>
 
@@ -678,6 +472,9 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                           </button>
                         </td>
                         <td className={`px-1 py-1 sticky left-6 border-r w-[80px] ${isCanceled ? 'bg-slate-100' : 'bg-white hover:bg-slate-50'}`}>
+                          <div className="flex gap-1 mb-0.5">
+                            <span className="px-1 rounded text-[8px] font-bold bg-purple-100 text-purple-600 border border-purple-200">NCR</span>
+                          </div>
                           <button
                             onClick={() => handleViewNCRForm(report)}
                             disabled={isCanceled}
@@ -693,7 +490,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                             ) : report.status === 'Closed' ? (
                               <span className="inline-flex items-center gap-0.5 text-[8px] text-green-600 font-bold bg-green-50 px-1 py-0 rounded border border-green-100"><CircleCheck className="w-2 h-2" /> Closed</span>
                             ) : (
-                              <span className="inline-flex items-center gap-0.5 text-[8px] text-amber-500 font-bold bg-amber-50 px-1 py-0 rounded border border-amber-100"><Clock className="w-2 h-2" /> {report.status || 'Open'}</span>
+                              <span className="inline-flex items-center gap-0.5 text-[8px] text-amber-500 font-bold bg-amber-50 px-1 py-0 rounded border border-amber-100"><Clock className="w-2 h-2" /> {report.status === 'Open' ? (correspondingReturn ? correspondingReturn.status : 'Open') : report.status}</span>
                             )}
                           </div>
                         </td>
@@ -839,19 +636,21 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
       </div>
       {/* Modals */}
       {/* Print Modal */}
-      {showPrintModal && printItem && (
-        <NCRPrintPreview
-          item={printItem}
-          onUpdate={setPrintItem}
-          onClose={() => setShowPrintModal(false)}
-          onSave={async () => {
-            if (confirm("คุณต้องการบันทึกการแก้ไขนี้ลงในระบบหรือไม่?")) {
-              await updateNCRReport(printItem.id, printItem);
-              alert("บันทึกข้อมูลเรียบร้อย");
-            }
-          }}
-        />
-      )}
+      {
+        showPrintModal && printItem && (
+          <NCRPrintPreview
+            item={printItem}
+            onUpdate={setPrintItem}
+            onClose={() => setShowPrintModal(false)}
+            onSave={async () => {
+              if (confirm("คุณต้องการบันทึกการแก้ไขนี้ลงในระบบหรือไม่?")) {
+                await updateNCRReport(printItem.id, printItem);
+                alert("บันทึกข้อมูลเรียบร้อย");
+              }
+            }}
+          />
+        )
+      }
 
       {/* NCR Form Modal (Edit Mode) */}
       {
