@@ -50,6 +50,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
     hasCost: false,
     startDate: '',
     endDate: '',
+    docType: 'All' // New filter for Document Type
   });
 
   // Pagination State
@@ -69,7 +70,17 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
   const filteredNcrReports = useMemo(() => {
     return ncrReports.filter(report => {
       const itemData = report.item || (report as any);
+
       const correspondingReturn = items.find(item => item.ncrNumber === report.ncrNo);
+
+      // Doc Type Filter (NCR vs COL)
+      if (filters.docType !== 'All') {
+        const isNCR = (report as any).documentType === 'NCR' || report.ncrNo?.startsWith('NCR');
+        // If specific check fails, fallback to ID pattern or assumptions
+
+        if (filters.docType === 'NCR' && !isNCR) return false;
+        if (filters.docType === 'COL' && isNCR) return false;
+      }
 
       // Date Range Filter
       if (filters.startDate && report.date < filters.startDate) return false;
@@ -557,7 +568,14 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
             onChange={e => setFilters({ ...filters, query: e.target.value })}
             className="w-full pl-7 pr-2 py-1 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-xs"
           />
+
         </div>
+
+        <select value={filters.docType} onChange={e => setFilters({ ...filters, docType: e.target.value })} className="bg-slate-50 border border-slate-200 rounded-lg text-xs p-1 outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-700">
+          <option value="All">ทุกประเภทเอกสาร</option>
+          <option value="NCR">งานคุณภาพ (NCR)</option>
+          <option value="COL">งานรับสินค้า (COL)</option>
+        </select>
 
         <div className="flex gap-1">
           <input
@@ -607,7 +625,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
             Excel
           </button>
           <button
-            onClick={() => setFilters({ query: '', action: 'All', returnStatus: 'All', hasCost: false, startDate: '', endDate: '' })}
+            onClick={() => setFilters({ query: '', action: 'All', returnStatus: 'All', hasCost: false, startDate: '', endDate: '', docType: 'All' })}
             className="px-2 py-1 text-slate-600 hover:bg-slate-100 font-medium rounded-lg border border-slate-200"
             title="ล้างตัวกรอง (Clear)"
           >
