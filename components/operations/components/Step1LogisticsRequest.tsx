@@ -35,7 +35,7 @@ interface Step1LogisticsRequestProps {
     setRequestItems: React.Dispatch<React.SetStateAction<Partial<ReturnRecord>[]>>;
     handleAddItem: (e: React.FormEvent | null, overrideData?: Partial<ReturnRecord>) => void;
     handleRemoveItem: (index: number) => void;
-    handleRequestSubmit: () => void;
+    handleRequestSubmit: (manualItems?: Partial<ReturnRecord>[]) => void;
 
     // Dropdown Data
     uniqueCustomers?: string[];
@@ -103,7 +103,7 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                 >
                                     <option value="" disabled>-- เลือกสาขา --</option>
                                     <option value="พิษณุโลก">พิษณุโลก</option>
-                                    {BRANCH_LIST.filter(b => b !== 'พิษณุโลก').map(b => <option key={b} value={b}>{b}</option>)}
+                                    {(BRANCH_LIST && Array.isArray(BRANCH_LIST) ? BRANCH_LIST : ['กำแพงเพชร', 'แม่สอด', 'เชียงใหม่', 'EKP ลำปาง', 'นครสวรรค์', 'สาย 3', 'คลอง 13', 'ซีโน่', 'ประดู่']).filter(b => b !== 'พิษณุโลก').map(b => <option key={b} value={b}>{b}</option>)}
                                     <option value="Other">อื่นๆ (Other)</option>
                                 </select>
                             </div>
@@ -267,9 +267,21 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                             onClick={() => {
                                 // Add a dummy item if list is empty to allow submission
                                 if (requestItems.length === 0) {
-                                    handleAddItem(null, { ...formData, productName: 'General Request', quantity: 1, unit: 'Lot' });
+                                    const dummyItem = { ...formData, productName: 'General Request', quantity: 1, unit: 'Lot' };
+
+                                    // Submit with Swal confirmation
+                                    handleRequestSubmit([dummyItem]);
+
+                                    // Optional: Success message could be handled inside handleRequestSubmit or here
+                                    // But since handleRequestSubmit is void, we assume it handles it or we trust the flow.
+                                    // Given the user wants Modern Modal, let's assume handleRequestSubmit might trigger a success alert,
+                                    // OR we can wrap it. But handleRequestSubmit in useOperationsLogic might use alert(). 
+                                    // I should check useOperationsLogic.ts next to be thorough, but for now let's just trigger the action.
+                                    // Wait, if I change the UI here, the logic inside handleRequestSubmit might still alert().
+
+                                } else {
+                                    handleRequestSubmit();
                                 }
-                                handleRequestSubmit();
                             }}
                             className="px-8 py-4 bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all flex items-center gap-2"
                         >

@@ -1,39 +1,98 @@
-
 import React from 'react';
-import { Activity, Box, CheckSquare } from 'lucide-react';
+import { Activity, Box, CheckSquare, Calendar } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { useData } from '../../../DataContext';
 import { ReturnRecord } from '../../../types';
 
-export const Step3BranchReceive: React.FC = () => {
+interface Step3BranchReceiveProps {
+    onComplete?: () => void;
+}
+
+export const Step3BranchReceive: React.FC<Step3BranchReceiveProps> = ({ onComplete }) => {
     const { items, updateReturnRecord } = useData();
 
-    // Filter Items: Status 'JobAccepted' or 'COL_JobAccepted' ensuring NO NCR items
-    // "3. รับสินค้า (Branch Physical Receive) แสดง จะรับสินค้าเฉพาะ ที่ คีย์ จาก ระบบงานรับสินค้า (Inbound Collection System)"
+    // Filter Items: Status 'JobAccepted' or 'COL_JobAccepted' ensuring NO NCR items (unless explicitly LOGISTICS)
     const acceptedItems = React.useMemo(() => {
-        return items.filter(item =>
-            (item.status === 'COL_JobAccepted' || item.status === 'JobAccepted') &&
-            !item.ncrNumber &&
-            item.documentType !== 'NCR'
-        );
+        return items.filter(item => {
+            // 1. Check Status
+            const isStatusMatch = item.status === 'COL_JobAccepted' || item.status === 'JobAccepted';
+            if (!isStatusMatch) return false;
+
+            // 2. Explicitly INCLUDE 'LOGISTICS' type (even if it has an NCR number due to legacy data)
+            if (item.documentType === 'LOGISTICS') return true;
+
+            // 3. Exclude actual NCR items (Document Type 'NCR' OR has NCR Number)
+            // If it's not explicitly LOGISTICS, we assume presence of NCR Number means it belongs to NCR flow
+            if (item.documentType === 'NCR' || !!item.ncrNumber) return false;
+
+            return true;
+        });
     }, [items]);
 
     const handleReceiveItem = async (id: string) => {
-        if (window.confirm('ยืนยันว่าได้รับสินค้าจริง (Physical Receive)?')) {
+        const result = await Swal.fire({
+            title: 'ยืนยันรับสินค้า?',
+            text: "คุณตรวจสอบสินค้าเรียบร้อยแล้วใช่หรือไม่?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#4f46e5', // indigo-600
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'ใช่, รับสินค้า',
+            cancelButtonText: 'ยกเลิก'
+        });
+
+        if (result.isConfirmed) {
             await updateReturnRecord(id, {
                 status: 'COL_BranchReceived',
                 dateReceived: new Date().toISOString().split('T')[0]
             });
+
+            await Swal.fire({
+                icon: 'success',
+                title: 'รับสินค้าเรียบร้อย',
+                timer: 1500,
+                showConfirmButton: false
+            });
+
+            // Auto-navigate if this was the last item
+            if (acceptedItems.length === 1 && onComplete) {
+                onComplete();
+            }
         }
     };
 
     const handleReceiveAll = async () => {
         if (acceptedItems.length === 0) return;
-        if (window.confirm(`ยืนยันการรับสินค้าทั้งหมด ${acceptedItems.length} รายการ?`)) {
+
+        const result = await Swal.fire({
+            title: `ยืนยันรับสินค้าทั้งหมด ${acceptedItems.length} รายการ?`,
+            text: "คุณต้องการรับสินค้าทั้งหมดในครั้งเดียวหรือไม่?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#4f46e5',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'ยืนยัน',
+            cancelButtonText: 'ยกเลิก'
+        });
+
+        if (result.isConfirmed) {
             for (const item of acceptedItems) {
                 await updateReturnRecord(item.id, {
                     status: 'COL_BranchReceived',
                     dateReceived: new Date().toISOString().split('T')[0]
                 });
+            }
+
+            await Swal.fire({
+                icon: 'success',
+                title: 'สำเร็จ!',
+                text: 'รับสินค้าทั้งหมดเรียบร้อยแล้ว',
+                timer: 1500,
+                showConfirmButton: false
+            });
+
+            if (onComplete) {
+                onComplete();
             }
         }
     };
@@ -60,7 +119,7 @@ export const Step3BranchReceive: React.FC = () => {
                         <thead className="bg-slate-50 text-slate-600 font-bold sticky top-0 shadow-sm z-10">
                             <tr>
                                 <th className="p-4 border-b">สาขา (Branch)</th>
-                                <th className="p-4 border-b">ใบกำกับ/วันที่ (Inv/Date)</th>
+                                <th className="p-4 border-b">ใบกำกับ / วันที่ (Inv / Date)</th>
                                 <th className="p-4 border-b">เลขที่เอกสาร (Doc Info)</th>
                                 <th className="p-4 border-b">ลูกค้าปลายทาง</th>
                                 <th className="p-4 border-b">หมายเหตุ</th>
@@ -85,13 +144,25 @@ export const Step3BranchReceive: React.FC = () => {
                                         </td>
                                         <td className="p-4 align-top">
                                             <div className="text-sm font-semibold text-slate-700">{item.invoiceNo || '-'}</div>
-                                            <div className="text-xs text-slate-500">{item.controlDate || item.date || '-'}</div>
+                                            <div className="text-xs text-slate-500 flex items-center gap-1 mt-1">
+                                                <Calendar className="w-3 h-3" />
+                                                <span title="วันที่ใบคุมรถ">{item.controlDate || item.date || '-'}</span>
+                                            </div>
                                         </td>
                                         <td className="p-4 align-top">
-                                            <div className="flex flex-col gap-0.5">
-                                                <span className="text-xs font-mono text-slate-600 bg-slate-100 px-1 rounded w-fit">R: {item.refNo || '-'}</span>
-                                                <span className="text-xs font-mono text-slate-600 bg-slate-100 px-1 rounded w-fit">TM: {item.tmNo || '-'}</span>
-                                                <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-1 rounded w-fit">COL: {item.id}</span>
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-1 text-xs">
+                                                    <span className="font-bold text-slate-500 w-8">R:</span>
+                                                    <span className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">{item.documentNo || '-'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 text-xs">
+                                                    <span className="font-bold text-slate-500 w-8">TM:</span>
+                                                    <span className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">{item.tmNo || '-'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 text-xs">
+                                                    <span className="font-bold text-indigo-500 w-8">COL:</span>
+                                                    <span className="font-mono text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">{item.collectionOrderId || item.id}</span>
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="p-4 align-top text-slate-600">

@@ -15,6 +15,7 @@ import { DataProvider } from './DataContext';
 const MainApp: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>(AppView.DASHBOARD);
   const [transferData, setTransferData] = useState<Partial<ReturnRecord> | null>(null);
+  const [operationsInitialStep, setOperationsInitialStep] = useState<number | undefined>(undefined);
 
   const handleNCRTransfer = (data: Partial<ReturnRecord>) => {
     setTransferData(data);
@@ -30,6 +31,7 @@ const MainApp: React.FC = () => {
           <Operations
             initialData={transferData}
             onClearInitialData={() => setTransferData(null)}
+            initialStep={operationsInitialStep}
           />
         );
       case AppView.NCR:
@@ -39,7 +41,10 @@ const MainApp: React.FC = () => {
       case AppView.INVENTORY:
         return <Inventory />;
       case AppView.COLLECTION:
-        return <CollectionSystem />;
+        return <CollectionSystem onNavigate={(view, step) => {
+          setCurrentView(view);
+          if (step) setOperationsInitialStep(step);
+        }} />;
 
       default:
         return <Dashboard />;

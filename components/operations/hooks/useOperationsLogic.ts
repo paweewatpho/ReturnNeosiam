@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useData } from '../../../DataContext';
 import { ReturnRecord, ItemCondition, DispositionAction, ReturnStatus, TransportInfo } from '../../../types';
 import { getISODetails, RESPONSIBLE_MAPPING } from '../utils';
+import Swal from 'sweetalert2';
 
 export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, onClearInitialData?: () => void) => {
     const { items, addReturnRecord, updateReturnRecord, addNCRReport, getNextNCRNumber, getNextReturnNumber } = useData();
@@ -129,11 +130,18 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
     // Step 2 Input: Requested (Exclude NCR)
     const step2Items = items.filter(i => i.status === 'Requested' && i.documentType !== 'NCR');
     const ncrStep2Items = items.filter(i => {
+        // Condition 1: NCR Items
         const isNCR = i.documentType === 'NCR' || !!i.ncrNumber;
         if (isNCR) {
             return i.status === 'Requested' || i.status === 'COL_JobAccepted';
         }
-        return i.status === 'COL_Consolidated';
+
+        // Condition 2: COL Items (must come from Branch Consolidation)
+        // Check for 'COL_Consolidated' OR 'JobAccepted' if bypassing branch receive? 
+        // Flow: Step 4 Inbound (COL_Consolidated) -> Step 2 Hub
+        if (i.status === 'COL_Consolidated') return true;
+
+        return false;
     });
 
     // Step 3 Input: JobAccepted
@@ -330,10 +338,15 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         setRequestItems(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleRequestSubmit = async () => {
-        let itemsToProcess = [...requestItems];
+    const handleRequestSubmit = async (manualItems?: Partial<ReturnRecord>[]) => {
+        let itemsToProcess = manualItems && manualItems.length > 0 ? manualItems : [...requestItems];
         if (itemsToProcess.length === 0) {
-            alert("กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการก่อนยืนยัน");
+            Swal.fire({
+                icon: 'warning',
+                title: 'ไม่พบรายการสินค้า',
+                text: 'กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการก่อนยืนยัน',
+                confirmButtonColor: '#3085d6',
+            });
             return;
         }
         if (isSubmitting) return;
@@ -345,7 +358,8 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
 
             for (const item of itemsToProcess) {
                 let finalNcrNumber = item.ncrNumber;
-                if (!finalNcrNumber) {
+                // Only generate NCR Number if it is an NCR document
+                if (item.documentType === 'NCR' && !finalNcrNumber) {
                     finalNcrNumber = await getNextNCRNumber();
                 }
 
@@ -367,92 +381,107 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                     ncrNumber: finalNcrNumber,
                 };
 
-                const success = await addReturnRecord(record);
+                // Sanitize record to remove undefined values for Firebase
+                const sanitizedRecord = JSON.parse(JSON.stringify(record));
+
+                const success = await addReturnRecord(sanitizedRecord);
 
                 if (success) {
-                    const ncrRecord: any = {
-                        id: finalNcrNumber + '-' + record.id,
-                        ncrNo: finalNcrNumber,
-                        date: record.dateRequested,
-                        toDept: 'แผนกควบคุมคุณภาพ',
-                        founder: record.founder || 'Operations Hub',
-                        poNo: '', copyTo: '',
-                        problemDamaged: record.problemDamaged,
-                        problemDamagedInBox: record.problemDamagedInBox,
-                        problemLost: record.problemLost,
-                        problemMixed: record.problemMixed,
-                        problemWrongInv: record.problemWrongInv,
-                        problemLate: record.problemLate,
-                        problemDuplicate: record.problemDuplicate,
-                        problemWrong: record.problemWrong,
-                        problemIncomplete: record.problemIncomplete,
-                        problemOver: record.problemOver,
-                        problemWrongInfo: record.problemWrongInfo,
-                        problemShortExpiry: record.problemShortExpiry,
-                        problemTransportDamage: record.problemTransportDamage,
-                        problemAccident: record.problemAccident,
-                        problemPOExpired: record.problemPOExpired,
-                        problemNoBarcode: record.problemNoBarcode,
-                        problemNotOrdered: record.problemNotOrdered,
-                        problemOther: record.problemOther,
-                        problemOtherText: record.problemOtherText,
-                        problemDetail: record.problemDetail || record.reason || '',
-                        problemAnalysis: record.problemAnalysis,
-                        problemAnalysisSub: record.problemAnalysisSub,
-                        problemAnalysisCause: record.problemAnalysisCause,
-                        problemAnalysisDetail: record.problemAnalysisDetail,
-                        item: {
-                            id: record.id,
-                            branch: record.branch,
-                            refNo: record.refNo,
-                            neoRefNo: record.neoRefNo,
-                            productCode: record.productCode,
-                            productName: record.productName,
-                            customerName: record.customerName,
-                            destinationCustomer: record.destinationCustomer,
-                            quantity: record.quantity,
-                            unit: record.unit || 'PCS',
-                            priceBill: record.priceBill,
-                            pricePerUnit: record.pricePerUnit || 0,
-                            expiryDate: record.expiryDate,
-                            hasCost: record.hasCost,
-                            costAmount: record.costAmount,
-                            costResponsible: record.costResponsible,
-                            problemSource: record.problemSource || record.problemAnalysis || '-'
-                        },
-                        actionReject: record.actionReject,
-                        actionRejectQty: record.actionRejectQty,
-                        actionRejectSort: record.actionRejectSort,
-                        actionRejectSortQty: record.actionRejectSortQty,
-                        actionRework: record.actionRework,
-                        actionReworkQty: record.actionReworkQty,
-                        actionReworkMethod: record.actionReworkMethod,
-                        actionSpecialAccept: record.actionSpecialAcceptance,
-                        actionSpecialAcceptQty: record.actionSpecialAcceptanceQty,
-                        actionSpecialAcceptReason: record.actionSpecialAcceptanceReason,
-                        actionScrap: record.actionScrap,
-                        actionScrapQty: record.actionScrapQty,
-                        actionReplace: record.actionScrapReplace,
-                        actionReplaceQty: record.actionScrapReplaceQty,
-                        causePackaging: record.causePackaging,
-                        causeTransport: record.causeTransport,
-                        causeOperation: record.causeOperation,
-                        causeEnv: record.causeEnv,
-                        causeDetail: record.causeDetail,
-                        preventionDetail: record.preventionDetail,
-                        preventionDueDate: '', responsiblePerson: '', responsiblePosition: '',
-                        qaAccept: false, qaReject: false, qaReason: '',
-                        dueDate: '', approver: '', approverPosition: '', approverDate: '',
-                        status: 'Open'
-                    };
+                    // Only create NCR Report if it is explicitly an NCR document
+                    if (record.documentType === 'NCR') {
+                        const ncrRecord: any = {
+                            id: finalNcrNumber + '-' + record.id,
+                            ncrNo: finalNcrNumber,
+                            date: record.dateRequested,
+                            toDept: 'แผนกควบคุมคุณภาพ',
+                            founder: record.founder || 'Operations Hub',
+                            poNo: '', copyTo: '',
+                            problemDamaged: record.problemDamaged,
+                            problemDamagedInBox: record.problemDamagedInBox,
+                            problemLost: record.problemLost,
+                            problemMixed: record.problemMixed,
+                            problemWrongInv: record.problemWrongInv,
+                            problemLate: record.problemLate,
+                            problemDuplicate: record.problemDuplicate,
+                            problemWrong: record.problemWrong,
+                            problemIncomplete: record.problemIncomplete,
+                            problemOver: record.problemOver,
+                            problemWrongInfo: record.problemWrongInfo,
+                            problemShortExpiry: record.problemShortExpiry,
+                            problemTransportDamage: record.problemTransportDamage,
+                            problemAccident: record.problemAccident,
+                            problemPOExpired: record.problemPOExpired,
+                            problemNoBarcode: record.problemNoBarcode,
+                            problemNotOrdered: record.problemNotOrdered,
+                            problemOther: record.problemOther,
+                            problemOtherText: record.problemOtherText,
+                            problemDetail: record.problemDetail || record.reason || '',
+                            problemAnalysis: record.problemAnalysis,
+                            problemAnalysisSub: record.problemAnalysisSub,
+                            problemAnalysisCause: record.problemAnalysisCause,
+                            problemAnalysisDetail: record.problemAnalysisDetail,
+                            item: {
+                                id: record.id,
+                                branch: record.branch,
+                                refNo: record.refNo,
+                                neoRefNo: record.neoRefNo,
+                                productCode: record.productCode,
+                                productName: record.productName,
+                                customerName: record.customerName,
+                                destinationCustomer: record.destinationCustomer,
+                                quantity: record.quantity,
+                                unit: record.unit || 'PCS',
+                                priceBill: record.priceBill,
+                                pricePerUnit: record.pricePerUnit || 0,
+                                expiryDate: record.expiryDate,
+                                hasCost: record.hasCost,
+                                costAmount: record.costAmount,
+                                costResponsible: record.costResponsible,
+                                problemSource: record.problemSource || record.problemAnalysis || '-'
+                            },
+                            actionReject: record.actionReject,
+                            actionRejectQty: record.actionRejectQty,
+                            actionRejectSort: record.actionRejectSort,
+                            actionRejectSortQty: record.actionRejectSortQty,
+                            actionRework: record.actionRework,
+                            actionReworkQty: record.actionReworkQty,
+                            actionReworkMethod: record.actionReworkMethod,
+                            actionSpecialAccept: record.actionSpecialAcceptance,
+                            actionSpecialAcceptQty: record.actionSpecialAcceptanceQty,
+                            actionSpecialAcceptReason: record.actionSpecialAcceptanceReason,
+                            actionScrap: record.actionScrap,
+                            actionScrapQty: record.actionScrapQty,
+                            actionReplace: record.actionScrapReplace,
+                            actionReplaceQty: record.actionScrapReplaceQty,
+                            causePackaging: record.causePackaging,
+                            causeTransport: record.causeTransport,
+                            causeOperation: record.causeOperation,
+                            causeEnv: record.causeEnv,
+                            causeDetail: record.causeDetail,
+                            preventionDetail: record.preventionDetail,
+                            preventionDueDate: '', responsiblePerson: '', responsiblePosition: '',
+                            qaAccept: false, qaReject: false, qaReason: '',
+                            dueDate: '', approver: '', approverPosition: '', approverDate: '',
+                            status: 'Open'
+                        };
 
-                    const ncrSuccess = await addNCRReport(ncrRecord);
+                        // Sanitize NCR Record as well
+                        const sanitizedNCR = JSON.parse(JSON.stringify(ncrRecord));
+                        await addNCRReport(sanitizedNCR);
+                    }
                     successCount++;
                 }
             }
 
             if (successCount > 0) {
-                alert(`บันทึกรายการเรียบร้อย! ระบบจะนำคุณไปยังขั้นตอนถัดไป`);
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'บันทึกสำเร็จ',
+                    text: `บันทึกรายการเรียบร้อย! ระบบจะนำคุณไปยังขั้นตอนถัดไป`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
                 setFormData(initialFormState);
                 setRequestItems([]);
                 setCustomProblemType('');
@@ -462,7 +491,12 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             }
         } catch (error) {
             console.error("Submission error:", error);
-            alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง");
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                text: 'ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่',
+                confirmButtonColor: '#d33'
+            });
         } finally {
             setIsSubmitting(false);
         }

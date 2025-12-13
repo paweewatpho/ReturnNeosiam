@@ -32,7 +32,11 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
     // Filter Logic
     const pendingItems = useMemo(() => {
         return items.filter(item => {
-            const isNCR = item.documentType === 'NCR' || !!item.ncrNumber;
+            // Check if item is NCR:
+            // 1. Explicitly Document Type NCR
+            // 2. OR Has NCR Number AND is NOT explicitly LOGISTICS (legacy data support)
+            const isNCR = item.documentType === 'NCR' || (!!item.ncrNumber && item.documentType !== 'LOGISTICS');
+
             if (isNCR) {
                 return item.status === 'Requested' || item.status === 'COL_JobAccepted';
             }
@@ -214,42 +218,91 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                         {filteredItems.map(item => {
                             const isSelected = selectedIds.has(item.id);
-                            // Robust NCR check: Document type OR NCR Number presence
-                            const isNCR = item.documentType === 'NCR' || !!item.ncrNumber;
+
+                            // Explicit Logic for Display
+                            // 1. COL Items: Have collectionOrderId OR are in COL_Consolidated status OR id starts with COL
+                            const isCOLItem = !!item.collectionOrderId || item.status === 'COL_Consolidated' || (item.id && item.id.startsWith('COL'));
+
+                            // 2. NCR Items: Are NOT COL items, and have NCR markers at this stage
+                            const isNCRItem = !isCOLItem && (item.documentType === 'NCR' || !!item.ncrNumber);
+
+                            // Determine Display ID (Fallback to COL-{id} if missing order id)
+                            const displayId = isCOLItem
+                                ? (item.collectionOrderId || `COL-${item.id}`)
+                                : (item.ncrNumber || item.id);
+
                             return (
-                                <div key={item.id} onClick={() => handleToggle(item.id)} className={`group relative p-5 rounded-xl border transition-all cursor-pointer shadow-sm hover:shadow-md ${isSelected ? 'bg-indigo-50 border-indigo-400 ring-2 ring-indigo-200' : 'bg-white border-slate-200 hover:border-indigo-300'}`}>
+                                <div
+                                    key={item.id}
+                                    onClick={() => handleToggle(item.id)}
+                                    className={`group relative p-4 rounded-xl border transition-all cursor-pointer shadow-sm hover:shadow-md 
+                                        ${isSelected ? 'bg-indigo-50 border-indigo-400 ring-2 ring-indigo-200' : 'bg-white border-slate-200 hover:border-indigo-300'}
+                                    `}
+                                >
+                                    {/* Header Row: Badge | ID | Checkbox */}
                                     <div className="flex justify-between items-start mb-3">
                                         <div className="flex items-center gap-2">
-                                            {isNCR ?
-                                                <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold">NCR</span> :
-                                                <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold">COL</span>
-                                            }
-                                            <span className="text-xs font-mono text-slate-500 bg-slate-100 px-1.5 rounded">{item.ncrNumber || item.id}</span>
+                                            {isCOLItem && (
+                                                <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold border border-orange-200">
+                                                    COL
+                                                </span>
+                                            )}
+
+                                            {isNCRItem && (
+                                                <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold border border-indigo-200">
+                                                    NCR
+                                                </span>
+                                            )}
+
+                                            <span className="text-xs font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                                                {displayId}
+                                            </span>
                                         </div>
-                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'bg-transparent border-slate-300 group-hover:border-indigo-400'}`}>
-                                            {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
+
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors 
+                                            ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'bg-transparent border-slate-300 group-hover:border-indigo-400'}
+                                        `}>
+                                            {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
                                         </div>
                                     </div>
 
-                                    <h4 className="font-bold text-slate-800 text-base mb-2 line-clamp-2" title={item.productName}>{item.productName}</h4>
+                                    <h4 className="font-bold text-slate-800 text-sm mb-2 line-clamp-2 min-h-[1.25rem]" title={item.productName}>
+                                        {item.productName || 'Unknown Product'}
+                                    </h4>
 
                                     <div className="space-y-1.5">
-                                        <div className="flex items-center justify-between text-sm">
+                                        <div className="flex items-center justify-between text-xs">
                                             <span className="text-slate-500">จำนวน:</span>
                                             <span className="font-bold text-slate-700">{item.quantity} {item.unit}</span>
                                         </div>
-                                        <div className="flex items-center justify-between text-sm">
+                                        <div className="flex items-center justify-between text-xs">
                                             <span className="text-slate-500">สาขา:</span>
                                             <span className="text-slate-700">{item.branch}</span>
                                         </div>
-                                        <div className="flex items-center justify-between text-sm">
+                                        <div className="flex items-center justify-between text-xs">
                                             <span className="text-slate-500">วันที่:</span>
                                             <span className="text-slate-700">{item.dateRequested || item.date}</span>
                                         </div>
+
+                                        {/* Additional Info for COL Items */}
+                                        {isCOLItem && (
+                                            <>
+                                                <div className="flex items-center justify-between text-xs">
+                                                    <span className="text-slate-500">เลข R:</span>
+                                                    <span className="font-mono text-slate-700">{item.documentNo || '-'}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between text-xs">
+                                                    <span className="text-slate-500">ปลายทาง:</span>
+                                                    <span className="text-slate-700 truncate max-w-[120px]" title={item.destinationCustomer}>
+                                                        {item.destinationCustomer || '-'}
+                                                    </span>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
 
                                     {item.founder && (
-                                        <div className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500 flex items-center gap-1">
+                                        <div className="mt-3 pt-2 border-t border-slate-100 text-[10px] text-slate-500 flex items-center gap-1">
                                             <Info className="w-3 h-3" /> ผู้พบ: {item.founder}
                                         </div>
                                     )}
