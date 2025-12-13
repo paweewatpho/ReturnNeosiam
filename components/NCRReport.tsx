@@ -50,6 +50,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
     hasCost: false,
     startDate: '',
     endDate: '',
+    docType: 'All' // New filter for Document Type
   });
 
   // Pagination State
@@ -69,7 +70,17 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
   const filteredNcrReports = useMemo(() => {
     return ncrReports.filter(report => {
       const itemData = report.item || (report as any);
+
       const correspondingReturn = items.find(item => item.ncrNumber === report.ncrNo);
+
+      // Doc Type Filter (NCR vs COL)
+      if (filters.docType !== 'All') {
+        const isNCR = (report as any).documentType === 'NCR' || report.ncrNo?.startsWith('NCR');
+        // If specific check fails, fallback to ID pattern or assumptions
+
+        if (filters.docType === 'NCR' && !isNCR) return false;
+        if (filters.docType === 'COL' && isNCR) return false;
+      }
 
       // Date Range Filter
       if (filters.startDate && report.date < filters.startDate) return false;
@@ -495,15 +506,25 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
     }
     const config: Record<string, { text: string, color: string }> = {
       'Requested': { text: 'รอรับเข้า', color: 'bg-slate-100 text-slate-600' },
+      'COL_JobAccepted': { text: 'สาขารับงานแล้ว', color: 'bg-blue-100 text-blue-800' },
       'PickupScheduled': { text: 'รอรถรับ (Job)', color: 'bg-indigo-100 text-indigo-700' },
       'PickedUp': { text: 'รับของแล้ว', color: 'bg-pink-100 text-pink-700' },
+      'COL_Consolidated': { text: 'รวมของแล้ว (Consolidated)', color: 'bg-slate-100 text-slate-800' },
       'InTransitHub': { text: 'กำลังขนส่ง', color: 'bg-orange-100 text-orange-800' },
+      'NCR_InTransit': { text: 'กำลังขนส่ง (NCR)', color: 'bg-orange-100 text-orange-800' },
+      'COL_InTransit': { text: 'กำลังขนส่ง (COL)', color: 'bg-orange-100 text-orange-800' },
       'ReceivedAtHub': { text: 'สินค้าถึง Hub (รอ QC)', color: 'bg-yellow-100 text-yellow-800' },
+      'NCR_HubReceived': { text: 'ถึง Hub (รอ QC)', color: 'bg-yellow-100 text-yellow-800' },
+      'COL_HubReceived': { text: 'ถึง Hub (COL)', color: 'bg-yellow-100 text-yellow-800' },
       'Received': { text: 'สินค้าถึง Hub (รอ QC)', color: 'bg-yellow-100 text-yellow-800' },
       'QCPassed': { text: 'ผ่าน QC (รอเอกสาร)', color: 'bg-blue-100 text-blue-700' },
+      'NCR_QCPassed': { text: 'ผ่าน QC', color: 'bg-blue-100 text-blue-700' },
+      'NCR_QCCompleted': { text: 'ผ่าน QC (รอเอกสาร)', color: 'bg-blue-100 text-blue-700' },
       'Graded': { text: 'ผ่าน QC (รอเอกสาร)', color: 'bg-blue-100 text-blue-700' },
       'ReturnToSupplier': { text: 'ส่งคืน/รอปิดงาน', color: 'bg-purple-100 text-purple-700' },
+      'DirectReturn': { text: 'ส่งคืนตรง (Direct)', color: 'bg-green-100 text-green-800' },
       'Documented': { text: 'ส่งคืน/รอปิดงาน', color: 'bg-purple-100 text-purple-700' },
+      'DocsCompleted': { text: 'รอปิดงาน (Docs)', color: 'bg-purple-100 text-purple-700' },
       'Completed': { text: 'จบงาน', color: 'bg-green-100 text-green-700' },
     };
 
@@ -547,7 +568,14 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
             onChange={e => setFilters({ ...filters, query: e.target.value })}
             className="w-full pl-7 pr-2 py-1 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-xs"
           />
+
         </div>
+
+        <select value={filters.docType} onChange={e => setFilters({ ...filters, docType: e.target.value })} className="bg-slate-50 border border-slate-200 rounded-lg text-xs p-1 outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-700">
+          <option value="All">ทุกประเภทเอกสาร</option>
+          <option value="NCR">งานคุณภาพ (NCR)</option>
+          <option value="COL">งานรับสินค้า (COL)</option>
+        </select>
 
         <div className="flex gap-1">
           <input
@@ -597,7 +625,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
             Excel
           </button>
           <button
-            onClick={() => setFilters({ query: '', action: 'All', returnStatus: 'All', hasCost: false, startDate: '', endDate: '' })}
+            onClick={() => setFilters({ query: '', action: 'All', returnStatus: 'All', hasCost: false, startDate: '', endDate: '', docType: 'All' })}
             className="px-2 py-1 text-slate-600 hover:bg-slate-100 font-medium rounded-lg border border-slate-200"
             title="ล้างตัวกรอง (Clear)"
           >

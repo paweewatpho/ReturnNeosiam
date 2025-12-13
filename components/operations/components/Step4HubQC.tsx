@@ -35,8 +35,15 @@ export const Step4HubQC: React.FC = () => {
     const [splitDisposition, setSplitDisposition] = useState<DispositionAction | null>(null);
 
     // Filter Items: Status 'NCR_HubReceived' or 'ReceivedAtHub'
+    // Filter Items: Show ONLY NCR items that are received at Hub
+    // COL items skip this step and go directly to Docs.
     const receivedItems = React.useMemo(() => {
-        return items.filter(item => item.status === 'NCR_HubReceived' || item.status === 'ReceivedAtHub');
+        return items.filter(item => {
+            const isReceived = item.status === 'NCR_HubReceived' || item.status === 'ReceivedAtHub';
+            // Explicitly verify it's an NCR related item
+            const isNCR = item.documentType === 'NCR' || !!item.ncrNumber || item.status === 'NCR_HubReceived';
+            return isReceived && isNCR;
+        });
     }, [items]);
 
     // Handlers

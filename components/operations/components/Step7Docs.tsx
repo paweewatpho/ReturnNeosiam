@@ -17,15 +17,31 @@ export const Step7Docs: React.FC<Step7DocsProps> = ({ onPrintDocs }) => {
     // In strict NCR flow: 'QCPassed' or 'NCR_QCPassed'
     // In legacy/Collection flow: 'HubReceived' (if QC skipped) or 'QCPassed'
     const processedItems = React.useMemo(() => {
-        return items.filter(item =>
-            item.status === 'QCPassed' ||
-            item.status === 'NCR_QCPassed' ||
-            item.status === 'HubReceived' ||
-            item.status === 'COL_HubReceived' ||
-            // Also include items that might be 'ReturnToSupplier' but haven't been finalized? No, those are next step.
-            // Items ready for Docs are typically 'QCPassed'.
-            item.status === 'QCCompleted' // Legacy alias
-        );
+        return items.filter(item => {
+            const isNCR = item.documentType === 'NCR' || !!item.ncrNumber || item.status.startsWith('NCR_');
+            const isCollection = !isNCR;
+
+            // 1. COL Flow: Skip QC -> Ready for Docs if received
+            if (isCollection) {
+                return (
+                    item.status === 'COL_HubReceived' ||
+                    item.status === 'ReceivedAtHub' ||
+                    item.status === 'HubReceived' ||
+                    item.status === 'QCCompleted' // Backwards compatibility
+                );
+            }
+
+            // 2. NCR Flow: Must pass QC
+            if (isNCR) {
+                return (
+                    item.status === 'NCR_QCPassed' ||
+                    item.status === 'QCPassed' ||
+                    item.status === 'QCCompleted'
+                );
+            }
+
+            return false;
+        });
     }, [items]);
 
     const handlePrintClick = async (status: DispositionAction, list: ReturnRecord[]) => {
