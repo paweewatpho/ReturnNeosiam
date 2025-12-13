@@ -15,6 +15,13 @@ export interface ReturnStat {
   color: string;
 }
 
+export interface TransportInfo {
+  driverName?: string;
+  plateNumber?: string;
+  transportCompany?: string;
+  destination?: string;
+}
+
 export enum AppView {
   DASHBOARD = 'DASHBOARD',
   OPERATIONS = 'OPERATIONS',

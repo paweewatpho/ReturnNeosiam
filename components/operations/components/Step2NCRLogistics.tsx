@@ -3,10 +3,11 @@ import { createPortal } from 'react-dom';
 import Swal from 'sweetalert2';
 import { Truck, MapPin, Printer, ArrowRight, Package, Box, Calendar, Layers, X, Info } from 'lucide-react';
 import { useData } from '../../../DataContext';
-import { ReturnRecord } from '../../../types';
+import { ReturnRecord, TransportInfo } from '../../../types';
+
 
 interface Step2NCRLogisticsProps {
-    onConfirm?: (selectedIds: string[], routeType: 'Hub' | 'Direct', transportInfo: any) => void;
+    onConfirm?: (selectedIds: string[], routeType: 'Hub' | 'Direct', transportInfo: TransportInfo) => void;
 }
 
 export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm }) => {
@@ -16,7 +17,7 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
 
     // Transport Info State
     const [transportMode, setTransportMode] = useState<'Company' | '3PL' | 'Other'>('Company');
-    const [transportInfo, setTransportInfo] = useState({
+    const [transportInfo, setTransportInfo] = useState<TransportInfo>({
         driverName: '',
         plateNumber: '',
         transportCompany: 'รถบริษัท'
