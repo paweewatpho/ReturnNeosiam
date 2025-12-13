@@ -128,7 +128,13 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
 
     // Step 2 Input: Requested (Exclude NCR)
     const step2Items = items.filter(i => i.status === 'Requested' && i.documentType !== 'NCR');
-    const ncrStep2Items = items.filter(i => (i.status === 'Requested' || i.status === 'COL_JobAccepted') && (i.documentType === 'NCR' || i.documentType === 'LOGISTICS' || !!i.ncrNumber));
+    const ncrStep2Items = items.filter(i => {
+        const isNCR = i.documentType === 'NCR' || !!i.ncrNumber;
+        if (isNCR) {
+            return i.status === 'Requested' || i.status === 'COL_JobAccepted';
+        }
+        return i.status === 'COL_Consolidated';
+    });
 
     // Step 3 Input: JobAccepted
     const step3Items = items.filter(i => i.status === 'JobAccepted');

@@ -7,9 +7,14 @@ import { ReturnRecord } from '../../../types';
 export const Step3BranchReceive: React.FC = () => {
     const { items, updateReturnRecord } = useData();
 
-    // Filter Items: Status 'JobAccepted' or 'COL_JobAccepted'
+    // Filter Items: Status 'JobAccepted' or 'COL_JobAccepted' ensuring NO NCR items
+    // "3. รับสินค้า (Branch Physical Receive) แสดง จะรับสินค้าเฉพาะ ที่ คีย์ จาก ระบบงานรับสินค้า (Inbound Collection System)"
     const acceptedItems = React.useMemo(() => {
-        return items.filter(item => item.status === 'JobAccepted' || item.status === 'COL_JobAccepted');
+        return items.filter(item =>
+            (item.status === 'COL_JobAccepted' || item.status === 'JobAccepted') &&
+            !item.ncrNumber &&
+            item.documentType !== 'NCR'
+        );
     }, [items]);
 
     const handleReceiveItem = async (id: string) => {
