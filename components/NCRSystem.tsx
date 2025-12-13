@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
 import { useData, NCRRecord, NCRItem } from '../DataContext';
 import { ReturnRecord } from '../types';
-import { Save, Printer, Image as ImageIcon, AlertTriangle, Plus, Trash2, X, Loader, CheckCircle, XCircle, HelpCircle, Download, Lock, PenTool } from 'lucide-react';
+import { Save, Printer, Image as ImageIcon, AlertTriangle, Plus, Trash2, X, Loader, CheckCircle, XCircle, HelpCircle, Download, Lock, PenTool, Share2, Truck, DollarSign, Home, FileText } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { RESPONSIBLE_MAPPING } from './operations/utils';
 import { LineAutocomplete } from './LineAutocomplete';
@@ -119,6 +119,29 @@ const NCRSystem: React.FC = () => {
             });
             return;
         }
+
+        // ตรวจสอบการตัดสินใจเบื้องต้น (บังคับกรอก)
+        if (!newItem.preliminaryDecision) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'กรุณาเลือกการตัดสินใจเบื้องต้น',
+                text: 'คุณต้องเลือกการตัดสินใจเบื้องต้นก่อนบันทึกรายการ',
+                confirmButtonText: 'ตกลง'
+            });
+            return;
+        }
+
+        // ตรวจสอบเส้นทาง (ถ้าเลือก Return)
+        if (newItem.preliminaryDecision === 'Return' && !newItem.preliminaryRoute) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'กรุณาระบุเส้นทาง',
+                text: 'สำหรับการคืนสินค้า กรุณาระบุเส้นทางส่งคืน',
+                confirmButtonText: 'ตกลง'
+            });
+            return;
+        }
+
         let formattedSource = '';
         const s = sourceSelection;
         if (s.category === 'Customer') formattedSource = 'ลูกค้าต้นทาง';
@@ -770,66 +793,96 @@ const NCRSystem: React.FC = () => {
                             {/* Preliminary Decision Section */}
                             <div className="space-y-3 pt-4 border-t">
                                 <h4 className="font-bold text-slate-900 flex items-center gap-2">
-                                    <HelpCircle className="w-4 h-4 text-blue-600" />
+                                    <Share2 className="w-5 h-5 text-indigo-600" />
                                     การตัดสินใจเบื้องต้น (Preliminary Decision)
                                 </h4>
-                                <div className="grid grid-cols-3 gap-2 text-sm">
-                                    <label className="flex items-center gap-2 border p-2 rounded hover:bg-blue-50 cursor-pointer">
-                                        <input
-                                            type="radio"
-                                            name="prelimDecision"
-                                            checked={newItem.preliminaryDecision === 'Return'}
-                                            onChange={() => setNewItem({ ...newItem, preliminaryDecision: 'Return' })}
-                                        />
-                                        คืนสินค้า (Return)
-                                    </label>
-                                    <label className="flex items-center gap-2 border p-2 rounded hover:bg-green-50 cursor-pointer">
-                                        <input
-                                            type="radio"
-                                            name="prelimDecision"
-                                            checked={newItem.preliminaryDecision === 'Sell'}
-                                            onChange={() => setNewItem({ ...newItem, preliminaryDecision: 'Sell' })}
-                                        />
-                                        ขาย (Sell)
-                                    </label>
-                                    <label className="flex items-center gap-2 border p-2 rounded hover:bg-red-50 cursor-pointer">
-                                        <input
-                                            type="radio"
-                                            name="prelimDecision"
-                                            checked={newItem.preliminaryDecision === 'Scrap'}
-                                            onChange={() => setNewItem({ ...newItem, preliminaryDecision: 'Scrap' })}
-                                        />
-                                        ทำลาย (Scrap)
-                                    </label>
-                                    <label className="flex items-center gap-2 border p-2 rounded hover:bg-purple-50 cursor-pointer">
-                                        <input
-                                            type="radio"
-                                            name="prelimDecision"
-                                            checked={newItem.preliminaryDecision === 'Internal'}
-                                            onChange={() => setNewItem({ ...newItem, preliminaryDecision: 'Internal' })}
-                                        />
-                                        ใช้ภายใน (Internal)
-                                    </label>
-                                    <label className="flex items-center gap-2 border p-2 rounded hover:bg-orange-50 cursor-pointer">
-                                        <input
-                                            type="radio"
-                                            name="prelimDecision"
-                                            checked={newItem.preliminaryDecision === 'Claim'}
-                                            onChange={() => setNewItem({ ...newItem, preliminaryDecision: 'Claim' })}
-                                        />
-                                        เคลม (Claim)
-                                    </label>
+                                <p className="text-xs text-slate-500 mb-3">กรุณาเลือกการจัดการเบื้องต้นสำหรับรายการนี้</p>
+
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setNewItem({ ...newItem, preliminaryDecision: 'Return', preliminaryRoute: '' })}
+                                        className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${newItem.preliminaryDecision === 'Return' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 hover:border-indigo-200 hover:bg-slate-50'}`}
+                                    >
+                                        <Truck className={`w-7 h-7 ${newItem.preliminaryDecision === 'Return' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                                        <span className="font-bold text-sm">ส่งคืน (Return)</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setNewItem({ ...newItem, preliminaryDecision: 'Sell', preliminaryRoute: '' })}
+                                        className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${newItem.preliminaryDecision === 'Sell' ? 'border-green-500 bg-green-50 text-green-700' : 'border-slate-200 hover:border-green-200 hover:bg-slate-50'}`}
+                                    >
+                                        <DollarSign className={`w-7 h-7 ${newItem.preliminaryDecision === 'Sell' ? 'text-green-600' : 'text-slate-400'}`} />
+                                        <span className="font-bold text-sm">ขาย (Sell)</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setNewItem({ ...newItem, preliminaryDecision: 'Scrap', preliminaryRoute: '' })}
+                                        className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${newItem.preliminaryDecision === 'Scrap' ? 'border-red-500 bg-red-50 text-red-700' : 'border-slate-200 hover:border-red-200 hover:bg-slate-50'}`}
+                                    >
+                                        <Trash2 className={`w-7 h-7 ${newItem.preliminaryDecision === 'Scrap' ? 'text-red-600' : 'text-slate-400'}`} />
+                                        <span className="font-bold text-sm">ทิ้ง (Scrap)</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setNewItem({ ...newItem, preliminaryDecision: 'Internal', preliminaryRoute: '' })}
+                                        className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${newItem.preliminaryDecision === 'Internal' ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-slate-200 hover:border-amber-200 hover:bg-slate-50'}`}
+                                    >
+                                        <Home className={`w-7 h-7 ${newItem.preliminaryDecision === 'Internal' ? 'text-amber-600' : 'text-slate-400'}`} />
+                                        <span className="font-bold text-sm">ใช้ภายใน (Internal)</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setNewItem({ ...newItem, preliminaryDecision: 'Claim', preliminaryRoute: '' })}
+                                        className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${newItem.preliminaryDecision === 'Claim' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-blue-200 hover:bg-slate-50'}`}
+                                    >
+                                        <FileText className={`w-7 h-7 ${newItem.preliminaryDecision === 'Claim' ? 'text-blue-600' : 'text-slate-400'}`} />
+                                        <span className="font-bold text-sm">เคลมประกัน (Claim)</span>
+                                    </button>
                                 </div>
-                                {newItem.preliminaryDecision && (
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-1">เส้นทาง (Route)</label>
-                                        <input
-                                            type="text"
-                                            className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                                            value={newItem.preliminaryRoute || ''}
-                                            onChange={e => setNewItem({ ...newItem, preliminaryRoute: e.target.value })}
-                                            placeholder="เช่น สาย 3, Sino, NEO, อื่นๆ"
-                                        />
+
+                                {newItem.preliminaryDecision === 'Return' && (
+                                    <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200 animate-fade-in">
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">ระบุเส้นทางส่งคืน (Select Route)</label>
+                                        <div className="space-y-2">
+                                            {['สาย 3', 'Sino Pacific Trading', 'NEO CORPORATE'].map(route => (
+                                                <label key={route} className="flex items-center gap-3 p-2 bg-white rounded border border-slate-200 hover:border-indigo-300 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="ncrRoute"
+                                                        value={route}
+                                                        checked={newItem.preliminaryRoute === route}
+                                                        onChange={(e) => setNewItem({ ...newItem, preliminaryRoute: e.target.value })}
+                                                        className="w-4 h-4 text-indigo-600"
+                                                    />
+                                                    <span className="text-sm">{route}</span>
+                                                </label>
+                                            ))}
+                                            <label className="flex items-center gap-3 p-2 bg-white rounded border border-slate-200 hover:border-indigo-300 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="ncrRoute"
+                                                    value="Other"
+                                                    checked={newItem.preliminaryRoute && !['สาย 3', 'Sino Pacific Trading', 'NEO CORPORATE'].includes(newItem.preliminaryRoute)}
+                                                    onChange={() => setNewItem({ ...newItem, preliminaryRoute: 'Other' })}
+                                                    className="w-4 h-4 text-indigo-600"
+                                                />
+                                                <span className="text-sm">อื่นๆ (Other)</span>
+                                            </label>
+                                            {newItem.preliminaryRoute && !['สาย 3', 'Sino Pacific Trading', 'NEO CORPORATE'].includes(newItem.preliminaryRoute) && (
+                                                <input
+                                                    type="text"
+                                                    value={newItem.preliminaryRoute === 'Other' ? '' : newItem.preliminaryRoute}
+                                                    onChange={(e) => setNewItem({ ...newItem, preliminaryRoute: e.target.value })}
+                                                    className="w-full p-2 mt-2 border border-slate-300 rounded text-sm"
+                                                    placeholder="ระบุเส้นทาง..."
+                                                />
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </div>

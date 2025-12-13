@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Swal from 'sweetalert2';
-import { Truck, MapPin, Printer, ArrowRight, Package, Box, Calendar, Layers, X, Info } from 'lucide-react';
+import { Truck, MapPin, Printer, ArrowRight, Package, Box, Calendar, Layers, X, Info, Share2 } from 'lucide-react';
 import { useData } from '../../../DataContext';
 import { ReturnRecord, TransportInfo } from '../../../types';
 
@@ -11,9 +11,15 @@ interface Step2NCRLogisticsProps {
 }
 
 export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm }) => {
-    const { items } = useData();
+    const { items, updateReturnRecord } = useData();
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Decision Modal State
+    const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
+    const [editingItemId, setEditingItemId] = useState<string | null>(null);
+    const [tempDecision, setTempDecision] = useState<'Return' | 'Sell' | 'Scrap' | 'Internal' | 'Claim' | null>(null);
+    const [tempRoute, setTempRoute] = useState<string>('');
 
     // Transport Info State
     const [transportMode, setTransportMode] = useState<'Company' | '3PL' | 'Other'>('Company');
@@ -63,6 +69,53 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
         } else {
             setSelectedIds(new Set(filteredItems.map(i => i.id)));
         }
+    };
+
+    const handleAddDecision = (itemId: string) => {
+        setEditingItemId(itemId);
+        setTempDecision(null);
+        setTempRoute('');
+        setIsDecisionModalOpen(true);
+    };
+
+    const handleSaveDecision = async () => {
+        if (!editingItemId || !tempDecision) {
+            await Swal.fire({
+                icon: 'warning',
+                title: 'กรุณาเลือกการตัดสินใจ',
+                text: 'คุณต้องเลือกการตัดสินใจเบื้องต้นก่อนบันทึก',
+                confirmButtonText: 'ตกลง'
+            });
+            return;
+        }
+
+        if (tempDecision === 'Return' && !tempRoute) {
+            await Swal.fire({
+                icon: 'warning',
+                title: 'กรุณาระบุเส้นทาง',
+                text: 'สำหรับการคืนสินค้า กรุณาระบุเส้นทางส่งคืน',
+                confirmButtonText: 'ตกลง'
+            });
+            return;
+        }
+
+        await updateReturnRecord(editingItemId, {
+            preliminaryDecision: tempDecision,
+            preliminaryRoute: tempDecision === 'Return' ? tempRoute : ''
+        });
+
+        await Swal.fire({
+            icon: 'success',
+            title: 'บันทึกสำเร็จ',
+            text: 'เพิ่มการตัดสินใจเบื้องต้นเรียบร้อยแล้ว',
+            timer: 1500,
+            showConfirmButton: false
+        });
+
+        setIsDecisionModalOpen(false);
+        setEditingItemId(null);
+        setTempDecision(null);
+        setTempRoute('');
     };
 
     const handleOpenModal = () => {
@@ -300,11 +353,11 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                                             <div className="flex items-center justify-between text-xs">
                                                 <span className="text-slate-500">การตัดสินใจเบื้องต้น:</span>
                                                 <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${item.preliminaryDecision === 'Return' ? 'bg-blue-100 text-blue-700' :
-                                                        item.preliminaryDecision === 'Sell' ? 'bg-green-100 text-green-700' :
-                                                            item.preliminaryDecision === 'Scrap' ? 'bg-red-100 text-red-700' :
-                                                                item.preliminaryDecision === 'Internal' ? 'bg-purple-100 text-purple-700' :
-                                                                    item.preliminaryDecision === 'Claim' ? 'bg-orange-100 text-orange-700' :
-                                                                        'bg-slate-100 text-slate-700'
+                                                    item.preliminaryDecision === 'Sell' ? 'bg-green-100 text-green-700' :
+                                                        item.preliminaryDecision === 'Scrap' ? 'bg-red-100 text-red-700' :
+                                                            item.preliminaryDecision === 'Internal' ? 'bg-purple-100 text-purple-700' :
+                                                                item.preliminaryDecision === 'Claim' ? 'bg-orange-100 text-orange-700' :
+                                                                    'bg-slate-100 text-slate-700'
                                                     }`}>
                                                     {item.preliminaryDecision === 'Return' ? 'คืนสินค้า' :
                                                         item.preliminaryDecision === 'Sell' ? 'ขาย' :
@@ -320,6 +373,22 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                                                     <span className="text-slate-700 font-medium">{item.preliminaryRoute}</span>
                                                 </div>
                                             )}
+                                        </div>
+                                    )}
+
+                                    {/* Add Decision Button for items without preliminary decision */}
+                                    {!item.preliminaryDecision && (
+                                        <div className="mt-3 pt-2 border-t border-dashed border-amber-200 bg-amber-50/30">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleAddDecision(item.id);
+                                                }}
+                                                className="w-full py-2 px-3 text-xs font-bold text-amber-700 hover:text-amber-800 hover:bg-amber-100 rounded transition-colors flex items-center justify-center gap-1.5"
+                                            >
+                                                <Share2 className="w-3.5 h-3.5" />
+                                                เพิ่มการตัดสินใจเบื้องต้น
+                                            </button>
                                         </div>
                                     )}
 
@@ -496,6 +565,126 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                                     <>ยืนยัน / ออกเอกสาร <Truck className="w-5 h-5" /></> :
                                     <>ยืนยัน / ออกเอกสาร <Printer className="w-5 h-5" /></>
                                 }
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Decision Modal */}
+            {isDecisionModalOpen && createPortal(
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-indigo-50 to-blue-50">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                    <Share2 className="w-6 h-6 text-indigo-600" />
+                                    เพิ่มการตัดสินใจเบื้องต้น
+                                </h3>
+                                <button onClick={() => setIsDecisionModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+                            <p className="text-sm text-slate-600 mt-2">กรุณาเลือกการจัดการเบื้องต้นสำหรับรายการนี้</p>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setTempDecision('Return')}
+                                    className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${tempDecision === 'Return' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 hover:border-indigo-200 hover:bg-slate-50'}`}
+                                >
+                                    <Truck className={`w-8 h-8 ${tempDecision === 'Return' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                                    <span className="font-bold text-sm">ส่งคืน (Return)</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => { setTempDecision('Sell'); setTempRoute(''); }}
+                                    className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${tempDecision === 'Sell' ? 'border-green-500 bg-green-50 text-green-700' : 'border-slate-200 hover:border-green-200 hover:bg-slate-50'}`}
+                                >
+                                    <Package className={`w-8 h-8 ${tempDecision === 'Sell' ? 'text-green-600' : 'text-slate-400'}`} />
+                                    <span className="font-bold text-sm">ขาย (Sell)</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => { setTempDecision('Scrap'); setTempRoute(''); }}
+                                    className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${tempDecision === 'Scrap' ? 'border-red-500 bg-red-50 text-red-700' : 'border-slate-200 hover:border-red-200 hover:bg-slate-50'}`}
+                                >
+                                    <X className={`w-8 h-8 ${tempDecision === 'Scrap' ? 'text-red-600' : 'text-slate-400'}`} />
+                                    <span className="font-bold text-sm">ทิ้ง (Scrap)</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => { setTempDecision('Internal'); setTempRoute(''); }}
+                                    className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${tempDecision === 'Internal' ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-slate-200 hover:border-amber-200 hover:bg-slate-50'}`}
+                                >
+                                    <Box className={`w-8 h-8 ${tempDecision === 'Internal' ? 'text-amber-600' : 'text-slate-400'}`} />
+                                    <span className="font-bold text-sm">ใช้ภายใน (Internal)</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => { setTempDecision('Claim'); setTempRoute(''); }}
+                                    className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${tempDecision === 'Claim' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-blue-200 hover:bg-slate-50'}`}
+                                >
+                                    <Info className={`w-8 h-8 ${tempDecision === 'Claim' ? 'text-blue-600' : 'text-slate-400'}`} />
+                                    <span className="font-bold text-sm">เคลมประกัน (Claim)</span>
+                                </button>
+                            </div>
+
+                            {tempDecision === 'Return' && (
+                                <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">ระบุเส้นทางส่งคืน (Select Route)</label>
+                                    <div className="space-y-2">
+                                        {['สาย 3', 'Sino Pacific Trading', 'NEO CORPORATE'].map(route => (
+                                            <label key={route} className="flex items-center gap-3 p-2 bg-white rounded border border-slate-200 hover:border-indigo-300 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="tempRoute"
+                                                    value={route}
+                                                    checked={tempRoute === route}
+                                                    onChange={(e) => setTempRoute(e.target.value)}
+                                                    className="w-4 h-4 text-indigo-600"
+                                                />
+                                                <span className="text-sm">{route}</span>
+                                            </label>
+                                        ))}
+                                        <label className="flex items-center gap-3 p-2 bg-white rounded border border-slate-200 hover:border-indigo-300 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="tempRoute"
+                                                value="Other"
+                                                checked={tempRoute && !['สาย 3', 'Sino Pacific Trading', 'NEO CORPORATE'].includes(tempRoute)}
+                                                onChange={() => setTempRoute('Other')}
+                                                className="w-4 h-4 text-indigo-600"
+                                            />
+                                            <span className="text-sm">อื่นๆ (Other)</span>
+                                        </label>
+                                        {tempRoute && !['สาย 3', 'Sino Pacific Trading', 'NEO CORPORATE'].includes(tempRoute) && (
+                                            <input
+                                                type="text"
+                                                value={tempRoute === 'Other' ? '' : tempRoute}
+                                                onChange={(e) => setTempRoute(e.target.value)}
+                                                className="w-full p-2 mt-2 border border-slate-300 rounded text-sm"
+                                                placeholder="ระบุเส้นทาง..."
+                                            />
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+                            <button onClick={() => setIsDecisionModalOpen(false)} className="px-5 py-2.5 text-slate-600 font-bold hover:bg-slate-200 rounded-lg transition-colors">
+                                ยกเลิก
+                            </button>
+                            <button onClick={handleSaveDecision} className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 shadow-md transition-all">
+                                บันทึก
                             </button>
                         </div>
                     </div>
