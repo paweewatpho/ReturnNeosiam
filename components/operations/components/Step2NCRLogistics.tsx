@@ -214,7 +214,8 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                         {filteredItems.map(item => {
                             const isSelected = selectedIds.has(item.id);
-                            const isNCR = item.documentType === 'NCR';
+                            // Robust NCR check: Document type OR NCR Number presence
+                            const isNCR = item.documentType === 'NCR' || !!item.ncrNumber;
                             return (
                                 <div key={item.id} onClick={() => handleToggle(item.id)} className={`group relative p-5 rounded-xl border transition-all cursor-pointer shadow-sm hover:shadow-md ${isSelected ? 'bg-indigo-50 border-indigo-400 ring-2 ring-indigo-200' : 'bg-white border-slate-200 hover:border-indigo-300'}`}>
                                     <div className="flex justify-between items-start mb-3">

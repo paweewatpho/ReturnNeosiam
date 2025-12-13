@@ -146,19 +146,47 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
     const step5Items = items.filter(i => i.status === 'ReadyForLogistics');
 
     // Step 6 Input: InTransitToHub
-    const step6Items = items.filter(i => i.status === 'InTransitToHub');
+    const step6Items = items.filter(i => i.status === 'InTransitToHub' || i.status === 'NCR_InTransit' || i.status === 'COL_InTransit');
 
-    // Step 7 Input: HubReceived
-    const step7Items = items.filter(i => i.status === 'HubReceived');
+    // Step 7 Input: HubReceived (Docs)
+    // Exclude DirectReturn from here as requested
+    // Step 7 Input: HubReceived (Docs)
+    const step7Items = items.filter(i => {
+        const isNCR = i.documentType === 'NCR' || !!i.ncrNumber || i.status.startsWith('NCR_');
+        const isCollection = !isNCR;
 
-    // Step 8 Input: DocsCompleted
-    const step8Items = items.filter(i => i.status === 'DocsCompleted');
+        if (isCollection) {
+            return (
+                i.status === 'COL_HubReceived' ||
+                i.status === 'ReceivedAtHub' ||
+                i.status === 'HubReceived' ||
+                i.status === 'QCCompleted'
+            );
+        }
+        if (isNCR) {
+            return (
+                i.status === 'NCR_QCPassed' ||
+                i.status === 'QCPassed' ||
+                i.status === 'QCCompleted'
+            );
+        }
+        return false;
+    });
+
+    // Step 8 Input: DocsCompleted (Closure / Pending Completion)
+    // Includes DirectReturn items here
+    const step8Items = items.filter(i =>
+        i.status === 'DocsCompleted' ||
+        i.status === 'ReturnToSupplier' ||
+        i.status === 'DirectReturn'
+    );
 
     // Completed History
     const completedItems = items.filter(i => i.status === 'Completed');
 
     // Aliases for Props Compatibility
     const logisticItems = step5Items;
+
     const hubReceiveItems = step6Items;
     const hubDocItems = step7Items;
     const closureItems = step8Items;
