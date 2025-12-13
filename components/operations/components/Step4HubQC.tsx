@@ -1,58 +1,151 @@
 
-import React from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Activity, ClipboardList, GitFork, Save, Truck, Search } from 'lucide-react';
+import { useData } from '../../../DataContext';
 import { ReturnRecord, ItemCondition, DispositionAction } from '../../../types';
 import { conditionLabels, dispositionLabels } from '../utils';
 import { RETURN_ROUTES } from '../../../constants';
 
-interface Step3QCProps {
-    receivedItems: ReturnRecord[];
-    qcSelectedItem: ReturnRecord | null;
-    customInputType: 'Good' | 'Bad' | null;
-    selectedDisposition: DispositionAction | null;
-    dispositionDetails: {
-        route: string;
-        sellerName: string;
-        contactPhone: string;
-        internalUseDetail: string;
-        claimCompany: string;
-        claimCoordinator: string;
-        claimPhone: string;
+export const Step4HubQC: React.FC = () => {
+    const { items, updateReturnRecord, addReturnRecord } = useData();
+
+    // Local State
+    const [qcSelectedItem, setQcSelectedItem] = useState<ReturnRecord | null>(null);
+    const [customInputType, setCustomInputType] = useState<'Good' | 'Bad' | null>(null);
+    const [selectedDisposition, setSelectedDisposition] = useState<DispositionAction | null>(null);
+    const [dispositionDetails, setDispositionDetails] = useState({
+        route: '',
+        sellerName: '',
+        contactPhone: '',
+        internalUseDetail: '',
+        claimCompany: '',
+        claimCoordinator: '',
+        claimPhone: ''
+    });
+    const [isCustomRoute, setIsCustomRoute] = useState(false);
+
+    // Split State
+    const [showSplitMode, setShowSplitMode] = useState(false);
+    const [isBreakdownUnit, setIsBreakdownUnit] = useState(false);
+    const [conversionRate, setConversionRate] = useState(1);
+    const [newUnitName, setNewUnitName] = useState('');
+    const [splitQty, setSplitQty] = useState(0);
+    const [splitCondition, setSplitCondition] = useState<ItemCondition>('New');
+    const [splitDisposition, setSplitDisposition] = useState<DispositionAction | null>(null);
+
+    // Filter Items: Status 'NCR_HubReceived' or 'ReceivedAtHub'
+    const receivedItems = React.useMemo(() => {
+        return items.filter(item => item.status === 'NCR_HubReceived' || item.status === 'ReceivedAtHub');
+    }, [items]);
+
+    // Handlers
+    const selectQCItem = (item: ReturnRecord) => {
+        setQcSelectedItem(item);
+        // Reset form
+        setSelectedDisposition(null);
+        setCustomInputType(null);
+        setShowSplitMode(false);
+        setSplitQty(0);
+        setDispositionDetails({
+            route: '', sellerName: '', contactPhone: '', internalUseDetail: '',
+            claimCompany: '', claimCoordinator: '', claimPhone: ''
+        });
     };
-    isCustomRoute: boolean;
-    showSplitMode: boolean;
-    isBreakdownUnit: boolean;
-    conversionRate: number;
-    newUnitName: string;
-    splitQty: number;
-    splitCondition: ItemCondition;
-    splitDisposition: DispositionAction | null;
 
-    selectQCItem: (item: ReturnRecord) => void;
-    setQcSelectedItem: React.Dispatch<React.SetStateAction<ReturnRecord | null>>;
-    handleConditionSelect: (condition: ItemCondition, type?: 'Good' | 'Bad') => void;
-    setSelectedDisposition: (disp: DispositionAction | null) => void;
-    setIsCustomRoute: (val: boolean) => void;
-    handleDispositionDetailChange: (key: any, value: string) => void;
-    setShowSplitMode: (val: boolean) => void;
-    setIsBreakdownUnit: (val: boolean) => void;
-    setConversionRate: (val: number) => void;
-    setNewUnitName: (val: string) => void;
-    setSplitQty: (val: number) => void;
-    setSplitCondition: (val: ItemCondition) => void;
-    setSplitDisposition: (val: DispositionAction | null) => void;
-    handleSplitSubmit: () => void;
-    handleQCSubmit: () => void;
-    toggleSplitMode: () => void;
-}
+    const handleConditionSelect = (condition: ItemCondition, type?: 'Good' | 'Bad') => {
+        if (!qcSelectedItem) return;
+        setQcSelectedItem({ ...qcSelectedItem, condition });
+        if (type) setCustomInputType(type);
+    };
 
-export const Step4HubQC: React.FC<Step3QCProps> = ({
-    receivedItems, qcSelectedItem, customInputType, selectedDisposition, dispositionDetails, isCustomRoute,
-    showSplitMode, isBreakdownUnit, conversionRate, newUnitName, splitQty, splitCondition, splitDisposition,
-    selectQCItem, setQcSelectedItem, handleConditionSelect, setSelectedDisposition, setIsCustomRoute, handleDispositionDetailChange,
-    setShowSplitMode, setIsBreakdownUnit, setConversionRate, setNewUnitName, setSplitQty, setSplitCondition, setSplitDisposition,
-    handleSplitSubmit, handleQCSubmit, toggleSplitMode
-}) => {
+    const handleDispositionDetailChange = (key: string, value: string) => {
+        setDispositionDetails(prev => ({ ...prev, [key]: value }));
+    };
+
+    const toggleSplitMode = () => {
+        setShowSplitMode(!showSplitMode);
+    };
+
+    const handleQCSubmit = async () => {
+        if (!qcSelectedItem || !selectedDisposition) return;
+
+        try {
+            // Construct update object
+            const updates: Partial<ReturnRecord> = {
+                status: 'NCR_QCCompleted',
+                condition: qcSelectedItem.condition,
+                disposition: selectedDisposition,
+                // Flatten disposition details into relevant fields or notes
+                // mapping similar to original logic
+                destinationCustomer: selectedDisposition === 'RTV' ? dispositionDetails.route :
+                    selectedDisposition === 'Restock' ? dispositionDetails.sellerName :
+                        selectedDisposition === 'InternalUse' ? dispositionDetails.internalUseDetail : '',
+                problemDetail: selectedDisposition === 'Claim' ? `Claim: ${dispositionDetails.claimCompany} / ${dispositionDetails.claimCoordinator}` : qcSelectedItem.problemDetail
+            };
+
+            await updateReturnRecord(qcSelectedItem.id, updates);
+            setQcSelectedItem(null);
+            alert('บันทึกผล QC เรียบร้อย');
+        } catch (error) {
+            console.error('QC Submit Error:', error);
+            alert(`เกิดข้อผิดพลาด: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    };
+
+    const handleSplitSubmit = async () => {
+        if (!qcSelectedItem || splitQty <= 0) return;
+
+        try {
+            // 1. Calculate quantities
+            const originalQty = qcSelectedItem.quantity;
+            const totalUnits = isBreakdownUnit ? originalQty * conversionRate : originalQty;
+
+            // Validation
+            if (splitQty >= totalUnits) {
+                alert('Cannot split entire quantity via split function. Use normal Submit.');
+                return;
+            }
+
+            const remainingUnits = totalUnits - splitQty;
+
+            // 2. Update Original Item (Remaining)
+            const remainingUnitsFinal = (isBreakdownUnit && remainingUnits > 0) ? remainingUnits : remainingUnits;
+
+            const updateMain: Partial<ReturnRecord> = {
+                quantity: remainingUnitsFinal,
+                unit: isBreakdownUnit ? newUnitName : qcSelectedItem.unit,
+                status: 'NCR_QCCompleted',
+                disposition: selectedDisposition || 'Pending',
+                condition: qcSelectedItem.condition
+            };
+
+            await updateReturnRecord(qcSelectedItem.id, updateMain);
+
+
+            // 3. Create New Item (Split Part)
+            const newItem: ReturnRecord = {
+                ...qcSelectedItem,
+                id: `${qcSelectedItem.id}-SP${Date.now().toString().slice(-4)}`,
+                quantity: splitQty,
+                unit: isBreakdownUnit ? newUnitName : qcSelectedItem.unit,
+                condition: splitCondition,
+                disposition: splitDisposition || 'Pending', // If immediate disposition selected
+                status: splitDisposition ? 'NCR_QCCompleted' : 'NCR_HubReceived', // Return to QC queue if pending
+                refNo: `${qcSelectedItem.refNo}-SP`
+            };
+
+            await addReturnRecord(newItem);
+            setQcSelectedItem(null);
+            alert('แยกรายการเรียบร้อย');
+        } catch (error) {
+            console.error('Split Error:', error);
+            alert(`เกิดข้อผิดพลาดในการแยกรายการ: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    };
+
+
+
     return (
         <div className="h-full flex">
             {/* Sidebar List */}
@@ -219,88 +312,128 @@ export const Step4HubQC: React.FC<Step3QCProps> = ({
                                                     if (!e.target.checked) { setConversionRate(1); setNewUnitName(''); }
                                                     else { setConversionRate(12); }
                                                 }} className="w-4 h-4 text-blue-600 rounded" />
-                                                <span className="text-sm font-bold text-slate-700">แตกหน่วยสินค้า (Unit Breakdown)</span>
+                                                <span className="text-sm font-bold text-slate-700">สินค้ามีการแตกหน่วยย่อย (Unit Breakdown)</span>
                                             </label>
                                             {isBreakdownUnit && (
-                                                <div className="grid grid-cols-2 gap-4 animate-fade-in pl-6">
-                                                    <div>
-                                                        <label className="text-xs text-slate-500 block mb-1">จำนวนหน่วยย่อยต่อแพ็ค (Conversion Rate)</label>
-                                                        <input type="number" min="1" value={conversionRate} onChange={e => setConversionRate(parseInt(e.target.value) || 1)} className="w-full p-2 border border-blue-200 rounded text-sm" />
-                                                        <div className="text-[10px] text-slate-400 mt-1">เช่น 1 ลังมี 12 ขวด ใส่ 12</div>
+                                                <div className="animate-fade-in pl-6 mt-2 space-y-3">
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <label className="text-xs text-slate-500 block mb-1">จำนวนชิ้นย่อยใน 1 แพ็ค/ลัง (Qty per Pack)</label>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                value={conversionRate}
+                                                                onChange={e => setConversionRate(parseInt(e.target.value) || 1)}
+                                                                className="w-full p-2 border border-blue-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
+                                                            />
+                                                            <div className="text-[10px] text-slate-400 mt-1">เช่น 1 ลัง มี 12 ชิ้น ให้กรอก 12</div>
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-xs text-slate-500 block mb-1">ชื่อหน่วยย่อย (New Unit Name)</label>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="เช่น ขวด, ชิ้น, อัน"
+                                                                value={newUnitName}
+                                                                onChange={e => setNewUnitName(e.target.value)}
+                                                                className="w-full p-2 border border-blue-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
+                                                            />
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <label className="text-xs text-slate-500 block mb-1">ชื่อหน่วยย่อย (New Unit Name)</label>
-                                                        <input type="text" placeholder="เช่น ขวด, ชิ้น, อัน" value={newUnitName} onChange={e => setNewUnitName(e.target.value)} className="w-full p-2 border border-blue-200 rounded text-sm" />
+
+                                                    {/* Price Preview */}
+                                                    <div className="bg-white p-2 rounded border border-blue-100 flex justify-between items-center">
+                                                        <span className="text-xs text-slate-500">ราคาเฉลี่ยต่อชิ้น (Price/Unit):</span>
+                                                        <span className="font-bold text-blue-600">
+                                                            {((qcSelectedItem.pricePerUnit || ((qcSelectedItem.priceBill || 0) / (qcSelectedItem.quantity || 1))) / conversionRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท
+                                                        </span>
                                                     </div>
                                                 </div>
                                             )}
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="bg-white p-3 rounded-lg border border-slate-200">
-                                                <span className="text-xs font-bold text-green-600 block mb-2">รายการหลัก (Main Item) - รายการนี้</span>
-                                                <div className="text-sm text-slate-500 mb-1">จำนวนคงเหลือ ({isBreakdownUnit ? newUnitName || 'Unit' : qcSelectedItem.unit}s):</div>
-                                                <div className="text-2xl font-bold text-slate-800">
-                                                    {(isBreakdownUnit ? (qcSelectedItem.quantity * conversionRate) : qcSelectedItem.quantity) - splitQty}
-                                                    <span className="text-sm font-normal text-slate-400 ml-1">{isBreakdownUnit ? newUnitName || 'Unit' : qcSelectedItem.unit}</span>
-                                                </div>
-                                                <div className="space-y-3 mt-3 pt-3 border-t border-slate-100">
-                                                    <div>
-                                                        <label className="text-xs text-slate-500 block mb-1">สภาพสินค้า (Condition)</label>
-                                                        <select value={qcSelectedItem.condition || ''} onChange={e => handleConditionSelect(e.target.value as ItemCondition)} className="w-full p-2 border border-slate-300 rounded text-sm text-slate-700">
-                                                            <option value="">-- เลือกสภาพ --</option>
-                                                            {Object.entries(conditionLabels).map(([key, label]) => (
-                                                                <option key={key} value={key}>{label}</option>
-                                                            ))}
-                                                            <option value="Other">อื่นๆ</option>
-                                                        </select>
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-xs text-slate-500 block mb-1">ตัดสินใจ (Disposition)</label>
-                                                        <select value={selectedDisposition || ''} onChange={e => setSelectedDisposition(e.target.value as DispositionAction)} className="w-full p-2 border border-slate-300 rounded text-sm text-slate-700">
-                                                            <option value="">-- เลือกการตัดสินใจ --</option>
-                                                            {Object.entries(dispositionLabels).map(([key, label]) => (
-                                                                <option key={key} value={key}>{label}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="bg-white p-3 rounded-lg border border-blue-200 shadow-sm">
-                                                <span className="text-xs font-bold text-red-600 block mb-2">รายการแยกออกมา (New Item) - สร้างใหม่</span>
-                                                <div className="space-y-3">
-                                                    <div>
-                                                        <label className="text-xs text-slate-500 block mb-1">จำนวนที่แยกมา ({isBreakdownUnit ? newUnitName || 'Unit' : qcSelectedItem.unit})</label>
-                                                        <input type="number" min="1" max={(isBreakdownUnit ? (qcSelectedItem.quantity * conversionRate) : qcSelectedItem.quantity) - 1} value={splitQty} onChange={e => setSplitQty(parseInt(e.target.value) || 0)} className="w-full p-2 border border-slate-300 rounded text-sm font-bold text-blue-600" />
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-xs text-slate-500 block mb-1">สภาพสินค้า (Condition)</label>
-                                                        <select value={splitCondition} onChange={e => setSplitCondition(e.target.value as ItemCondition)} className="w-full p-2 border border-slate-300 rounded text-sm">
-                                                            {Object.entries(conditionLabels).map(([key, label]) => (
-                                                                <option key={key} value={key}>{label}</option>
-                                                            ))}
-                                                            <option value="Other">อื่นๆ</option>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div className="text-[10px] text-orange-500 bg-orange-50 p-2 rounded">
-                                                    * รายการนี้จะถูกส่งกลับไปที่ "คิวรอตรวจสอบ" เพื่อให้คุณตัดสินใจ (Disposition) อีกครั้ง
-                                                </div>
 
-                                                {/* Split Disposition Selector */}
-                                                <div className="pt-2 border-t border-blue-100">
-                                                    <label className="text-xs text-slate-500 block mb-1">ตัดสินใจทันที (Immediate Disposition)</label>
-                                                    <select value={splitDisposition || ''} onChange={e => setSplitDisposition(e.target.value ? e.target.value as DispositionAction : null)} className="w-full p-2 border border-slate-300 rounded text-sm text-slate-700 bg-white">
-                                                        <option value="">-- ส่งกลับเข้าคิว QC (Default) --</option>
-                                                        {Object.entries(dispositionLabels).map(([key, label]) => (
-                                                            <option key={key} value={key}>{label}</option>
-                                                        ))}
-                                                    </select>
-                                                    <div className="text-[10px] text-slate-400 mt-1">
-                                                        {splitDisposition ? <span className="text-green-600 font-bold">รายการนี้จะไปที่ Step 4 (Docs) ทันที</span> : "เลือกข้อนี้เพื่อจบงานรายการแยกทันที"}
-                                                    </div>
-                                                </div>
-                                            </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {(() => {
+                                                const rawPrice = qcSelectedItem.pricePerUnit || ((qcSelectedItem.priceBill || 0) / (qcSelectedItem.quantity || 1));
+                                                const unitPrice = (isBreakdownUnit && conversionRate > 1) ? rawPrice / conversionRate : rawPrice;
+                                                const totalQ = isBreakdownUnit ? qcSelectedItem.quantity * conversionRate : qcSelectedItem.quantity;
+                                                const remQ = totalQ - splitQty;
+
+                                                return (
+                                                    <>
+                                                        <div className="bg-white p-3 rounded-lg border border-slate-200">
+                                                            <div className="flex justify-between items-center mb-2">
+                                                                <span className="text-xs font-bold text-green-600">รายการหลัก (Main Item)</span>
+                                                                <span className="text-xs font-bold text-slate-500">฿{(remQ * unitPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                            </div>
+                                                            <div className="text-sm text-slate-500 mb-1">จำนวนคงเหลือ ({isBreakdownUnit ? newUnitName || 'Unit' : qcSelectedItem.unit}s):</div>
+                                                            <div className="text-2xl font-bold text-slate-800">
+                                                                {remQ}
+                                                                <span className="text-sm font-normal text-slate-400 ml-1">{isBreakdownUnit ? newUnitName || 'Unit' : qcSelectedItem.unit}</span>
+                                                            </div>
+                                                            <div className="space-y-3 mt-3 pt-3 border-t border-slate-100">
+                                                                <div>
+                                                                    <label className="text-xs text-slate-500 block mb-1">สภาพสินค้า (Condition)</label>
+                                                                    <select value={qcSelectedItem.condition || ''} onChange={e => handleConditionSelect(e.target.value as ItemCondition)} className="w-full p-2 border border-slate-300 rounded text-sm text-slate-700">
+                                                                        <option value="">-- เลือกสภาพ --</option>
+                                                                        {Object.entries(conditionLabels).map(([key, label]) => (
+                                                                            <option key={key} value={key}>{label}</option>
+                                                                        ))}
+                                                                        <option value="Other">อื่นๆ</option>
+                                                                    </select>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-xs text-slate-500 block mb-1">ตัดสินใจ (Disposition)</label>
+                                                                    <select value={selectedDisposition || ''} onChange={e => setSelectedDisposition(e.target.value as DispositionAction)} className="w-full p-2 border border-slate-300 rounded text-sm text-slate-700">
+                                                                        <option value="">-- เลือกการตัดสินใจ --</option>
+                                                                        {Object.entries(dispositionLabels).map(([key, label]) => (
+                                                                            <option key={key} value={key}>{label}</option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="bg-white p-3 rounded-lg border border-blue-200 shadow-sm">
+                                                            <div className="flex justify-between items-center mb-2">
+                                                                <span className="text-xs font-bold text-red-600">รายการแยกออกมา (New Item)</span>
+                                                                <span className="text-xs font-bold text-slate-500">฿{(splitQty * unitPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                            </div>
+                                                            <div className="space-y-3">
+                                                                <div>
+                                                                    <label className="text-xs text-slate-500 block mb-1">จำนวนที่แยกมา ({isBreakdownUnit ? newUnitName || 'Unit' : qcSelectedItem.unit})</label>
+                                                                    <input type="number" min="1" max={totalQ - 1} value={splitQty} onChange={e => setSplitQty(parseInt(e.target.value) || 0)} className="w-full p-2 border border-slate-300 rounded text-sm font-bold text-blue-600" />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-xs text-slate-500 block mb-1">สภาพสินค้า (Condition)</label>
+                                                                    <select value={splitCondition} onChange={e => setSplitCondition(e.target.value as ItemCondition)} className="w-full p-2 border border-slate-300 rounded text-sm">
+                                                                        {Object.entries(conditionLabels).map(([key, label]) => (
+                                                                            <option key={key} value={key}>{label}</option>
+                                                                        ))}
+                                                                        <option value="Other">อื่นๆ</option>
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-[10px] text-orange-500 bg-orange-50 p-2 rounded mt-3">
+                                                                * รายการนี้จะถูกส่งกลับไปที่ "คิวรอตรวจสอบ" เพื่อให้คุณตัดสินใจ (Disposition) อีกครั้ง
+                                                            </div>
+
+                                                            {/* Split Disposition Selector */}
+                                                            <div className="pt-2 border-t border-blue-100 mt-2">
+                                                                <label className="text-xs text-slate-500 block mb-1">ตัดสินใจทันที (Immediate Disposition)</label>
+                                                                <select value={splitDisposition || ''} onChange={e => setSplitDisposition(e.target.value ? e.target.value as DispositionAction : null)} className="w-full p-2 border border-slate-300 rounded text-sm text-slate-700 bg-white">
+                                                                    <option value="">-- ส่งกลับเข้าคิว QC (Default) --</option>
+                                                                    {Object.entries(dispositionLabels).map(([key, label]) => (
+                                                                        <option key={key} value={key}>{label}</option>
+                                                                    ))}
+                                                                </select>
+                                                                <div className="text-[10px] text-slate-400 mt-1">
+                                                                    {splitDisposition ? <span className="text-green-600 font-bold">รายการนี้จะไปที่ Step 4 (Docs) ทันที</span> : "เลือกข้อนี้เพื่อจบงานรายการแยกทันที"}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                );
+                                            })()}
                                         </div>
                                     </div>
                                 )}

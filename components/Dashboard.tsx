@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useData } from '../DataContext';
 import { db } from '../firebase';
 import { ref, remove, set } from 'firebase/database';
@@ -8,8 +8,8 @@ import {
   PieChart, Pie, Legend, AreaChart, Area
 } from 'recharts';
 import {
-  TrendingUp, Activity, AlertTriangle,
-  Truck, CheckCircle, Clock, FileText, Package, AlertOctagon, DollarSign, Trash2
+  Truck, CheckCircle, Clock, FileText, Package, AlertOctagon, DollarSign, Trash2, MapPin, Box,
+  TrendingUp, Activity, AlertTriangle, Lock, X, RotateCcw
 } from 'lucide-react';
 
 const COLORS = {
@@ -22,7 +22,42 @@ const COLORS = {
 };
 
 const Dashboard: React.FC = () => {
-  const { items, ncrReports } = useData();
+  const { items, ncrReports, runDataIntegrityCheck } = useData();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authPassword, setAuthPassword] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
+
+  const handleAuthSubmit = async () => {
+    if (authPassword !== '1234') {
+      alert('รหัสผ่านไม่ถูกต้อง (Incorrect Password)');
+      return;
+    }
+
+    if (confirm("คำเตือนครั้งสุดท้าย: ข้อมูลทั้งหมดจะถูกลบถาวร! ยืนยันทำรายการหรือไม่?")) {
+      setIsResetting(true);
+      try {
+        await remove(ref(db, 'return_records'));
+        await remove(ref(db, 'ncr_reports'));
+        await set(ref(db, 'ncr_counter'), 0);
+        location.reload();
+      } catch (error) {
+        console.error(error);
+        alert("เกิดข้อผิดพลาดในการลบข้อมูล");
+        setIsResetting(false);
+      }
+    }
+  };
+
+  const handleIntegrityCheck = async () => {
+    if (confirm("ต้องการตรวจสอบระบบและล้างข้อมูลตกค้างหรือไม่? (Start Data Integrity Scan?)")) {
+      const count = await runDataIntegrityCheck();
+      if (count > 0) {
+        alert(`ดำเนินการเสร็จสิ้น: ลบข้อมูลตกค้าง (Orphaned Records) ไปทั้งสิ้น ${count} รายการ`);
+      } else {
+        alert("ระบบปกติ: ไม่พบข้อมูลตกค้าง");
+      }
+    }
+  };
 
   // 1. Operation Pipeline Metrics (Aligned with New 6-Step Workflow)
   const pipeline = useMemo(() => {
@@ -78,6 +113,37 @@ const Dashboard: React.FC = () => {
     };
   }, [items]);
 
+  // 1.2 Inbound Collection Stats (Mock Data / System 1 + Real Ops Data)
+  const collectionStats = useMemo(() => {
+    // Link to Operations: Find items originating from Collection System
+    // Strictly filter for COL/RMA IDs and EXCLUDE NCR items to match user request
+    const collectionItems = items.filter(i => {
+      const isNCR = i.ncrNumber || i.id.startsWith('NCR');
+      if (isNCR) return false; // Strictly exclude NCR
+
+      return (i.refNo && (i.refNo.startsWith('R-') || i.refNo.startsWith('COL-') || i.refNo.startsWith('RT-'))) ||
+        (i.neoRefNo && (i.neoRefNo.startsWith('R-') || i.neoRefNo.startsWith('COL-')));
+    });
+
+    // Pending Completion = Received at Hub, QC, or Direct Return (waiting for close)
+    // Exclude: Draft/Requested (Step 1-2 Ops), InTransitHub (Step 5 Collection), Completed
+    const pendingCompletionCount = collectionItems.filter(i =>
+      !['Draft', 'Requested', 'InTransitHub', 'Completed'].includes(i.status)
+    ).length;
+
+    const completedCount = collectionItems.filter(i => i.status === 'Completed').length;
+
+    return {
+      requests: collectionItems.filter(i => i.status === 'Requested').length,
+      assigned: collectionItems.filter(i => i.status === 'PickupScheduled').length,
+      collected: collectionItems.filter(i => i.status === 'PickedUp').length,
+      consolidated: 0, // Internal state not yet persisted globally
+      transit: collectionItems.filter(i => i.status === 'InTransitHub').length,
+      pendingCompletion: pendingCompletionCount,
+      completed: completedCount
+    };
+  }, [items]);
+
   // 2. Financial Metrics & Cost Analysis
   const financials = useMemo(() => {
     let totalIntakeValue = 0;
@@ -113,7 +179,6 @@ const Dashboard: React.FC = () => {
       // Only add if not already counted via items to avoid double counting? 
       // For safety in this hybrid system, we'll assume NCR reports might cover things NOT in items list or additional costs.
       // But typically they are linked. Let's just sum NCR specific costs if we consider them "Extra".
-      // HOWEVER, the logic in previous code simply added them. Let's stick to consistent logic but ensure we don't double count if they share IDs.
       // Simplification: Just sum them for "Cost Impact" visualisation.
       ncrCost += cost;
     });
@@ -217,10 +282,26 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 1. PIPELINE FLOW (Updated to 6 Steps matching Operations Hub) */}
+      {/* 1. INBOUND COLLECTION PIPELINE (New) */}
+      <div>
+        <h3 className="text-sm font-bold text-teal-600 uppercase tracking-wider mb-3 flex items-center gap-2">
+          <Truck className="w-4 h-4" /> ระบบงานรับสินค้า (Inbound Collection System)
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+          <PipelineCard step="1" title="ใบสั่งงาน (Request)" count={collectionStats.requests} icon={FileText} color="bg-teal-50 text-teal-600 border-teal-200" desc="รอจ่ายงาน" />
+          <PipelineCard step="2" title="รับงาน (Job)" count={collectionStats.assigned} icon={MapPin} color="bg-teal-50 text-teal-600 border-teal-200" desc="รถเข้ารับ" />
+          <PipelineCard step="3" title="รับของ (Collected)" count={collectionStats.collected} icon={Box} color="bg-teal-50 text-teal-600 border-teal-200" desc="เข้าสาขา" />
+          <PipelineCard step="4" title="จุดพัก (Hub)" count={collectionStats.consolidated} icon={Package} color="bg-indigo-50 text-indigo-600 border-indigo-200" desc="รอขนส่ง" />
+          <PipelineCard step="5" title="ขนส่ง (Transit)" count={collectionStats.transit} icon={Truck} color="bg-blue-50 text-blue-600 border-blue-200" desc="เข้า Ops Hub" />
+          <PipelineCard step="6" title="รอปิดงาน (Pending)" count={collectionStats.pendingCompletion} icon={Clock} color="bg-orange-50 text-orange-600 border-orange-200" desc="Direct/Docs" />
+          <PipelineCard step="7" title="จบงาน (Completed)" count={collectionStats.completed} icon={CheckCircle} color="bg-green-50 text-green-600 border-green-200" desc="สำเร็จ" />
+        </div>
+      </div>
+
+      {/* 2. OPERATIONS HUB PIPELINE */}
       <div>
         <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-          <Activity className="w-4 h-4" /> สถานะงานคงค้าง (Operations Hub Pipeline)
+          <Activity className="w-4 h-4" /> ศูนย์ปฏิบัติการคืนสินค้า (Return Operations Hub)
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <PipelineCard step="1" title="แจ้งคืน (Request)" count={pipeline.requests} icon={FileText} color="bg-slate-100 text-slate-600" desc="รออนุมัติ" />
@@ -385,28 +466,72 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* DANGER ZONE - Factory Reset */}
-      <div className="border border-red-200 bg-red-50 rounded-lg p-6 flex flex-col items-center mt-12 mb-8 opacity-50 hover:opacity-100 transition-opacity">
-        <h3 className="text-red-700 font-bold text-lg mb-2 flex items-center gap-2">
-          <Trash2 className="w-5 h-5" /> DATA FACTORY RESET
-        </h3>
-        <button
-          onClick={async () => {
-            if (confirm("คำเตือน: คุณต้องการลบข้อมูลทั้งหมดใช่หรือไม่?")) {
-              const code = prompt("ใส่รหัสผ่าน (1234):");
-              if (code === '1234') {
-                await remove(ref(db, 'return_records'));
-                await remove(ref(db, 'ncr_reports'));
-                await set(ref(db, 'ncr_counter'), 0);
-                location.reload();
-              }
-            }
-          }}
-          className="text-red-600 underline text-xs cursor-pointer hover:text-red-800"
-        >
-          ล้างข้อมูลตัวอย่างทั้งหมด
-        </button>
+      {/* MAINTENANCE ZONE */}
+      <div className="flex flex-col md:flex-row gap-4 justify-center mt-12 mb-8 opacity-70 hover:opacity-100 transition-opacity">
+
+        {/* Sync & Cleanup */}
+        <div className="border border-blue-200 bg-blue-50 rounded-lg p-6 flex flex-col items-center w-64 hover:shadow-md transition-shadow">
+          <h3 className="text-blue-700 font-bold text-sm mb-2 flex items-center gap-2">
+            <RotateCcw className="w-4 h-4" /> Sync & Cleanup Data
+          </h3>
+          <button onClick={handleIntegrityCheck} className="text-blue-600 underline text-xs cursor-pointer hover:text-blue-800 font-semibold">
+            ตรวจสอบและล้างข้อมูลขยะ
+          </button>
+          <div className="text-[10px] text-blue-400 mt-1">Remove orphaned NCR records</div>
+        </div>
+
+        {/* Factory Reset */}
+        <div className="border border-red-200 bg-red-50 rounded-lg p-6 flex flex-col items-center w-64 hover:shadow-md transition-shadow">
+          <h3 className="text-red-700 font-bold text-sm mb-2 flex items-center gap-2">
+            <Trash2 className="w-4 h-4" /> Data Factory Reset
+          </h3>
+          <button
+            onClick={() => setShowAuthModal(true)}
+            className="text-red-600 underline text-xs cursor-pointer hover:text-red-800"
+          >
+            ล้างข้อมูลทั้งหมด (Reset All)
+          </button>
+          <div className="text-[10px] text-red-300 mt-1">Delete all 100%</div>
+        </div>
+
       </div>
+
+      {/* Password Modal */}
+      {showAuthModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+          <div className="bg-white p-6 rounded-xl shadow-2xl w-96 transform scale-100 transition-all">
+            <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <Lock className="w-5 h-5 text-amber-500" />
+                ยืนยันสิทธิ์ (Authentication)
+              </h3>
+              <button onClick={() => setShowAuthModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">รหัสผ่าน (Password)</label>
+                <input
+                  type="password"
+                  className="w-full p-2 border border-slate-300 rounded-lg text-lg tracking-widest outline-none focus:ring-2 focus:ring-amber-500"
+                  autoFocus
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAuthSubmit()}
+                  placeholder="Enter password..."
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button onClick={() => setShowAuthModal(false)} className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold">ยกเลิก</button>
+                <button onClick={handleAuthSubmit} disabled={isResetting} className="px-4 py-2 rounded-lg bg-red-600 text-white font-bold hover:bg-red-700 shadow-md flex items-center gap-2">
+                  {isResetting ? 'กำลังล้าง...' : 'ยืนยันลบข้อมูล'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div >
   );

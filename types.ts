@@ -21,7 +21,85 @@ export enum AppView {
   NCR = 'NCR',
   NCR_REPORT = 'NCR_REPORT',
   INVENTORY = 'INVENTORY',
-  STOCK_SUMMARY = 'STOCK_SUMMARY'
+  COLLECTION = 'COLLECTION'
+}
+
+export type CollectionStatus = 'PENDING' | 'ASSIGNED' | 'COLLECTED' | 'CONSOLIDATED' | 'FAILED';
+
+// --- REFRACTORED PER USER REQUEST (STEP 271) ---
+
+// 1. Commercial Document (RMA)
+export interface ReturnRequest {
+  id: string; // e.g., "RMA-001" - matches documentNo (R No.) ideally
+
+  // User Requested Fields
+  branch: string; // Dropdown
+  invoiceNo: string;
+  controlDate: string; // วันที่ใบคุมรถ
+  documentNo: string; // เลขที่เอกสาร (เลข R)
+  customerName: string;
+  customerCode: string; // รหัสลูกค้า
+  customerAddress: string;
+  province: string;
+  tmNo: string; // เลขที่ใบคุม (TM NO)
+  notes?: string; // หมายเหตุ
+
+  // Essential Logistics Info (retained/adapted)
+  contactPerson: string;
+  contactPhone: string;
+  itemsSummary: string; // e.g., "Mouse x10, Keyboard x5" - kept as it's useful context
+
+  status: 'APPROVED_FOR_PICKUP' | 'PICKUP_SCHEDULED' | 'RECEIVED_AT_HQ';
+}
+
+// 2. Logistics Document (Collection Order)
+export interface CollectionOrder {
+  id: string; // e.g., "COL-202512-001"
+  driverId: string;
+
+  // Linkage: Reference to RMAs
+  linkedRmaIds: string[];
+
+  // Driver Attributes
+  pickupLocation: {
+    name: string;
+    address: string;
+    lat?: number;
+    lng?: number;
+    contactName: string;
+    contactPhone: string;
+  };
+  pickupDate: string;
+
+  // Logistics Manifest
+  packageSummary: {
+    totalBoxes: number;
+    description: string;
+  };
+
+  status: CollectionStatus;
+  vehiclePlate?: string;
+  failureReason?: string;
+
+  // Proof
+  proofOfCollection?: {
+    signatureUrl?: string;
+    photoUrls?: string[];
+    timestamp?: string;
+  };
+
+  createdDate: string;
+}
+
+// 3. Consolidation Document
+export interface ShipmentManifest {
+  id: string; // "SHP-2025-99"
+  collectionOrderIds: string[];
+  transportMethod: 'INTERNAL_FLEET' | '3PL_COURIER';
+  carrierName: string;
+  trackingNumber: string;
+  status: 'IN_TRANSIT' | 'ARRIVED_HQ';
+  createdDate: string;
 }
 
 export interface ChatMessage {
@@ -34,19 +112,48 @@ export interface ChatMessage {
 // Updated Status Flow for 6-Step Workflow
 export type ReturnStatus =
   | 'Draft'             // Step 1: Created
-  | 'Requested'         // Legacy
-  | 'InTransitHub'      // Step 2 (Route A): On way to Hub
-  | 'ReturnToSupplier'  // Step 2 (Route B) OR Step 5 (Route A)
-  | 'ReceivedAtHub'     // Step 3 (Route A): Arrived at Hub
-  | 'QCPassed'          // Step 4 (Route A)
-  | 'QCFailed'          // Step 4 (Route A)
-  | 'Documented'        // Step 5 (Route A) - Legacy Name, effectively ReturnToSupplier preparation
-  | 'Completed'         // Step 6: Closed
-  | 'Received'          // Legacy
-  | 'Graded'            // Legacy
-  | 'Approved'          // Legacy
-  | 'Rejected'          // Legacy
+  | 'Requested'         // Step 1: Output
+
+  // NCR Flow (New Unified)
+  | 'NCR_InTransit'      // NCR Step 2 Output (was PickupScheduled)
+  | 'NCR_HubReceived'    // NCR Step 3 Output (was ReceivedAtHub)
+  | 'NCR_QCCompleted'    // NCR Step 4 Output (was QCCompleted)
+  | 'NCR_Documented'     // NCR Step 5 Output (was Documented)
+
+  // Collection Flow (New Unified)
+  | 'COL_JobAccepted'    // Col Step 2 Output (was JobAccepted)
+  | 'COL_BranchReceived' // Col Step 3 Output (was BranchReceived)
+  | 'COL_Consolidated'   // Col Step 4 Output (was ReadyForLogistics)
+  | 'COL_InTransit'      // Col Step 5 Output (was InTransitToHub)
+  | 'COL_HubReceived'    // Col Step 6 Output (was HubReceived)
+  | 'COL_Documented'     // Col Step 7 Output (was DocsCompleted)
+
+  // Common Final States
+  | 'Completed'         // Step 8: Closed
+  | 'ReturnToSupplier'
+  | 'DirectReturn'
+
+  // Legacy / Mapped
+  | 'JobAccepted'
+  | 'BranchReceived'
+  | 'ReadyForLogistics'
+  | 'InTransitToHub'
+  | 'HubReceived'
+  | 'DocsCompleted'
+  | 'PickupScheduled'
+  | 'PickedUp'
+  | 'InTransitHub'
+  | 'ReceivedAtHub'
+  | 'QCPassed'
+  | 'QCFailed'
+  | 'QCCompleted'
+  | 'Documented'
+  | 'Received'
+  | 'Graded'
+  | 'Approved'
+  | 'Rejected'
   | 'Pending';
+
 
 // Operational Types
 // Expanded to include specific imperfections under 'Good' category
@@ -87,6 +194,14 @@ export interface ReturnRecord {
   founder?: string; // ผู้พบปัญหา (New validation)
   destinationCustomer?: string; // สถานที่ส่ง (ลูกค้าปลายทาง)
 
+  // NCR Specific Header Fields
+  toDept?: string; // ถึงหน่วยงาน
+  copyTo?: string; // สำเนา
+  poNo?: string;   // เลขที่ใบสั่งซื้อ/ผลิต
+  ncrNumber?: string; // เลขที่ NCR
+  documentType?: 'NCR' | 'LOGISTICS'; // แยกประเภทเอกสาร
+
+
   // Cost Tracking
   hasCost?: boolean;
   costAmount?: number;
@@ -100,56 +215,55 @@ export interface ReturnRecord {
   problemAnalysisDetail?: string;
 
   // Status Timestamps (Timeline)
-  dateRequested?: string;   // 1. แจ้งคืนสินค้า
-  dateReceived?: string;    // 2. รับสินค้าเข้า
-  dateGraded?: string;      // 3. ตรวจสอบคุณภาพ
-  dateDocumented?: string;  // 4. ออกเอกสาร
-  dateCompleted?: string;   // 5. ปิดงาน
+  dateRequested?: string;   // 1. แจ้งคืนสินค้า (Request)
+  dateInTransit?: string;   // 2. ขนส่ง (Logistics)
+  dateReceived?: string;    // 3. รับสินค้าเข้า (Receive)
+  dateGraded?: string;      // 4. ตรวจสอบคุณภาพ (QC)
+  dateDocumented?: string;  // 5. ออกเอกสาร (Warehouse/Docs)
+  dateCompleted?: string;   // 6. ปิดงาน (Done)
 
-  // New Intake Fields
+  // New Intake Fields (NCR Specific)
   quantity: number; // จำนวน
   unit: string; // หน่วย
-  priceBill: number; // ราคาหน้าบิล
-  priceSell: number; // ราคาขาย
-  expiryDate?: string; // วันหมดอายุ
+  pricePerUnit?: number; // ราคา/หน่วย
+  priceBill?: number; // ราคาหน้าบิลรวม
+  priceSell?: number; // ราคาขาย
+  expiryDate?: string; // วันหมดอายุ (mm/dd/yyyy)
 
   status: ReturnStatus;
   reason: string;
-  // Extended fields for Operations
   condition?: ItemCondition;
   disposition?: DispositionAction;
-  notes?: string; // หมายเหตุ
+  notes?: string;
 
-  // Problem Details (Intake)
-  // Problem Details (Intake)
-  // problemType: string; // DEPRECATED in favor of booleans below, but kept for legacy? (Maybe keep as summary)
-  problemDetail?: string; // รายละเอียด (สำหรับพิมพ์ข้อความ)
+  // Problem Analysis (Source)
+  // problemSource is already defined above as string
 
-  // Problem Boolean Flags
-  problemDamaged?: boolean;
-  problemDamagedInBox?: boolean;
-  problemLost?: boolean;
-  problemMixed?: boolean;
-  problemWrongInv?: boolean;
-  problemLate?: boolean;
-  problemDuplicate?: boolean;
-  problemWrong?: boolean;
-  problemIncomplete?: boolean;
-  problemOver?: boolean;
-  problemWrongInfo?: boolean;
-  problemShortExpiry?: boolean;
-  problemTransportDamage?: boolean;
-  problemAccident?: boolean;
-  problemPOExpired?: boolean;
-  problemNoBarcode?: boolean;
-  problemNotOrdered?: boolean;
-  problemOther?: boolean;
+
+  // Problem Process (Checkboxes)
+  problemDamaged?: boolean; // ชำรุด
+  problemDamagedInBox?: boolean; // ชำรุดในกล่อง
+  problemLost?: boolean; // สูญหาย
+  problemMixed?: boolean; // สินค้าสลับ
+  problemWrongInv?: boolean; // สินค้าไม่ตรง INV
+  problemLate?: boolean; // ส่งช้า
+  problemDuplicate?: boolean; // ส่งซ้ำ
+  problemWrong?: boolean; // ส่งผิด
+  problemIncomplete?: boolean; // ส่งของไม่ครบ
+  problemOver?: boolean; // ส่งของเกิน
+  problemWrongInfo?: boolean; // ข้อมูลผิด
+  problemShortExpiry?: boolean; // สินค้าอายุสั้น
+  problemTransportDamage?: boolean; // สินค้าเสียหายบนรถขนส่ง
+  problemAccident?: boolean; // อุบัติเหตุ
+  problemPOExpired?: boolean; // PO. หมดอายุ
+  problemNoBarcode?: boolean; // บาร์โค๊ตไม่ขึ้น
+  problemNotOrdered?: boolean; // ไม่ได้สั่งสินค้า
+  problemOther?: boolean; // อื่นๆ
   problemOtherText?: string;
 
-  rootCause?: string;   // สาเหตุเกิดจาก (legacy/summary)
-  ncrNumber?: string;   // เลขที่ NCR
+  problemDetail?: string; // รายละเอียดเพิ่มเติม
 
-  // Initial Actions (Intake) - การดำเนินการ
+  // Actions
   actionReject?: boolean;         // ส่งคืน (Reject)
   actionRejectQty?: number;
   actionRejectSort?: boolean;     // คัดแยกของเสียเพื่อส่งคืน
@@ -168,7 +282,7 @@ export interface ReturnRecord {
   actionScrapReplace?: boolean;   // เปลี่ยนสินค้าใหม่
   actionScrapReplaceQty?: number;
 
-  // Root Cause & Prevention Details
+  // Root Cause
   causePackaging?: boolean;
   causeTransport?: boolean;
   causeOperation?: boolean;
@@ -176,16 +290,28 @@ export interface ReturnRecord {
   causeDetail?: string;
   preventionDetail?: string;
 
-  // Disposition Details
-  dispositionRoute?: string; // For RTV: สาย 3, Sino, Neo
-  sellerName?: string;       // For Sell/Restock
-  contactPhone?: string;     // For Sell/Restock
-  internalUseDetail?: string; // For InternalUse: Department/Person
+  // Logistics
+  collectionOrderId?: string; // Links to CollectionOrder
 
-  // Claim Details
-  claimCompany?: string;      // ชื่อบริษัทประกัน
-  claimCoordinator?: string;  // ผู้ประสานงาน
-  claimPhone?: string;        // เบอร์โทรศัพท์ (เคลม)
+  // User requested fields for Step 1 Form
+  invoiceNo?: string;       // เลข Invoice
+  tmNo?: string;            // เลขที่ใบคุม (TM NO)
+  controlDate?: string;     // วันที่ใบคุมรถ
+  customerCode?: string;    // รหัสลูกค้า
+  province?: string;        // จังหวัด
+  customerAddress?: string; // ที่อยู่
+  documentNo?: string;      // เลขที่เอกสาร (เลข R)
+  contactPhone?: string;    // เบอร์โทรศัพท์ (ติดต่อ)
+  sellerName?: string;      // ชื่อผู้ขาย (ร้านค้า/ตัวแทน)
+
+  // Transport Info (Step 2 NCR)
+  transportPlate?: string;
+  transportDriver?: string;
+  transportCompany?: string;
+
+  // Re-applying to ensure update
+  rootCause?: string;
+  dispositionRoute?: string;
 }
 
 export interface SearchFilters {

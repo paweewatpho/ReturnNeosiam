@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useData } from '../DataContext';
 import { DispositionAction, ReturnRecord } from '../types';
 import { Box, RotateCcw, ShieldCheck, Home, Trash2, CircleArrowUp, CircleArrowDown, History, Search, Download, Truck } from 'lucide-react';
+import { formatDate } from '../utils/dateUtils';
 
 interface StockAggregate {
   stats: {
@@ -173,7 +174,7 @@ const Inventory: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `inventory_report_${activeTab}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `inventory_report_${activeTab}_${formatDate(new Date())?.replace(/\//g, '-')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -243,47 +244,49 @@ const Inventory: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4">
-        <div className="relative flex-grow">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-2">
+        <div className="relative flex-grow max-w-sm">
+          <Search className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="ค้นหา สินค้า, ลูกค้า, สาขา..."
+            placeholder="ค้นหา..."
             value={filters.query}
             onChange={e => setFilters({ ...filters, query: e.target.value })}
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+            className="w-full pl-7 pr-2 py-1 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-xs"
           />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="flex gap-1">
           <input
             type="date"
             value={filters.startDate}
             onChange={e => setFilters({ ...filters, startDate: e.target.value })}
-            className="bg-slate-50 border border-slate-200 rounded-lg text-sm p-2 outline-none focus:ring-2 focus:ring-blue-500"
+            className="bg-slate-50 border border-slate-200 rounded-lg text-xs p-1 outline-none focus:ring-1 focus:ring-blue-500 w-28"
           />
           <input
             type="date"
             value={filters.endDate}
             onChange={e => setFilters({ ...filters, endDate: e.target.value })}
-            className="bg-slate-50 border border-slate-200 rounded-lg text-sm p-2 outline-none focus:ring-2 focus:ring-blue-500"
+            className="bg-slate-50 border border-slate-200 rounded-lg text-xs p-1 outline-none focus:ring-1 focus:ring-blue-500 w-28"
           />
+        </div>
+        <div className="flex gap-1">
           <select
             value={filters.movementType}
             onChange={e => setFilters({ ...filters, movementType: e.target.value })}
-            className="bg-slate-50 border border-slate-200 rounded-lg text-sm p-2 outline-none focus:ring-2 focus:ring-blue-500"
+            className="bg-slate-50 border border-slate-200 rounded-lg text-xs p-1 outline-none focus:ring-1 focus:ring-blue-500"
           >
             <option value="All">IN/OUT ทั้งหมด</option>
-            <option value="IN">เฉพาะรับเข้า (IN)</option>
-            <option value="OUT">เฉพาะจ่ายออก (OUT)</option>
+            <option value="IN">รับเข้า (IN)</option>
+            <option value="OUT">จ่ายออก (OUT)</option>
           </select>
+          <button
+            onClick={handleExportExcel}
+            className="bg-green-600 text-white font-bold px-3 py-1 rounded-lg flex items-center justify-center gap-1 hover:bg-green-700 transition-colors shadow-sm text-xs whitespace-nowrap ml-auto md:ml-0"
+          >
+            <Download className="w-3 h-3" />
+            Excel
+          </button>
         </div>
-        <button
-          onClick={handleExportExcel}
-          className="bg-green-600 text-white font-bold px-4 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-green-700 transition-colors shadow-sm"
-        >
-          <Download className="w-4 h-4" />
-          Export Excel
-        </button>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col">
@@ -291,15 +294,15 @@ const Inventory: React.FC = () => {
           <table className="w-full text-left">
             <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10 shadow-sm text-xs uppercase text-slate-500 font-bold">
               <tr className="whitespace-nowrap">
-                <th className="px-4 py-3">วันที่/ประเภท</th>
-                <th className="px-4 py-3">สาขา/ลูกค้า</th>
-                <th className="px-4 py-3">สินค้า</th>
-                <th className="px-4 py-3">NCR No.</th>
-                <th className="px-4 py-3">อ้างอิง (Ref)</th>
-                <th className="px-4 py-3 text-right">จำนวน/หน่วย</th>
-                <th className="px-4 py-3 text-right">ราคา/บิล</th>
-                <th className="px-4 py-3">วันหมดอายุ</th>
-                <th className="px-4 py-3">ปลายทาง</th>
+                <th className="px-1 py-1 w-[80px] text-[10px]">วันที่/ประเภท</th>
+                <th className="px-1 py-1 max-w-[150px] text-[10px]">สาขา/ลูกค้า</th>
+                <th className="px-1 py-1 max-w-[180px] text-[10px]">สินค้า</th>
+                <th className="px-1 py-1 max-w-[100px] text-[10px]">NCR No.</th>
+                <th className="px-1 py-1 max-w-[120px] text-[10px]">อ้างอิง (Ref)</th>
+                <th className="px-1 py-1 text-right w-[60px] text-[10px]">Qty</th>
+                <th className="px-1 py-1 text-right w-[60px] text-[10px]">Price</th>
+                <th className="px-1 py-1 w-[70px] text-[10px]">Exp.</th>
+                <th className="px-1 py-1 max-w-[120px] text-[10px]">ปลายทาง</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -309,36 +312,36 @@ const Inventory: React.FC = () => {
                 <tr><td colSpan={9} className="p-8 text-center text-slate-400 italic">ไม่พบข้อมูลที่ตรงกับเงื่อนไขการกรอง</td></tr>
               ) : (
                 paginatedLedgerList.map(item => (
-                  <tr key={item.id + '-' + item.movementType + '-' + item.movementDate} className="text-sm">
-                    <td className="px-4 py-3">
-                      <div>{item.movementDate || '-'}</div>
+                  <tr key={item.id + '-' + item.movementType + '-' + item.movementDate} className="text-[11px] hover:bg-slate-50">
+                    <td className="px-1 py-1">
+                      <div className="font-mono text-[9px]">{formatDate(item.movementDate)}</div>
                       {item.movementType === 'IN' ? (
-                        <span className="inline-flex items-center gap-1 text-green-600 font-bold text-xs"><CircleArrowUp className="w-4 h-4" /> รับเข้า</span>
+                        <span className="inline-flex items-center gap-0.5 text-green-600 font-bold text-[9px]"><CircleArrowUp className="w-3 h-3" /> รับเข้า</span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-red-600 font-bold text-xs"><CircleArrowDown className="w-4 h-4" /> จ่ายออก</span>
+                        <span className="inline-flex items-center gap-0.5 text-red-600 font-bold text-[9px]"><CircleArrowDown className="w-3 h-3" /> จ่ายออก</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-slate-800">{item.customerName}</div>
-                      <div className="text-xs text-slate-500">สาขา: {item.branch}</div>
+                    <td className="px-1 py-1 max-w-[150px]">
+                      <div className="font-medium text-slate-800 truncate" title={item.customerName}>{item.customerName}</div>
+                      <div className="text-[9px] text-slate-500 truncate" title={`สาขา: ${item.branch}`}>สาขา: {item.branch}</div>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="font-bold text-slate-800">{item.productName}</div>
-                      <div className="text-xs text-slate-500">{item.productCode}</div>
+                    <td className="px-1 py-1 max-w-[180px]">
+                      <div className="font-bold text-slate-800 truncate" title={item.productName}>{item.productName}</div>
+                      <div className="text-[9px] text-slate-500">{item.productCode}</div>
                     </td>
-                    <td className="px-4 py-3 text-xs font-mono text-slate-600">
+                    <td className="px-1 py-1 text-[9px] font-mono text-slate-600 max-w-[100px] truncate" title={item.ncrNumber || '-'}>
                       {item.ncrNumber || '-'}
                     </td>
-                    <td className="px-4 py-3 text-xs">
-                      <div>Ref: {item.refNo}</div>
-                      <div className="text-slate-500">Neo: {item.neoRefNo || '-'}</div>
+                    <td className="px-1 py-1 text-[9px] max-w-[120px]">
+                      <div className="truncate" title={`Ref: ${item.refNo}`}>Ref: {item.refNo}</div>
+                      <div className="text-slate-500 truncate" title={`Neo: ${item.neoRefNo}`}>Neo: {item.neoRefNo || '-'}</div>
                     </td>
-                    <td className="px-4 py-3 text-right font-mono">{item.quantity} {item.unit}</td>
-                    <td className="px-4 py-3 text-right font-mono">฿{(item.priceBill || 0).toLocaleString()}</td>
-                    <td className="px-4 py-3 text-xs text-red-600 font-medium">{item.expiryDate || '-'}</td>
-                    <td className="px-4 py-3 text-xs text-slate-500">
-                      <div>{item.disposition}</div>
-                      {item.destinationCustomer && <div className="text-blue-600 truncate max-w-[150px]" title={item.destinationCustomer}>ปลายทาง: {item.destinationCustomer}</div>}
+                    <td className="px-1 py-1 text-right font-mono text-[10px]">{item.quantity} {item.unit}</td>
+                    <td className="px-1 py-1 text-right font-mono text-[10px]">฿{(item.priceBill || 0).toLocaleString()}</td>
+                    <td className="px-1 py-1 text-[9px] text-red-600 font-medium font-mono">{formatDate(item.expiryDate)}</td>
+                    <td className="px-1 py-1 text-[9px] text-slate-500 max-w-[120px]">
+                      <div className="truncate">{item.disposition}</div>
+                      {item.destinationCustomer && <div className="text-blue-600 truncate" title={item.destinationCustomer}>T: {item.destinationCustomer}</div>}
                     </td>
                   </tr>
                 ))

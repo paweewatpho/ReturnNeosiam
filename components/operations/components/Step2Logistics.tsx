@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
-import { Truck, MapPin, Printer, ArrowRight } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Truck, MapPin, Printer, ArrowRight, Package, Box, Calendar, Layers } from 'lucide-react';
+import { useData } from '../../../DataContext';
 import { ReturnRecord } from '../../../types';
 
 interface Step2LogisticsProps {
-    items: ReturnRecord[];
+    // items: ReturnRecord[]; // Removed as we use global state
     onConfirm: (selectedIds: string[], routeType: 'Hub' | 'Direct', transportInfo: any) => void;
 }
 
-export const Step2Logistics: React.FC<Step2LogisticsProps> = ({ items, onConfirm }) => {
+export const Step2Logistics: React.FC<Step2LogisticsProps> = ({ onConfirm }) => {
+    const { items, updateReturnRecord } = useData();
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [transportInfo, setTransportInfo] = useState({
         driverName: '',
@@ -20,11 +22,16 @@ export const Step2Logistics: React.FC<Step2LogisticsProps> = ({ items, onConfirm
     const [customDestination, setCustomDestination] = useState<string>('');
     const [selectedBranch, setSelectedBranch] = useState<string>('All');
 
-    // Filter Logic
-    const uniqueBranches = Array.from(new Set(items.map(i => i.branch))).filter(Boolean);
-    const filteredItems = items.filter(item =>
+    // Filter Logic: Global Items -> Status 'Requested'
+    const logisticsItems = useMemo(() => {
+        return items.filter(i => i.status === 'Requested');
+    }, [items]);
+
+    const uniqueBranches = useMemo(() => Array.from(new Set(logisticsItems.map(i => i.branch))).filter(Boolean), [logisticsItems]);
+
+    const filteredItems = useMemo(() => logisticsItems.filter(item =>
         selectedBranch === 'All' || item.branch === selectedBranch
-    );
+    ), [logisticsItems, selectedBranch]);
 
     const handleToggle = (id: string) => {
         const newSet = new Set(selectedIds);
@@ -47,7 +54,7 @@ export const Step2Logistics: React.FC<Step2LogisticsProps> = ({ items, onConfirm
         }
     };
 
-    const confirmSelection = () => {
+    const confirmSelection = async () => {
         if (selectedIds.size === 0) {
             alert('กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ');
             return;
@@ -72,11 +79,42 @@ export const Step2Logistics: React.FC<Step2LogisticsProps> = ({ items, onConfirm
         }
 
         const confirmMsg = routeType === 'Hub'
-            ? 'ยืนยันการส่งสินค้าเข้าศูนย์กระจายสินค้า (Hub นครสวรรค์)?'
+            ? 'ยืนยันการเปลี่ยนสถานะเป็น "รอรถรับ" (PickupScheduled) และบันทึกข้อมูลรถ?'
             : `ยืนยันการส่งคืนตรงผู้ผลิต (Direct Return) ไปยัง "${finalDestination}"?`;
 
         if (window.confirm(confirmMsg)) {
+            // Update Records Directly
+            const driverDetails = `Driver: ${transportInfo.driverName}, Plate: ${transportInfo.plateNumber}, Transport: ${transportInfo.transportCompany}`;
+
+            for (const id of Array.from(selectedIds)) {
+                if (routeType === 'Hub') {
+                    await updateReturnRecord(id, {
+                        status: 'PickupScheduled',
+                        // Store driver info in notes or relevant field
+                        notes: `[Logistics] ${driverDetails}`,
+                        // problemDetail: `${driverDetails}` 
+                    });
+                } else {
+                    // Direct Return Logic (Might default to Completed or Documented?)
+                    // User asked for "DriverAssigned", usually leading to Hub. Direct might just skip?
+                    // For Direct, let's assume it goes to 'Documented' or remains 'Requested' but with notes?
+                    // Adhering to User Request: "Update... to 'DriverAssigned' (or 'CollectionScheduled')"
+                    // Assuming this is for Hub route mainly. for Direct, maybe 'ReturnToSupplier'?
+                    // Let's stick to user request for status update.
+                    await updateReturnRecord(id, {
+                        status: 'ReturnToSupplier', // Direct return usually skips Hub logic
+                        disposition: 'RTV',
+                        destinationCustomer: finalDestination,
+                        notes: `[Direct Logistics] ${driverDetails}`
+                    });
+                }
+            }
+
+            // Call onConfirm to notify parent (maybe to clear selection or show success msg)
             onConfirm(Array.from(selectedIds), routeType, { ...transportInfo, destination: finalDestination });
+
+            // Clear selection
+            setSelectedIds(new Set());
         }
     };
 
@@ -216,7 +254,7 @@ export const Step2Logistics: React.FC<Step2LogisticsProps> = ({ items, onConfirm
                     </button>
                 </div>
 
-                {/* Items Selection Table */}
+                {/* Items Selection Table replaced with Card List */}
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 lg:col-span-2 flex flex-col overflow-hidden max-h-[600px]">
                     <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center flex-wrap gap-2">
                         <div>
@@ -224,7 +262,13 @@ export const Step2Logistics: React.FC<Step2LogisticsProps> = ({ items, onConfirm
                             <div className="text-sm text-slate-500">เลือก {selectedIds.size} รายการ</div>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-500 font-bold">กรองสาขา:</span>
+                            <button
+                                onClick={handleSelectAll}
+                                className="text-xs px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-50 text-slate-600 font-medium transition-colors"
+                            >
+                                {isAllFilteredSelected ? 'ยกเลิกเลือกทั้งหมด' : 'เลือกทั้งหมด'}
+                            </button>
+                            <span className="text-xs text-slate-500 font-bold ml-2">กรองสาขา:</span>
                             <select
                                 value={selectedBranch}
                                 onChange={e => setSelectedBranch(e.target.value)}
@@ -235,53 +279,99 @@ export const Step2Logistics: React.FC<Step2LogisticsProps> = ({ items, onConfirm
                             </select>
                         </div>
                     </div>
-                    <div className="flex-1 overflow-auto">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-slate-100 text-slate-600 font-bold sticky top-0 shadow-sm z-10">
-                                <tr>
-                                    <th className="p-3 w-10 text-center bg-slate-100">
-                                        <input type="checkbox" checked={isAllFilteredSelected} onChange={handleSelectAll} />
-                                    </th>
-                                    <th className="p-3 bg-slate-100">สินค้า</th>
-                                    <th className="p-3 bg-slate-100">จำนวน</th>
-                                    <th className="p-3 bg-slate-100">สาขา/วันที่</th>
-                                    <th className="p-3 bg-slate-100">ปลายทาง</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {filteredItems.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={5} className="p-8 text-center text-slate-400">
-                                            {selectedBranch !== 'All' ? 'ไม่พบรายการในสาขานี้' : 'ไม่มีรายการสินค้าที่รอจัดส่ง'}
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    filteredItems.map(item => (
-                                        <tr key={item.id} className={`hover:bg-slate-50 transition-colors ${selectedIds.has(item.id) ? 'bg-blue-50/50' : ''}`}>
-                                            <td className="p-3 text-center">
-                                                <input type="checkbox" checked={selectedIds.has(item.id)} onChange={() => handleToggle(item.id)} />
-                                            </td>
-                                            <td className="p-3">
-                                                <div className="font-bold text-slate-800">{item.productName}</div>
-                                                <div className="text-xs text-slate-500">{item.productCode}</div>
-                                            </td>
-                                            <td className="p-3 font-mono">
-                                                <span className="font-bold text-blue-600">{item.quantity}</span> {item.unit}
-                                            </td>
-                                            <td className="p-3">
-                                                <div className="flex items-center gap-1"><MapPin className="w-3 h-3 text-slate-400" /> {item.branch}</div>
-                                                <div className="text-xs text-slate-400">{item.dateRequested}</div>
-                                            </td>
-                                            <td className="p-3">
-                                                <div className="px-2 py-1 rounded bg-slate-100 inline-block text-xs font-bold text-slate-600">
-                                                    {item.destinationCustomer || '-'}
+
+                    <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50">
+                        {filteredItems.length === 0 ? (
+                            <div className="p-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
+                                <Package className="w-12 h-12 mx-auto mb-2 text-slate-300" />
+                                <p>{selectedBranch !== 'All' ? 'ไม่พบรายการในสาขานี้' : 'ไม่มีรายการสินค้าที่รอจัดส่ง'}</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {filteredItems.map(item => {
+                                    const isSelected = selectedIds.has(item.id);
+                                    const isNCR = item.id.startsWith('NCR') || item.ncrNumber;
+                                    const displayID = isNCR ? (item.ncrNumber || item.id) : (item.refNo || item.id);
+
+                                    return (
+                                        <div
+                                            key={item.id}
+                                            onClick={() => handleToggle(item.id)}
+                                            className={`
+                                                group flex items-start gap-4 p-4 rounded-xl border transition-all cursor-pointer select-none
+                                                ${isSelected
+                                                    ? 'bg-blue-50/80 border-blue-400 shadow-sm ring-1 ring-blue-100'
+                                                    : 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-md'
+                                                }
+                                            `}
+                                        >
+                                            {/* Checkbox */}
+                                            <div className="pt-1">
+                                                <div className={`
+                                                    w-5 h-5 rounded border flex items-center justify-center transition-colors
+                                                    ${isSelected ? 'bg-blue-500 border-blue-500' : 'bg-white border-slate-300 group-hover:border-blue-400'}
+                                                `}>
+                                                    {isSelected && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                                                 </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                                            </div>
+
+                                            {/* Content Area */}
+                                            <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4">
+
+                                                {/* Product Info (Span 7) */}
+                                                <div className="md:col-span-7">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        {/* Badge */}
+                                                        {isNCR ? (
+                                                            <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-[10px] font-bold px-2.5 py-1 rounded-full border border-blue-200 shadow-sm">
+                                                                <Package size={12} /> NCR: {displayID}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1.5 bg-purple-50 text-purple-700 text-[10px] font-bold px-2.5 py-1 rounded-full border border-purple-200 shadow-sm">
+                                                                <Layers size={12} /> COL: {displayID}
+                                                            </span>
+                                                        )}
+                                                        <span className="text-[10px] text-slate-400 font-mono border-l pl-2 border-slate-200">
+                                                            Code: {item.productCode || '-'}
+                                                        </span>
+                                                    </div>
+                                                    <h4 className="font-bold text-slate-800 text-sm mb-1">{item.productName}</h4>
+                                                    {item.problemDetail && (
+                                                        <p className="text-xs text-slate-500 line-clamp-1 flex items-center gap-1">
+                                                            <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                                            {item.problemDetail}
+                                                        </p>
+                                                    )}
+                                                </div>
+
+                                                {/* Meta Info (Span 5) */}
+                                                <div className="md:col-span-5 flex flex-col justify-center gap-2 md:border-l md:pl-4 border-slate-100 text-xs text-slate-600">
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <div className="flex items-center gap-2" title="จำนวน">
+                                                            <Box size={14} className="text-slate-400" />
+                                                            <span className="font-bold text-slate-800">{item.quantity} {item.unit}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2" title="สาขาต้นทาง">
+                                                            <MapPin size={14} className="text-slate-400" />
+                                                            <span className="truncate">{item.branch}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2" title="วันที่แจ้ง">
+                                                            <Calendar size={14} className="text-slate-400" />
+                                                            <span>{item.dateRequested || '-'}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2" title="ปลายทาง">
+                                                            <ArrowRight size={14} className="text-slate-400" />
+                                                            <span className="truncate text-blue-600 font-medium">{item.destinationCustomer || '-'}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

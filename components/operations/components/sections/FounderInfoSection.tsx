@@ -11,6 +11,10 @@ interface FounderInfoSectionProps {
     uniqueFounders: string[];
 }
 
+// DEPRECATED or NCR ONLY?
+// Actually, I will Create a NEW component for Logistics Request Step 1.
+// keeping this file as is for now, I will not modify it in this tool call.
+// I will just return without changes here and switch to write_to_file for new component.
 export const FounderInfoSection: React.FC<FounderInfoSectionProps> = ({
     formData,
     updateField,

@@ -113,7 +113,8 @@ export const exportNCRToExcel = async (formData: NCRFormData, ncrItems: NCRItem[
     // --- HEADER SECTION ---
     // Company Logo & Name
     try {
-        const logoUrl = 'https://img2.pic.in.th/pic/logo-neo.png';
+        // Use local file in public folder to avoid CORS issues
+        const logoUrl = '/logo.png';
         const response = await fetch(logoUrl);
         const arrayBuffer = await response.arrayBuffer();
         const logoImageId = workbook.addImage({

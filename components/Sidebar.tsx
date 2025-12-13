@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, Settings, LogOut, PackageOpen, ScanBarcode, AlertOctagon, FileBarChart, Wifi, LayoutGrid, BarChart } from 'lucide-react';
+import { LayoutDashboard, Settings, LogOut, PackageOpen, ScanBarcode, AlertOctagon, FileBarChart, Wifi, LayoutGrid, BarChart, Truck } from 'lucide-react';
 import { AppView } from '../types';
 import { ref, set } from 'firebase/database';
 import { db } from '../firebase';
@@ -17,7 +17,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView }) => {
     { id: AppView.NCR, label: 'NCR (สินค้าตีกลับ)', icon: AlertOctagon },
     { id: AppView.NCR_REPORT, label: 'รายงาน NCR', icon: FileBarChart },
     { id: AppView.INVENTORY, label: 'คลังสินค้า (Inventory)', icon: LayoutGrid },
-    { id: AppView.STOCK_SUMMARY, label: 'สรุปสต็อกคงคลัง', icon: BarChart },
+    { id: AppView.COLLECTION, label: 'งานรับสินค้า (Collection Tasks)', icon: Truck },
   ];
 
   const handleTestConnection = async () => {
@@ -37,9 +37,9 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView }) => {
   return (
     <div className="w-64 bg-slate-900 text-white h-screen flex flex-col shadow-xl print:hidden">
       <div className="p-6 flex items-center gap-3 border-b border-slate-800">
-        <img 
-          src="https://img2.pic.in.th/pic/logo-neo.png" 
-          alt="Neo Logistics" 
+        <img
+          src="https://img2.pic.in.th/pic/logo-neo.png"
+          alt="Neo Logistics"
           className="w-10 h-10 object-contain bg-white rounded-lg p-1"
         />
         <div>
@@ -57,8 +57,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView }) => {
               key={item.id}
               onClick={() => onChangeView(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200
-                ${isActive 
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' 
+                ${isActive
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
                   : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                 }
               `}
@@ -71,7 +71,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView }) => {
       </nav>
 
       <div className="p-4 border-t border-slate-800 space-y-1">
-        <button 
+        <button
           onClick={handleTestConnection}
           className="flex items-center gap-3 text-green-400 hover:text-green-300 hover:bg-slate-800 px-4 py-2 w-full text-sm rounded transition-colors"
         >

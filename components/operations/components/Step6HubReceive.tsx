@@ -1,58 +1,86 @@
+
 import React from 'react';
 import { Truck, Inbox, MapPin, CheckCircle } from 'lucide-react';
 import { useData } from '../../../DataContext';
 import { ReturnRecord } from '../../../types';
 
-export const Step3HubReceive: React.FC = () => {
+export const Step6HubReceive: React.FC = () => {
     const { items, updateReturnRecord } = useData();
     const [filterBranch, setFilterBranch] = React.useState<string>('');
     const [filterCustomer, setFilterCustomer] = React.useState<string>('');
     const [filterDestination, setFilterDestination] = React.useState<string>('');
 
-    // Filter Items: Status 'NCR_InTransit' or 'PickupScheduled' (Legacy)
-    const requestedItems = React.useMemo(() => {
-        return items.filter(item => item.status === 'NCR_InTransit' || item.status === 'PickupScheduled');
+    // Filter Items: Status 'InTransitToHub', 'COL_InTransit', or 'NCR_InTransit'
+    const incomingItems = React.useMemo(() => {
+        return items.filter(item => item.status === 'InTransitToHub' || item.status === 'COL_InTransit' || item.status === 'NCR_InTransit');
     }, [items]);
 
-    const handleIntakeReceive = async (id: string) => {
-        if (window.confirm('ยืนยันรับเข้าสินค้านี้เข้าสู่ Hub?')) {
+    const handleHubReceive = async (id: string, currentItem?: ReturnRecord) => {
+        const item = currentItem || items.find(i => i.id === id);
+        if (!item) return;
+
+        // Logic: NCR -> QC (Step 4), Collection -> Docs (Step 7 - Skip QC)
+        const isNCR = item.documentType === 'NCR' || !!item.ncrNumber || item.status === 'NCR_InTransit';
+        const newStatus = isNCR ? 'NCR_HubReceived' : 'COL_HubReceived';
+
+        const confirmMsg = isNCR
+            ? 'ยืนยันรับสินค้า NCR เข้าสู่ Hub เพื่อตรวจสอบคุณภาพ (QC)?'
+            : 'ยืนยันรับสินค้า Collection เข้าสู่ Hub (ข้าม QC ไปยังเอกสาร)?';
+
+        if (window.confirm(confirmMsg)) {
             await updateReturnRecord(id, {
-                status: 'NCR_HubReceived'
+                status: newStatus,
+                dateReceived: new Date().toISOString().split('T')[0]
             });
+        }
+    };
+
+    const handleHubReceiveAll = async () => {
+        if (filteredItems.length === 0) return;
+        if (window.confirm(`ยืนยันการรับสินค้าเข้า Hub ทั้งหมด ${filteredItems.length} รายการ?`)) {
+            for (const item of filteredItems) {
+                const isNCR = item.documentType === 'NCR' || !!item.ncrNumber || item.status === 'NCR_InTransit';
+                const newStatus = isNCR ? 'NCR_HubReceived' : 'COL_HubReceived';
+
+                await updateReturnRecord(item.id, {
+                    status: newStatus,
+                    dateReceived: new Date().toISOString().split('T')[0]
+                });
+            }
         }
     };
 
     // Unique values for dropdowns
     const branches = React.useMemo(() => {
-        const unique = new Set(requestedItems.map(item => item.branch).filter(Boolean));
+        const unique = new Set(incomingItems.map(item => item.branch).filter(Boolean));
         return Array.from(unique).sort();
-    }, [requestedItems]);
-
-    const customers = React.useMemo(() => {
-        const unique = new Set(requestedItems.map(item => item.customerName).filter(Boolean));
-        return Array.from(unique).sort();
-    }, [requestedItems]);
-
-    const destinations = React.useMemo(() => {
-        const unique = new Set(requestedItems.map(item => item.destinationCustomer).filter(Boolean));
-        return Array.from(unique).sort();
-    }, [requestedItems]);
+    }, [incomingItems]);
 
     // Filtered items
     const filteredItems = React.useMemo(() => {
-        return requestedItems.filter(item => {
+        return incomingItems.filter(item => {
             const matchBranch = !filterBranch || item.branch === filterBranch;
             const matchCustomer = !filterCustomer || (item.customerName && item.customerName.toLowerCase().includes(filterCustomer.toLowerCase()));
             const matchDestination = !filterDestination || (item.destinationCustomer && item.destinationCustomer.toLowerCase().includes(filterDestination.toLowerCase()));
             return matchBranch && matchCustomer && matchDestination;
         });
-    }, [requestedItems, filterBranch, filterCustomer, filterDestination]);
+    }, [incomingItems, filterBranch, filterCustomer, filterDestination]);
 
     return (
         <div className="h-full overflow-auto p-6">
-            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <Truck className="w-5 h-5 text-amber-500" /> รับสินค้าเข้า Hub (Received at Hub)
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <Truck className="w-5 h-5 text-amber-500" /> 6. รับสินค้าเข้า Hub (Received at Hub)
+                </h3>
+                {filteredItems.length > 0 && (
+                    <button
+                        onClick={handleHubReceiveAll}
+                        className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all"
+                    >
+                        รับทั้งหมด ({filteredItems.length})
+                    </button>
+                )}
+            </div>
 
             {/* Filters */}
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 space-y-3 sticky top-0 z-10">
@@ -97,64 +125,30 @@ export const Step3HubReceive: React.FC = () => {
             {filteredItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-slate-400 bg-white rounded-xl border border-slate-200">
                     <Inbox className="w-12 h-12 mb-2 opacity-50" />
-                    <p>ไม่พบรายการที่ตรงกับเงื่อนไข</p>
+                    <p>ไม่พบรายการที่ส่งมายัง Hub</p>
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {[...filteredItems].sort((a, b) => {
-                        const idA = a.ncrNumber || a.id || '';
-                        const idB = b.ncrNumber || b.id || '';
-                        return idB.localeCompare(idA);
-                    }).map(item => (
+                    {[...filteredItems].sort((a, b) => (b.ncrNumber || b.id).localeCompare(a.ncrNumber || a.id)).map(item => (
                         <div key={item.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all text-sm">
-                            {/* Header Info */}
                             <div className="grid grid-cols-2 md:grid-cols-7 gap-4 mb-4 border-b border-slate-100 pb-3">
                                 <div><span className="text-slate-500 text-xs block mb-1">สาขาต้นทาง</span><span className="font-bold text-slate-800 flex items-center gap-1"><MapPin className="w-3 h-3 text-slate-400" /> {item.branch}</span></div>
                                 <div><span className="text-slate-500 text-xs block mb-1">วันที่แจ้ง</span><span className="font-bold text-slate-800">{item.dateRequested || item.date}</span></div>
-                                <div><span className="text-slate-500 text-xs block mb-1">เลขที่ NCR</span><span className="font-mono font-bold text-slate-800">{item.ncrNumber || '-'}</span></div>
-                                <div><span className="text-slate-500 text-xs block mb-1">เลขที่เอกสาร Neo</span><span className="font-mono font-bold text-slate-800">{item.neoRefNo || '-'}</span></div>
-                                <div><span className="text-slate-500 text-xs block mb-1">ชื่อลูกค้า</span><span className="font-bold text-slate-800 line-clamp-1" title={item.customerName}>{item.customerName || '-'}</span></div>
+                                <div><span className="text-slate-500 text-xs block mb-1">NCR No.</span><span className="font-mono font-bold text-slate-800">{item.ncrNumber || '-'}</span></div>
+                                <div><span className="text-slate-500 text-xs block mb-1">Neo Ref</span><span className="font-mono font-bold text-slate-800">{item.neoRefNo || '-'}</span></div>
+                                <div><span className="text-slate-500 text-xs block mb-1">ลูกค้า</span><span className="font-bold text-slate-800 line-clamp-1" title={item.customerName}>{item.customerName || '-'}</span></div>
                                 <div><span className="text-slate-500 text-xs block mb-1">ผู้พบปัญหา</span><span className="font-bold text-slate-800 line-clamp-1" title={item.founder}>{item.founder || '-'}</span></div>
-                                <div><span className="text-slate-500 text-xs block mb-1">สถานที่ส่ง (ปลายทาง)</span><span className="font-bold text-slate-800 line-clamp-1" title={item.destinationCustomer}>{item.destinationCustomer || '-'}</span></div>
+                                <div><span className="text-slate-500 text-xs block mb-1">ปลายทาง</span><span className="font-bold text-slate-800 line-clamp-1" title={item.destinationCustomer}>{item.destinationCustomer || '-'}</span></div>
                             </div>
 
-                            {/* Product Info */}
-                            <div className="bg-slate-50 p-3 rounded-lg flex flex-col md:flex-row gap-4 items-start md:items-center">
+                            <div className="bg-slate-50 p-3 rounded-lg flex flex-col md:flex-row gap-4 items-center">
                                 <div className="flex-1 min-w-0">
                                     <div className="flex flex-wrap gap-2 mb-1">
                                         <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded font-mono font-bold">{item.refNo}</span>
                                         <span className="text-slate-600 font-mono font-bold">{item.productCode}</span>
                                     </div>
                                     <div className="font-bold text-slate-900 text-base mb-1 truncate" title={item.productName}>{item.productName}</div>
-
-                                    <div className="flex flex-col gap-1 mt-2">
-                                        <div className="flex gap-2 items-center flex-wrap">
-                                            {item.preliminaryDecision && (
-                                                <div className={`text-xs px-2 py-0.5 rounded-full border flex items-center gap-1
-                                                    ${item.preliminaryDecision === 'Return' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
-                                                        item.preliminaryDecision === 'Sell' ? 'bg-green-50 text-green-700 border-green-200' :
-                                                            item.preliminaryDecision === 'Scrap' ? 'bg-red-50 text-red-700 border-red-200' :
-                                                                item.preliminaryDecision === 'Internal' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                                                    'bg-blue-50 text-blue-700 border-blue-200'}`}>
-                                                    <span className="font-bold">{item.preliminaryDecision}</span>
-                                                    {item.preliminaryRoute && <span>({item.preliminaryRoute})</span>}
-                                                </div>
-                                            )}
-                                            {item.expiryDate && <div className="text-red-500 text-xs font-bold bg-white px-2 py-0.5 rounded border border-red-100">Exp: {item.expiryDate}</div>}
-                                        </div>
-                                        {item.reason && <div className="text-slate-500 text-xs italic">เหตุผล: {item.reason}</div>}
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-6 px-4 md:border-l border-slate-200">
-                                    <div className="text-right">
-                                        <span className="text-slate-400 text-[10px] block">ราคาหน้าบิล</span>
-                                        <span className="font-bold text-slate-700">{item.priceBill?.toLocaleString()}</span>
-                                    </div>
-                                    <div className="text-right">
-                                        <span className="text-slate-400 text-[10px] block">ราคาขาย</span>
-                                        <span className="font-bold text-slate-700">{item.priceSell?.toLocaleString()}</span>
-                                    </div>
+                                    {item.problemDetail && <p className="text-xs text-slate-500 truncate">{item.problemDetail}</p>}
                                 </div>
 
                                 <div className="text-center min-w-[80px] bg-white px-3 py-1 rounded border border-slate-200">
@@ -162,8 +156,8 @@ export const Step3HubReceive: React.FC = () => {
                                     <span className="font-bold text-lg text-blue-600">{item.quantity}</span> <span className="text-xs text-slate-500">{item.unit}</span>
                                 </div>
 
-                                <button onClick={() => handleIntakeReceive(item.id)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 transition-colors whitespace-nowrap ml-auto self-stretch md:self-auto justify-center">
-                                    <CheckCircle className="w-4 h-4" /> รับของ
+                                <button onClick={() => handleHubReceive(item.id)} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 transition-colors whitespace-nowrap">
+                                    <CheckCircle className="w-4 h-4" /> รับเข้า Hub
                                 </button>
                             </div>
                         </div>
