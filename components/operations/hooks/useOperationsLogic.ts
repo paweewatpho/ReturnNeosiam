@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useData } from '../../../DataContext';
-import { ReturnRecord, ItemCondition, DispositionAction, ReturnStatus } from '../../../types';
+import { ReturnRecord, ItemCondition, DispositionAction, ReturnStatus, TransportInfo } from '../../../types';
 import { getISODetails, RESPONSIBLE_MAPPING } from '../utils';
 
 export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, onClearInitialData?: () => void) => {
@@ -434,7 +434,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
     };
 
     // STEP 2: Handle Logistics Branching (DEBUGGED & ROBUST)
-    const handleLogisticsSubmit = async (selectedIds: string[], routeType: 'Hub' | 'Direct', transportInfo: any) => {
+    const handleLogisticsSubmit = async (selectedIds: string[], routeType: 'Hub' | 'Direct', transportInfo: TransportInfo) => {
         try {
             console.log(`[Logistics] HandleSubmit Called. IDs: ${selectedIds.length}, Route: ${routeType}`);
 
