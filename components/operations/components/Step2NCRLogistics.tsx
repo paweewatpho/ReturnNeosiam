@@ -294,6 +294,35 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                                         )}
                                     </div>
 
+                                    {/* Preliminary Decision Badge */}
+                                    {item.preliminaryDecision && (
+                                        <div className="mt-3 pt-2 border-t border-slate-100">
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="text-slate-500">การตัดสินใจเบื้องต้น:</span>
+                                                <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${item.preliminaryDecision === 'Return' ? 'bg-blue-100 text-blue-700' :
+                                                        item.preliminaryDecision === 'Sell' ? 'bg-green-100 text-green-700' :
+                                                            item.preliminaryDecision === 'Scrap' ? 'bg-red-100 text-red-700' :
+                                                                item.preliminaryDecision === 'Internal' ? 'bg-purple-100 text-purple-700' :
+                                                                    item.preliminaryDecision === 'Claim' ? 'bg-orange-100 text-orange-700' :
+                                                                        'bg-slate-100 text-slate-700'
+                                                    }`}>
+                                                    {item.preliminaryDecision === 'Return' ? 'คืนสินค้า' :
+                                                        item.preliminaryDecision === 'Sell' ? 'ขาย' :
+                                                            item.preliminaryDecision === 'Scrap' ? 'ทำลาย' :
+                                                                item.preliminaryDecision === 'Internal' ? 'ใช้ภายใน' :
+                                                                    item.preliminaryDecision === 'Claim' ? 'เคลม' :
+                                                                        item.preliminaryDecision}
+                                                </span>
+                                            </div>
+                                            {item.preliminaryRoute && (
+                                                <div className="flex items-center justify-between text-xs mt-1">
+                                                    <span className="text-slate-500">เส้นทาง:</span>
+                                                    <span className="text-slate-700 font-medium">{item.preliminaryRoute}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
                                     {item.founder && (
                                         <div className="mt-3 pt-2 border-t border-slate-100 text-[10px] text-slate-500 flex items-center gap-1">
                                             <Info className="w-3 h-3" /> ผู้พบ: {item.founder}

@@ -28,7 +28,7 @@ const NCRSystem: React.FC = () => {
 
     const [ncrItems, setNcrItems] = useState<NCRItem[]>([]);
     const [showItemModal, setShowItemModal] = useState(false);
-    const [newItem, setNewItem] = useState<Partial<NCRItem>>({ branch: '', refNo: '', neoRefNo: '', productCode: '', productName: '', customerName: '', destinationCustomer: '', quantity: 0, unit: '', pricePerUnit: 0, priceBill: 0, expiryDate: '', hasCost: false, costAmount: 0, costResponsible: '', problemSource: '' });
+    const [newItem, setNewItem] = useState<Partial<NCRItem>>({ branch: '', refNo: '', neoRefNo: '', productCode: '', productName: '', customerName: '', destinationCustomer: '', quantity: 0, unit: '', pricePerUnit: 0, priceBill: 0, expiryDate: '', hasCost: false, costAmount: 0, costResponsible: '', problemSource: '', preliminaryDecision: null, preliminaryRoute: '' });
     const [isCustomReportBranch, setIsCustomReportBranch] = useState(false);
     const [sourceSelection, setSourceSelection] = useState({ category: '', whBranch: '', whCause: '', whOtherText: '', transType: '', transName: '', transPlate: '', transVehicleType: '', transAffiliation: '', transCompany: '', otherText: '', problemScenario: '' });
 
@@ -162,7 +162,7 @@ const NCRSystem: React.FC = () => {
         // Reset inputs
         setNewItem(prev => ({
             ...prev,
-            refNo: '', neoRefNo: '', productCode: '', productName: '', customerName: '', destinationCustomer: '', quantity: 0, unit: '', pricePerUnit: 0, priceBill: 0, expiryDate: '', hasCost: false, costAmount: 0, costResponsible: '', problemSource: ''
+            refNo: '', neoRefNo: '', productCode: '', productName: '', customerName: '', destinationCustomer: '', quantity: 0, unit: '', pricePerUnit: 0, priceBill: 0, expiryDate: '', hasCost: false, costAmount: 0, costResponsible: '', problemSource: '', preliminaryDecision: null, preliminaryRoute: ''
         }));
         setSourceSelection({ category: '', whBranch: '', whCause: '', whOtherText: '', transType: '', transName: '', transPlate: '', transVehicleType: '', transAffiliation: '', transCompany: '', otherText: '', problemScenario: '' });
 
@@ -765,6 +765,73 @@ const NCRSystem: React.FC = () => {
                                     <label className="block text-sm font-bold text-slate-700 mb-1">ลูกค้าปลายทาง (Destination)</label>
                                     <input type="text" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={newItem.destinationCustomer} onChange={e => setNewItem({ ...newItem, destinationCustomer: e.target.value })} placeholder="Optional" />
                                 </div>
+                            </div>
+
+                            {/* Preliminary Decision Section */}
+                            <div className="space-y-3 pt-4 border-t">
+                                <h4 className="font-bold text-slate-900 flex items-center gap-2">
+                                    <HelpCircle className="w-4 h-4 text-blue-600" />
+                                    การตัดสินใจเบื้องต้น (Preliminary Decision)
+                                </h4>
+                                <div className="grid grid-cols-3 gap-2 text-sm">
+                                    <label className="flex items-center gap-2 border p-2 rounded hover:bg-blue-50 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="prelimDecision"
+                                            checked={newItem.preliminaryDecision === 'Return'}
+                                            onChange={() => setNewItem({ ...newItem, preliminaryDecision: 'Return' })}
+                                        />
+                                        คืนสินค้า (Return)
+                                    </label>
+                                    <label className="flex items-center gap-2 border p-2 rounded hover:bg-green-50 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="prelimDecision"
+                                            checked={newItem.preliminaryDecision === 'Sell'}
+                                            onChange={() => setNewItem({ ...newItem, preliminaryDecision: 'Sell' })}
+                                        />
+                                        ขาย (Sell)
+                                    </label>
+                                    <label className="flex items-center gap-2 border p-2 rounded hover:bg-red-50 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="prelimDecision"
+                                            checked={newItem.preliminaryDecision === 'Scrap'}
+                                            onChange={() => setNewItem({ ...newItem, preliminaryDecision: 'Scrap' })}
+                                        />
+                                        ทำลาย (Scrap)
+                                    </label>
+                                    <label className="flex items-center gap-2 border p-2 rounded hover:bg-purple-50 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="prelimDecision"
+                                            checked={newItem.preliminaryDecision === 'Internal'}
+                                            onChange={() => setNewItem({ ...newItem, preliminaryDecision: 'Internal' })}
+                                        />
+                                        ใช้ภายใน (Internal)
+                                    </label>
+                                    <label className="flex items-center gap-2 border p-2 rounded hover:bg-orange-50 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="prelimDecision"
+                                            checked={newItem.preliminaryDecision === 'Claim'}
+                                            onChange={() => setNewItem({ ...newItem, preliminaryDecision: 'Claim' })}
+                                        />
+                                        เคลม (Claim)
+                                    </label>
+                                </div>
+                                {newItem.preliminaryDecision && (
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">เส้นทาง (Route)</label>
+                                        <input
+                                            type="text"
+                                            className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                                            value={newItem.preliminaryRoute || ''}
+                                            onChange={e => setNewItem({ ...newItem, preliminaryRoute: e.target.value })}
+                                            placeholder="เช่น สาย 3, Sino, NEO, อื่นๆ"
+                                        />
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-3 pt-4 border-t">
