@@ -17,10 +17,6 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
     const [showModal, setShowModal] = React.useState(false);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-    // Replaced driverId with manual entry fields
-    const [driverName, setDriverName] = React.useState('');
-    const [plateNumber, setPlateNumber] = React.useState('');
-
     const [pickupDate, setPickupDate] = React.useState(new Date().toISOString().split('T')[0]);
 
     // Handle Undo (Step 2 -> Step 1) implies deleting the request so it can be re-created or just removed
@@ -85,18 +81,14 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
         if (selectedIds.length === 0) return;
         if (isSubmitting) return;
 
-        // Validation Removed per User Request
-        // if (!driverName) { alert... }
-        // if (!plateNumber) { alert... }
-
         setIsSubmitting(true);
         try {
             const newColId = `COL-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
 
             const newOrder: CollectionOrder = {
                 id: newColId,
-                driverId: driverName || 'Unspecified', // Fallback if empty
-                vehiclePlate: plateNumber || 'Unspecified', // Fallback if empty
+                driverId: 'Unspecified',
+                vehiclePlate: 'Unspecified',
                 linkedRmaIds: selectedIds,
                 pickupLocation: {
                     name: 'Multiple Customers',
@@ -131,8 +123,6 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
 
             setShowModal(false);
             setSelectedIds([]);
-            setDriverName('');
-            setPlateNumber('');
 
             // Navigate to next step if callback provided
             if (onComplete) {
@@ -272,26 +262,6 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
                             <button onClick={() => setShowModal(false)}><X className="w-5 h-5" /></button>
                         </div>
                         <div className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-1">ชื่อพนักงานขับรถ (Driver Name)</label>
-                                <input
-                                    type="text"
-                                    className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                    placeholder="ระบุชื่อพนักงานขับรถ..."
-                                    value={driverName}
-                                    onChange={e => setDriverName(e.target.value)}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-1">ทะเบียนรถ (License Plate)</label>
-                                <input
-                                    type="text"
-                                    className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                    placeholder="ระบุเลขทะเบียนรถ..."
-                                    value={plateNumber}
-                                    onChange={e => setPlateNumber(e.target.value)}
-                                />
-                            </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">วันที่รับสินค้า (Date)</label>
                                 <input

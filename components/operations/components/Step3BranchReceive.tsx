@@ -1,8 +1,9 @@
 import React from 'react';
-import { Activity, Box, CheckSquare, Calendar, RotateCcw } from 'lucide-react';
+import { Activity, Box, CheckSquare, Calendar, RotateCcw, X, Truck } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import Swal from 'sweetalert2';
 import { useData } from '../../../DataContext';
-import { ReturnRecord } from '../../../types';
+// import { ReturnRecord } from '../../../types';
 
 interface Step3BranchReceiveProps {
     onComplete?: () => void;
@@ -11,7 +12,15 @@ interface Step3BranchReceiveProps {
 export const Step3BranchReceive: React.FC<Step3BranchReceiveProps> = ({ onComplete }) => {
     const { items, updateReturnRecord } = useData();
     const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+    // Modal State
+    const [showModal, setShowModal] = React.useState(false);
+    const [targetIds, setTargetIds] = React.useState<string[]>([]);
+
+    // Form State
     const [receivedDate, setReceivedDate] = React.useState(new Date().toISOString().split('T')[0]);
+    const [driverName, setDriverName] = React.useState('');
+    const [plateNumber, setPlateNumber] = React.useState('');
 
     // Filter Items: Status 'JobAccepted' or 'COL_JobAccepted' ensuring NO NCR items (unless explicitly LOGISTICS)
     const acceptedItems = React.useMemo(() => {
@@ -31,84 +40,72 @@ export const Step3BranchReceive: React.FC<Step3BranchReceiveProps> = ({ onComple
         });
     }, [items]);
 
-    const handleReceiveItem = async (id: string) => {
+    const handleReceiveItem = (id: string) => {
         if (isSubmitting) return;
-
-        const result = await Swal.fire({
-            title: 'ยืนยันรับสินค้า?',
-            text: "คุณตรวจสอบสินค้าเรียบร้อยแล้วใช่หรือไม่?",
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#4f46e5', // indigo-600
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'ใช่, รับสินค้า',
-            cancelButtonText: 'ยกเลิก'
-        });
-
-        if (result.isConfirmed) {
-            setIsSubmitting(true);
-            try {
-                await updateReturnRecord(id, {
-                    status: 'COL_BranchReceived',
-                    dateReceived: receivedDate
-                });
-
-                await Swal.fire({
-                    icon: 'success',
-                    title: 'รับสินค้าเรียบร้อย',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-
-                // Auto-navigate if this was the last item
-                if (acceptedItems.length === 1 && onComplete) {
-                    onComplete();
-                }
-            } finally {
-                setIsSubmitting(false);
-            }
-        }
+        setTargetIds([id]);
+        setDriverName('');
+        setPlateNumber('');
+        setShowModal(true);
     };
 
-    const handleReceiveAll = async () => {
+    const handleReceiveAll = () => {
         if (acceptedItems.length === 0) return;
         if (isSubmitting) return;
+        setTargetIds(acceptedItems.map(i => i.id));
+        setDriverName('');
+        setPlateNumber('');
+        setShowModal(true);
+    };
 
-        const result = await Swal.fire({
-            title: `ยืนยันรับสินค้าทั้งหมด ${acceptedItems.length} รายการ?`,
-            text: "คุณต้องการรับสินค้าทั้งหมดในครั้งเดียวหรือไม่?",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#4f46e5',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'ยืนยัน',
-            cancelButtonText: 'ยกเลิก'
-        });
+    const confirmReceive = async () => {
+        // Validation
+        if (!receivedDate) {
+            Swal.fire({ icon: 'warning', title: 'กรุณาระบุวันที่รับสินค้า' });
+            return;
+        }
+        if (!driverName.trim()) {
+            Swal.fire({ icon: 'warning', title: 'กรุณาระบุชื่อพนักงานขับรถ' });
+            return;
+        }
+        if (!plateNumber.trim()) {
+            Swal.fire({ icon: 'warning', title: 'กรุณาระบุทะเบียนรถ' });
+            return;
+        }
 
-        if (result.isConfirmed) {
-            setIsSubmitting(true);
-            try {
-                for (const item of acceptedItems) {
-                    await updateReturnRecord(item.id, {
-                        status: 'COL_BranchReceived',
-                        dateReceived: receivedDate
-                    });
-                }
-
-                await Swal.fire({
-                    icon: 'success',
-                    title: 'สำเร็จ!',
-                    text: 'รับสินค้าทั้งหมดเรียบร้อยแล้ว',
-                    timer: 1500,
-                    showConfirmButton: false
+        setIsSubmitting(true);
+        try {
+            for (const id of targetIds) {
+                await updateReturnRecord(id, {
+                    status: 'COL_BranchReceived',
+                    dateReceived: receivedDate,
+                    transportInfo: {
+                        driverName: driverName,
+                        plateNumber: plateNumber,
+                        transportCompany: 'Company' // Defaulting to internal/company as per context
+                    }
                 });
-
-                if (onComplete) {
-                    onComplete();
-                }
-            } finally {
-                setIsSubmitting(false);
             }
+
+            await Swal.fire({
+                icon: 'success',
+                title: 'รับสินค้าเรียบร้อย',
+                text: `บันทึกข้อมูลรับสินค้า ${targetIds.length} รายการ`,
+                timer: 1500,
+                showConfirmButton: false
+            });
+
+            setShowModal(false);
+            setTargetIds([]);
+
+            // Auto-navigate if done
+            if (acceptedItems.length === targetIds.length && onComplete) {
+                onComplete();
+            }
+        } catch (error) {
+            console.error("Error receiving items:", error);
+            Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: 'ไม่สามารถบันทึกข้อมูลได้' });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -141,30 +138,19 @@ export const Step3BranchReceive: React.FC<Step3BranchReceiveProps> = ({ onComple
     };
 
     return (
-        <div className="h-full flex flex-col p-6 animate-fade-in">
+        <div className="h-full flex flex-col p-6 animate-fade-in relative">
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                     <Activity className="w-6 h-6 text-indigo-600" /> 3. รับสินค้า (Branch Physical Receive)
                 </h3>
                 {acceptedItems.length > 0 && (
-                    <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm">
-                            <span className="text-sm font-bold text-slate-600">วันที่รับ:</span>
-                            <input
-                                type="date"
-                                value={receivedDate}
-                                onChange={(e) => setReceivedDate(e.target.value)}
-                                className="outline-none text-slate-700 font-medium text-sm"
-                            />
-                        </div>
-                        <button
-                            onClick={handleReceiveAll}
-                            disabled={isSubmitting}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-wait"
-                        >
-                            {isSubmitting ? 'กำลังทำงาน...' : `รับสินค้าทั้งหมด (${acceptedItems.length})`}
-                        </button>
-                    </div>
+                    <button
+                        onClick={handleReceiveAll}
+                        disabled={isSubmitting}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-wait"
+                    >
+                        {isSubmitting ? 'กำลังทำงาน...' : `รับสินค้าทั้งหมด (${acceptedItems.length})`}
+                    </button>
                 )}
             </div>
 
@@ -250,6 +236,73 @@ export const Step3BranchReceive: React.FC<Step3BranchReceiveProps> = ({ onComple
                     </table>
                 </div>
             </div>
+
+            {/* Receive Modal */}
+            {showModal && createPortal(
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-up">
+                        <div className="bg-indigo-600 p-4 flex justify-between items-center text-white">
+                            <h3 className="font-bold flex items-center gap-2 text-lg">
+                                <Truck className="w-5 h-5" /> ยืนยันข้อมูลรับสินค้า
+                            </h3>
+                            <button onClick={() => setShowModal(false)} className="hover:bg-indigo-700 p-1 rounded-full transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-lg">
+                                <p className="text-sm text-indigo-800 font-bold mb-1">
+                                    รายการที่เลือกรบ: <span className="text-indigo-600">{targetIds.length} รายการ</span>
+                                </p>
+                                <p className="text-xs text-indigo-600">กรุณาระบุข้อมูลคนขับและรถที่นำสินค้าเข้ามาส่ง</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">วันที่รับจริง (Received Date) <span className="text-red-500">*</span></label>
+                                <input
+                                    type="date"
+                                    className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-slate-700"
+                                    value={receivedDate}
+                                    onChange={(e) => setReceivedDate(e.target.value)}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">ชื่อพนักงานขับรถ (Driver Name) <span className="text-red-500">*</span></label>
+                                <input
+                                    type="text"
+                                    className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    placeholder="ระบุชื่อพนักงานขับรถ..."
+                                    value={driverName}
+                                    onChange={(e) => setDriverName(e.target.value)}
+                                    autoFocus
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">ทะเบียนรถ (License Plate) <span className="text-red-500">*</span></label>
+                                <input
+                                    type="text"
+                                    className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    placeholder="ระบุเลขทะเบียนรถ..."
+                                    value={plateNumber}
+                                    onChange={(e) => setPlateNumber(e.target.value)}
+                                />
+                            </div>
+
+                            <button
+                                onClick={confirmReceive}
+                                disabled={isSubmitting}
+                                className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 shadow-lg transition-all mt-4 disabled:opacity-50 disabled:cursor-wait flex justify-center items-center gap-2"
+                            >
+                                {isSubmitting ? 'กำลังบันทึก...' : <>ยืนยันการรับสินค้า (Confirm)</>}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
 };
