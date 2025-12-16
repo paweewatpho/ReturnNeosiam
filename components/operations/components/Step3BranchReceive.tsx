@@ -50,20 +50,18 @@ export const Step3BranchReceive: React.FC<Step3BranchReceiveProps> = ({ onComple
             try {
                 await updateReturnRecord(id, {
                     status: 'COL_BranchReceived',
-                    await updateReturnRecord(id, {
-                        status: 'COL_BranchReceived',
-                        dateReceived: receivedDate
-                    });
+                    dateReceived: receivedDate
+                });
 
-                    await Swal.fire({
-                        icon: 'success',
-                        title: 'รับสินค้าเรียบร้อย',
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'รับสินค้าเรียบร้อย',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
 
-                    // Auto-navigate if this was the last item
-                    if(acceptedItems.length === 1 && onComplete) {
+                // Auto-navigate if this was the last item
+                if (acceptedItems.length === 1 && onComplete) {
                     onComplete();
                 }
             } finally {
@@ -92,7 +90,6 @@ export const Step3BranchReceive: React.FC<Step3BranchReceiveProps> = ({ onComple
             try {
                 for (const item of acceptedItems) {
                     await updateReturnRecord(item.id, {
-                        status: 'COL_BranchReceived',
                         status: 'COL_BranchReceived',
                         dateReceived: receivedDate
                     });
