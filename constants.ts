@@ -76,7 +76,7 @@ export const CATEGORIES = ['Food & Beverage', 'Household', 'Personal Care', 'Pet
 
 export const BRANCH_LIST: BranchName[] = ['พิษณุโลก', 'กำแพงเพชร', 'แม่สอด', 'เชียงใหม่', 'EKP ลำปาง', 'นครสวรรค์', 'สาย 3', 'คลอง 13', 'ซีโน่', 'ประดู่'];
 
-export const RETURN_ROUTES = ['สาย 3', 'Sino Pacific Trading', 'NEO CORPORATE'];
+export const RETURN_ROUTES = ['นครสวรรค์', 'สาย 3', 'Sino Pacific Trading', 'NEO CORPORATE'];
 
 // Helper to generate some dates
 const today = new Date();

@@ -23,6 +23,8 @@ export interface NCRItem {
   costAmount?: number;
   costResponsible: string;
   problemSource: string;
+  preliminaryDecision?: string | null;
+  preliminaryRoute?: string;
 }
 
 // EXPANDED Interface for the main NCR Record

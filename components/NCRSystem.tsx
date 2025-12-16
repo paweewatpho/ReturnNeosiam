@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
 import { useData, NCRRecord, NCRItem } from '../DataContext';
 import { ReturnRecord } from '../types';
-import { Save, Printer, Image as ImageIcon, AlertTriangle, Plus, Trash2, X, Loader, CheckCircle, XCircle, HelpCircle, Download, Lock, PenTool, Share2, Truck, DollarSign, Home, FileText } from 'lucide-react';
+import { Save, Printer, Image as ImageIcon, AlertTriangle, Plus, Trash2, X, Loader, CheckCircle, XCircle, HelpCircle, Download, Lock, PenTool, Truck } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { RESPONSIBLE_MAPPING } from './operations/utils';
 import { LineAutocomplete } from './LineAutocomplete';
@@ -10,6 +10,7 @@ import { exportNCRToExcel } from './NCRExcelExport';
 const WAREHOUSE_BRANCHES = ['สาย 3', 'นครสวรรค์', 'กำแพงเพชร', 'แม่สอด', 'พิษณุโลก', 'เชียงใหม่', 'EKP ลำปาง', 'คลอง13', 'ประดู่'];
 const WAREHOUSE_CAUSES = ['เช็คเกอร์', 'พนักงานลงสินค้า', 'อื่นๆ'];
 const REPORTING_BRANCHES = ['สาย 3', 'นครสวรรค์', 'กำแพงเพชร', 'แม่สอด', 'พิษณุโลก', 'เชียงใหม่', 'EKP ลำปาง', 'คลอง13', 'ประดู่'];
+const RETURN_ROUTES = ['นครสวรรค์', 'สาย 3', 'Sino Pacific Trading', 'NEO CORPORATE'];
 
 const NCRSystem: React.FC = () => {
     const { addNCRReport, getNextNCRNumber, addReturnRecord, ncrReports } = useData();
@@ -120,27 +121,17 @@ const NCRSystem: React.FC = () => {
             return;
         }
 
-        // ตรวจสอบการตัดสินใจเบื้องต้น (บังคับกรอก)
-        if (!newItem.preliminaryDecision) {
+        // ตรวจสอบเส้นทางส่งคืน (บังคับกรอก)
+        if (!newItem.preliminaryRoute) {
             Swal.fire({
                 icon: 'warning',
-                title: 'กรุณาเลือกการตัดสินใจเบื้องต้น',
-                text: 'คุณต้องเลือกการตัดสินใจเบื้องต้นก่อนบันทึกรายการ',
+                title: 'กรุณาระบุเส้นทาง',
+                text: 'กรุณาเลือกเส้นทางส่งคืนสินค้า',
                 confirmButtonText: 'ตกลง'
             });
             return;
         }
 
-        // ตรวจสอบเส้นทาง (ถ้าเลือก Return)
-        if (newItem.preliminaryDecision === 'Return' && !newItem.preliminaryRoute) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'กรุณาระบุเส้นทาง',
-                text: 'สำหรับการคืนสินค้า กรุณาระบุเส้นทางส่งคืน',
-                confirmButtonText: 'ตกลง'
-            });
-            return;
-        }
 
         let formattedSource = '';
         const s = sourceSelection;
@@ -179,6 +170,7 @@ const NCRSystem: React.FC = () => {
             priceBill: Number(newItem.priceBill) || 0,
             costAmount: Number(newItem.costAmount) || 0,
             problemSource: finalProblemSource,
+            preliminaryDecision: 'Return', // Auto-set to Return
         };
         setNcrItems([...ncrItems, item]);
 
@@ -790,101 +782,52 @@ const NCRSystem: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Preliminary Decision Section */}
+                            {/* Preliminary Decision Section - Return Only */}
                             <div className="space-y-3 pt-4 border-t">
                                 <h4 className="font-bold text-slate-900 flex items-center gap-2">
-                                    <Share2 className="w-5 h-5 text-indigo-600" />
-                                    การตัดสินใจเบื้องต้น (Preliminary Decision)
+                                    <Truck className="w-5 h-5 text-indigo-600" />
+                                    ระบุเส้นทางส่งคืน (Return Route)
                                 </h4>
-                                <p className="text-xs text-slate-500 mb-3">กรุณาเลือกการจัดการเบื้องต้นสำหรับรายการนี้</p>
+                                <p className="text-xs text-slate-500 mb-3">กรุณาเลือกเส้นทางสำหรับการส่งคืนสินค้า</p>
 
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => setNewItem({ ...newItem, preliminaryDecision: 'Return', preliminaryRoute: '' })}
-                                        className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${newItem.preliminaryDecision === 'Return' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 hover:border-indigo-200 hover:bg-slate-50'}`}
-                                    >
-                                        <Truck className={`w-7 h-7 ${newItem.preliminaryDecision === 'Return' ? 'text-indigo-600' : 'text-slate-400'}`} />
-                                        <span className="font-bold text-sm">ส่งคืน (Return)</span>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => setNewItem({ ...newItem, preliminaryDecision: 'Sell', preliminaryRoute: '' })}
-                                        className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${newItem.preliminaryDecision === 'Sell' ? 'border-green-500 bg-green-50 text-green-700' : 'border-slate-200 hover:border-green-200 hover:bg-slate-50'}`}
-                                    >
-                                        <DollarSign className={`w-7 h-7 ${newItem.preliminaryDecision === 'Sell' ? 'text-green-600' : 'text-slate-400'}`} />
-                                        <span className="font-bold text-sm">ขาย (Sell)</span>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => setNewItem({ ...newItem, preliminaryDecision: 'Scrap', preliminaryRoute: '' })}
-                                        className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${newItem.preliminaryDecision === 'Scrap' ? 'border-red-500 bg-red-50 text-red-700' : 'border-slate-200 hover:border-red-200 hover:bg-slate-50'}`}
-                                    >
-                                        <Trash2 className={`w-7 h-7 ${newItem.preliminaryDecision === 'Scrap' ? 'text-red-600' : 'text-slate-400'}`} />
-                                        <span className="font-bold text-sm">ทิ้ง (Scrap)</span>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => setNewItem({ ...newItem, preliminaryDecision: 'Internal', preliminaryRoute: '' })}
-                                        className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${newItem.preliminaryDecision === 'Internal' ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-slate-200 hover:border-amber-200 hover:bg-slate-50'}`}
-                                    >
-                                        <Home className={`w-7 h-7 ${newItem.preliminaryDecision === 'Internal' ? 'text-amber-600' : 'text-slate-400'}`} />
-                                        <span className="font-bold text-sm">ใช้ภายใน (Internal)</span>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => setNewItem({ ...newItem, preliminaryDecision: 'Claim', preliminaryRoute: '' })}
-                                        className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${newItem.preliminaryDecision === 'Claim' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-blue-200 hover:bg-slate-50'}`}
-                                    >
-                                        <FileText className={`w-7 h-7 ${newItem.preliminaryDecision === 'Claim' ? 'text-blue-600' : 'text-slate-400'}`} />
-                                        <span className="font-bold text-sm">เคลมประกัน (Claim)</span>
-                                    </button>
-                                </div>
-
-                                {newItem.preliminaryDecision === 'Return' && (
-                                    <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200 animate-fade-in">
-                                        <label className="block text-sm font-bold text-slate-700 mb-2">ระบุเส้นทางส่งคืน (Select Route)</label>
-                                        <div className="space-y-2">
-                                            {['สาย 3', 'Sino Pacific Trading', 'NEO CORPORATE'].map(route => (
-                                                <label key={route} className="flex items-center gap-3 p-2 bg-white rounded border border-slate-200 hover:border-indigo-300 cursor-pointer">
-                                                    <input
-                                                        type="radio"
-                                                        name="ncrRoute"
-                                                        value={route}
-                                                        checked={newItem.preliminaryRoute === route}
-                                                        onChange={(e) => setNewItem({ ...newItem, preliminaryRoute: e.target.value })}
-                                                        className="w-4 h-4 text-indigo-600"
-                                                    />
-                                                    <span className="text-sm">{route}</span>
-                                                </label>
-                                            ))}
-                                            <label className="flex items-center gap-3 p-2 bg-white rounded border border-slate-200 hover:border-indigo-300 cursor-pointer">
+                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                    <label className="block text-sm font-bold text-slate-700 mb-3">เลือกเส้นทางส่งคืน (Select Route) <span className="text-red-500">*</span></label>
+                                    <div className="space-y-2">
+                                        {RETURN_ROUTES.map(route => (
+                                            <label key={route} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 hover:border-indigo-300 cursor-pointer transition-all">
                                                 <input
                                                     type="radio"
                                                     name="ncrRoute"
-                                                    value="Other"
-                                                    checked={newItem.preliminaryRoute && !['สาย 3', 'Sino Pacific Trading', 'NEO CORPORATE'].includes(newItem.preliminaryRoute)}
-                                                    onChange={() => setNewItem({ ...newItem, preliminaryRoute: 'Other' })}
+                                                    value={route}
+                                                    checked={newItem.preliminaryRoute === route}
+                                                    onChange={(e) => setNewItem({ ...newItem, preliminaryDecision: 'Return', preliminaryRoute: e.target.value })}
                                                     className="w-4 h-4 text-indigo-600"
                                                 />
-                                                <span className="text-sm">อื่นๆ (Other)</span>
+                                                <span className="text-sm font-medium">{route}</span>
                                             </label>
-                                            {newItem.preliminaryRoute && !['สาย 3', 'Sino Pacific Trading', 'NEO CORPORATE'].includes(newItem.preliminaryRoute) && (
-                                                <input
-                                                    type="text"
-                                                    value={newItem.preliminaryRoute === 'Other' ? '' : newItem.preliminaryRoute}
-                                                    onChange={(e) => setNewItem({ ...newItem, preliminaryRoute: e.target.value })}
-                                                    className="w-full p-2 mt-2 border border-slate-300 rounded text-sm"
-                                                    placeholder="ระบุเส้นทาง..."
-                                                />
-                                            )}
-                                        </div>
+                                        ))}
+                                        <label className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 hover:border-indigo-300 cursor-pointer transition-all">
+                                            <input
+                                                type="radio"
+                                                name="ncrRoute"
+                                                value="Other"
+                                                checked={newItem.preliminaryRoute && !RETURN_ROUTES.includes(newItem.preliminaryRoute)}
+                                                onChange={() => setNewItem({ ...newItem, preliminaryDecision: 'Return', preliminaryRoute: 'Other' })}
+                                                className="w-4 h-4 text-indigo-600"
+                                            />
+                                            <span className="text-sm font-medium">อื่นๆ (Other)</span>
+                                        </label>
+                                        {newItem.preliminaryRoute && !RETURN_ROUTES.includes(newItem.preliminaryRoute) && (
+                                            <input
+                                                type="text"
+                                                value={newItem.preliminaryRoute === 'Other' ? '' : newItem.preliminaryRoute}
+                                                onChange={(e) => setNewItem({ ...newItem, preliminaryRoute: e.target.value })}
+                                                className="w-full p-3 mt-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                                placeholder="ระบุเส้นทาง..."
+                                            />
+                                        )}
                                     </div>
-                                )}
+                                </div>
                             </div>
 
                             <div className="space-y-3 pt-4 border-t">

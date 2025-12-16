@@ -4,6 +4,7 @@ import Swal from 'sweetalert2';
 import { Truck, MapPin, Printer, ArrowRight, Package, Box, Calendar, Layers, X, Info, Share2 } from 'lucide-react';
 import { useData } from '../../../DataContext';
 import { ReturnRecord, TransportInfo } from '../../../types';
+import { RETURN_ROUTES } from '../../../constants';
 
 
 interface Step2NCRLogisticsProps {
@@ -73,23 +74,16 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
 
     const handleAddDecision = (itemId: string) => {
         setEditingItemId(itemId);
-        setTempDecision(null);
+        setTempDecision('Return'); // Default to Return
         setTempRoute('');
         setIsDecisionModalOpen(true);
     };
 
     const handleSaveDecision = async () => {
-        if (!editingItemId || !tempDecision) {
-            await Swal.fire({
-                icon: 'warning',
-                title: 'กรุณาเลือกการตัดสินใจ',
-                text: 'คุณต้องเลือกการตัดสินใจเบื้องต้นก่อนบันทึก',
-                confirmButtonText: 'ตกลง'
-            });
-            return;
-        }
+        // Enforce Return decision
+        const decision = 'Return';
 
-        if (tempDecision === 'Return' && !tempRoute) {
+        if (!tempRoute || tempRoute === 'Other') {
             await Swal.fire({
                 icon: 'warning',
                 title: 'กรุณาระบุเส้นทาง',
@@ -99,9 +93,9 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
             return;
         }
 
-        await updateReturnRecord(editingItemId, {
-            preliminaryDecision: tempDecision,
-            preliminaryRoute: tempDecision === 'Return' ? tempRoute : ''
+        await updateReturnRecord(editingItemId!, {
+            preliminaryDecision: decision,
+            preliminaryRoute: tempRoute
         });
 
         await Swal.fire({
@@ -590,93 +584,55 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                         </div>
 
                         <div className="p-6 space-y-4">
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setTempDecision('Return')}
-                                    className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${tempDecision === 'Return' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 hover:border-indigo-200 hover:bg-slate-50'}`}
-                                >
-                                    <Truck className={`w-8 h-8 ${tempDecision === 'Return' ? 'text-indigo-600' : 'text-slate-400'}`} />
-                                    <span className="font-bold text-sm">ส่งคืน (Return)</span>
-                                </button>
+                            {/* Preliminary Decision Section - Return Only */}
+                            <div className="border rounded-xl overflow-hidden bg-indigo-50/30">
+                                <div className="bg-indigo-100 px-4 py-2 border-b border-indigo-200 font-bold text-indigo-800 flex items-center gap-2 text-sm">
+                                    <Truck className="w-4 h-4" /> ระบุเส้นทางส่งคืน (Return Route)
+                                </div>
+                                <div className="p-4">
+                                    <p className="text-xs text-slate-500 mb-3">กรุณาเลือกเส้นทางสำหรับการส่งคืนสินค้า</p>
 
-                                <button
-                                    type="button"
-                                    onClick={() => { setTempDecision('Sell'); setTempRoute(''); }}
-                                    className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${tempDecision === 'Sell' ? 'border-green-500 bg-green-50 text-green-700' : 'border-slate-200 hover:border-green-200 hover:bg-slate-50'}`}
-                                >
-                                    <Package className={`w-8 h-8 ${tempDecision === 'Sell' ? 'text-green-600' : 'text-slate-400'}`} />
-                                    <span className="font-bold text-sm">ขาย (Sell)</span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => { setTempDecision('Scrap'); setTempRoute(''); }}
-                                    className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${tempDecision === 'Scrap' ? 'border-red-500 bg-red-50 text-red-700' : 'border-slate-200 hover:border-red-200 hover:bg-slate-50'}`}
-                                >
-                                    <X className={`w-8 h-8 ${tempDecision === 'Scrap' ? 'text-red-600' : 'text-slate-400'}`} />
-                                    <span className="font-bold text-sm">ทิ้ง (Scrap)</span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => { setTempDecision('Internal'); setTempRoute(''); }}
-                                    className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${tempDecision === 'Internal' ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-slate-200 hover:border-amber-200 hover:bg-slate-50'}`}
-                                >
-                                    <Box className={`w-8 h-8 ${tempDecision === 'Internal' ? 'text-amber-600' : 'text-slate-400'}`} />
-                                    <span className="font-bold text-sm">ใช้ภายใน (Internal)</span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => { setTempDecision('Claim'); setTempRoute(''); }}
-                                    className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${tempDecision === 'Claim' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-blue-200 hover:bg-slate-50'}`}
-                                >
-                                    <Info className={`w-8 h-8 ${tempDecision === 'Claim' ? 'text-blue-600' : 'text-slate-400'}`} />
-                                    <span className="font-bold text-sm">เคลมประกัน (Claim)</span>
-                                </button>
-                            </div>
-
-                            {tempDecision === 'Return' && (
-                                <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                                    <label className="block text-sm font-bold text-slate-700 mb-2">ระบุเส้นทางส่งคืน (Select Route)</label>
-                                    <div className="space-y-2">
-                                        {['สาย 3', 'Sino Pacific Trading', 'NEO CORPORATE'].map(route => (
-                                            <label key={route} className="flex items-center gap-3 p-2 bg-white rounded border border-slate-200 hover:border-indigo-300 cursor-pointer">
+                                    <div className="p-3 bg-white rounded border border-indigo-100 text-sm">
+                                        <label className="block font-bold mb-2">เลือกเส้นทางส่งคืน <span className="text-red-500">*</span></label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {RETURN_ROUTES.map(route => (
+                                                <label key={route} className={`px-3 py-1 rounded border cursor-pointer transition-all ${tempRoute === route ? 'bg-indigo-50 border-indigo-500 text-indigo-700 font-bold' : 'bg-slate-50 hover:bg-indigo-50/50'}`}>
+                                                    <input
+                                                        type="radio"
+                                                        name="tempRoute"
+                                                        value={route}
+                                                        checked={tempRoute === route}
+                                                        onChange={(e) => { setTempDecision('Return'); setTempRoute(e.target.value); }}
+                                                        className="hidden"
+                                                    />
+                                                    {route}
+                                                </label>
+                                            ))}
+                                            <label className={`px-3 py-1 rounded border cursor-pointer transition-all ${tempRoute === 'Other' || (tempRoute && !RETURN_ROUTES.includes(tempRoute)) ? 'bg-indigo-50 border-indigo-500 text-indigo-700 font-bold' : 'bg-slate-50 hover:bg-indigo-50/50'}`}>
                                                 <input
                                                     type="radio"
                                                     name="tempRoute"
-                                                    value={route}
-                                                    checked={tempRoute === route}
-                                                    onChange={(e) => setTempRoute(e.target.value)}
-                                                    className="w-4 h-4 text-indigo-600"
+                                                    value="Other"
+                                                    checked={tempRoute === 'Other' || (tempRoute && !RETURN_ROUTES.includes(tempRoute))}
+                                                    onChange={() => { setTempDecision('Return'); setTempRoute('Other'); }}
+                                                    className="hidden"
                                                 />
-                                                <span className="text-sm">{route}</span>
+                                                อื่นๆ (Other)
                                             </label>
-                                        ))}
-                                        <label className="flex items-center gap-3 p-2 bg-white rounded border border-slate-200 hover:border-indigo-300 cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="tempRoute"
-                                                value="Other"
-                                                checked={tempRoute && !['สาย 3', 'Sino Pacific Trading', 'NEO CORPORATE'].includes(tempRoute)}
-                                                onChange={() => setTempRoute('Other')}
-                                                className="w-4 h-4 text-indigo-600"
-                                            />
-                                            <span className="text-sm">อื่นๆ (Other)</span>
-                                        </label>
-                                        {tempRoute && !['สาย 3', 'Sino Pacific Trading', 'NEO CORPORATE'].includes(tempRoute) && (
+                                        </div>
+                                        {(tempRoute === 'Other' || (tempRoute && !RETURN_ROUTES.includes(tempRoute))) && (
                                             <input
                                                 type="text"
                                                 value={tempRoute === 'Other' ? '' : tempRoute}
                                                 onChange={(e) => setTempRoute(e.target.value)}
-                                                className="w-full p-2 mt-2 border border-slate-300 rounded text-sm"
+                                                className="w-full mt-2 p-2 border rounded text-sm focus:ring-2 focus:ring-indigo-500"
                                                 placeholder="ระบุเส้นทาง..."
+                                                autoFocus
                                             />
                                         )}
                                     </div>
                                 </div>
-                            )}
+                            </div>
                         </div>
 
                         <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">

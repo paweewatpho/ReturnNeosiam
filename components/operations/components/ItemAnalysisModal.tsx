@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, ClipboardList, Share2, Truck, DollarSign, Trash2, Home, FileText, AlertTriangle, Search, Wrench, ImageIcon, Box } from 'lucide-react';
+import { X, Save, ClipboardList, Truck, DollarSign, Trash2, AlertTriangle, Search, Wrench, ImageIcon, Box } from 'lucide-react';
 import { ReturnRecord } from '../../../types';
-import { BRANCH_LIST } from '../../../constants';
+import { BRANCH_LIST, RETURN_ROUTES } from '../../../constants';
 import { RESPONSIBLE_MAPPING } from '../utils';
 import Swal from 'sweetalert2';
 
@@ -27,7 +27,7 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
             setPreliminaryDecision(item.preliminaryDecision || '');
             setPreliminaryRoute(item.preliminaryRoute || '');
             // Logic for 'Other' route
-            if (item.preliminaryRoute && !['สาย 3', 'Sino Pacific Trading', 'NEO CORPORATE', 'Other'].includes(item.preliminaryRoute)) {
+            if (item.preliminaryRoute && !RETURN_ROUTES.includes(item.preliminaryRoute) && item.preliminaryRoute !== 'Other') {
                 setPreliminaryRoute('Other');
                 setPreliminaryOtherRoute(item.preliminaryRoute);
             } else if (item.preliminaryRoute === 'Other') {
@@ -146,15 +146,8 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
             return;
         }
 
-        if (!preliminaryDecision) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'ข้อมูลไม่ครบถ้วน',
-                text: 'กรุณาเลือกการตัดสินใจเบื้องต้น (Preliminary Decision)'
-            });
-            return;
-        }
-        if (preliminaryDecision === 'Return' && !preliminaryRoute) {
+        // ตรวจสอบเส้นทางส่งคืน (บังคับกรอก)
+        if (!preliminaryRoute) {
             Swal.fire({
                 icon: 'warning',
                 title: 'ข้อมูลไม่ครบถ้วน',
@@ -162,7 +155,8 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
             });
             return;
         }
-        if (preliminaryDecision === 'Return' && preliminaryRoute === 'Other' && !preliminaryOtherRoute) {
+
+        if (preliminaryRoute === 'Other' && !preliminaryOtherRoute) {
             Swal.fire({
                 icon: 'warning',
                 title: 'ข้อมูลไม่ครบถ้วน',
@@ -175,7 +169,7 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
 
         onSave({
             ...formData,
-            preliminaryDecision: preliminaryDecision as any,
+            preliminaryDecision: 'Return', // Auto-set to Return
             preliminaryRoute: finalRoute
         });
         onClose();
@@ -346,46 +340,32 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
                                 </div>
                             </div>
 
-                            {/* PRELIMINARY DECISION SECTION */}
+                            {/* PRELIMINARY DECISION SECTION - Return Only */}
                             <div className="border rounded-xl overflow-hidden bg-indigo-50/30">
                                 <div className="bg-indigo-100 px-4 py-2 border-b border-indigo-200 font-bold text-indigo-800 flex items-center gap-2 text-sm">
-                                    <Share2 className="w-4 h-4" /> ตัดสินใจเบื้องต้น (Preliminary Decision)
+                                    <Truck className="w-4 h-4" /> ระบุเส้นทางส่งคืน (Return Route)
                                 </div>
                                 <div className="p-4">
-                                    <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
-                                        <button type="button" onClick={() => { setPreliminaryDecision('Return'); setPreliminaryRoute(''); }} className={`p-2 rounded border flex flex-col items-center gap-1 text-xs font-bold transition-all ${preliminaryDecision === 'Return' ? 'bg-indigo-100 border-indigo-500 text-indigo-700' : 'bg-white hover:bg-indigo-50'}`}>
-                                            <Truck className="w-5 h-5" /> Return
-                                        </button>
-                                        <button type="button" onClick={() => setPreliminaryDecision('Sell')} className={`p-2 rounded border flex flex-col items-center gap-1 text-xs font-bold transition-all ${preliminaryDecision === 'Sell' ? 'bg-green-100 border-green-500 text-green-700' : 'bg-white hover:bg-green-50'}`}>
-                                            <DollarSign className="w-5 h-5" /> Sell
-                                        </button>
-                                        <button type="button" onClick={() => setPreliminaryDecision('Scrap')} className={`p-2 rounded border flex flex-col items-center gap-1 text-xs font-bold transition-all ${preliminaryDecision === 'Scrap' ? 'bg-red-100 border-red-500 text-red-700' : 'bg-white hover:bg-red-50'}`}>
-                                            <Trash2 className="w-5 h-5" /> Scrap
-                                        </button>
-                                        <button type="button" onClick={() => setPreliminaryDecision('Internal')} className={`p-2 rounded border flex flex-col items-center gap-1 text-xs font-bold transition-all ${preliminaryDecision === 'Internal' ? 'bg-amber-100 border-amber-500 text-amber-700' : 'bg-white hover:bg-amber-50'}`}>
-                                            <Home className="w-5 h-5" /> Internal
-                                        </button>
-                                        <button type="button" onClick={() => setPreliminaryDecision('Claim')} className={`p-2 rounded border flex flex-col items-center gap-1 text-xs font-bold transition-all ${preliminaryDecision === 'Claim' ? 'bg-blue-100 border-blue-500 text-blue-700' : 'bg-white hover:bg-blue-50'}`}>
-                                            <FileText className="w-5 h-5" /> Claim
-                                        </button>
-                                    </div>
+                                    <p className="text-xs text-slate-500 mb-3">กรุณาเลือกเส้นทางสำหรับการส่งคืนสินค้า</p>
 
-                                    {preliminaryDecision === 'Return' && (
-                                        <div className="mt-3 p-3 bg-white rounded border border-indigo-100 animate-fade-in text-sm">
-                                            <label className="block font-bold mb-2">ระบุเส้นทางส่งคืน</label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {['สาย 3', 'Sino Pacific Trading', 'NEO CORPORATE', 'Other'].map(route => (
-                                                    <label key={route} className={`px-3 py-1 rounded border cursor-pointer ${preliminaryRoute === route ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-slate-50'}`}>
-                                                        <input type="radio" name="route" value={route} checked={preliminaryRoute === route} onChange={(e) => setPreliminaryRoute(e.target.value)} className="hidden" />
-                                                        {route}
-                                                    </label>
-                                                ))}
-                                            </div>
-                                            {preliminaryRoute === 'Other' && (
-                                                <input type="text" value={preliminaryOtherRoute} onChange={(e) => setPreliminaryOtherRoute(e.target.value)} className="w-full mt-2 p-2 border rounded text-sm" placeholder="ระบุเส้นทาง..." />
-                                            )}
+                                    <div className="p-3 bg-white rounded border border-indigo-100 text-sm">
+                                        <label className="block font-bold mb-2">เลือกเส้นทางส่งคืน <span className="text-red-500">*</span></label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {RETURN_ROUTES.map(route => (
+                                                <label key={route} className={`px-3 py-1 rounded border cursor-pointer transition-all ${preliminaryRoute === route ? 'bg-indigo-50 border-indigo-500 text-indigo-700 font-bold' : 'bg-slate-50 hover:bg-indigo-50/50'}`}>
+                                                    <input type="radio" name="route" value={route} checked={preliminaryRoute === route} onChange={(e) => { setPreliminaryDecision('Return'); setPreliminaryRoute(e.target.value); }} className="hidden" />
+                                                    {route}
+                                                </label>
+                                            ))}
+                                            <label className={`px-3 py-1 rounded border cursor-pointer transition-all ${preliminaryRoute === 'Other' ? 'bg-indigo-50 border-indigo-500 text-indigo-700 font-bold' : 'bg-slate-50 hover:bg-indigo-50/50'}`}>
+                                                <input type="radio" name="route" value="Other" checked={preliminaryRoute === 'Other'} onChange={(e) => { setPreliminaryDecision('Return'); setPreliminaryRoute(e.target.value); }} className="hidden" />
+                                                อื่นๆ (Other)
+                                            </label>
                                         </div>
-                                    )}
+                                        {preliminaryRoute === 'Other' && (
+                                            <input type="text" value={preliminaryOtherRoute} onChange={(e) => setPreliminaryOtherRoute(e.target.value)} className="w-full mt-2 p-2 border rounded text-sm focus:ring-2 focus:ring-indigo-500" placeholder="ระบุเส้นทาง..." />
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>

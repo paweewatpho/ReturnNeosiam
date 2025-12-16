@@ -15,8 +15,8 @@ export const Step7Docs: React.FC<Step7DocsProps> = ({ onPrintDocs }) => {
 
     // Filter Items:
     // We want items that have passed QC or are ready for documentation.
-    // In strict NCR flow: 'QCPassed' or 'NCR_QCPassed'
-    // In legacy/Collection flow: 'HubReceived' (if QC skipped) or 'QCPassed'
+    // In strict NCR flow: 'NCR_QCCompleted' (from Step4HubQC)
+    // In legacy/Collection flow: 'HubReceived' (if QC skipped) or 'QCCompleted'
     const processedItems = React.useMemo(() => {
         return items.filter(item => {
             const isNCR = item.documentType === 'NCR' || !!item.ncrNumber || item.status.startsWith('NCR_');
@@ -33,11 +33,11 @@ export const Step7Docs: React.FC<Step7DocsProps> = ({ onPrintDocs }) => {
             }
 
             // 2. NCR Flow: Must pass QC
+            // FIXED: Changed from 'NCR_QCPassed' to 'NCR_QCCompleted' to match Step4HubQC output
             if (isNCR) {
                 return (
-                    item.status === 'NCR_QCPassed' ||
-                    item.status === 'QCPassed' ||
-                    item.status === 'QCCompleted'
+                    item.status === 'NCR_QCCompleted' ||  // ✅ Current status from Step4HubQC
+                    item.status === 'QCCompleted'         // ✅ Legacy compatibility
                 );
             }
 
