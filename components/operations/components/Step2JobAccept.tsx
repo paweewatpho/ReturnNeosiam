@@ -17,6 +17,7 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
     const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
     const [showModal, setShowModal] = React.useState(false);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [selectedBranchFilter, setSelectedBranchFilter] = React.useState<string>('');
 
     const [pickupDate, setPickupDate] = React.useState(new Date().toISOString().split('T')[0]);
 
@@ -83,13 +84,20 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
         return items.filter(item => {
             if (item.status !== 'Requested') return false;
             // Explicitly include LOGISTICS documents
-            if (item.documentType === 'LOGISTICS') return true;
-            // Exclude if it looks like an NCR (has NCR number or NCR type)
-            if (item.documentType === 'NCR' || !!item.ncrNumber) return false;
+            if (item.documentType === 'LOGISTICS') {
+                // Keep going
+            }
+            // Exclude if it looks like an NCR (has NCR number or NCR type) and NOT logistics
+            else if (item.documentType === 'NCR' || !!item.ncrNumber) return false;
+
+            // Filter by Branch if selected
+            if (selectedBranchFilter && item.branch !== selectedBranchFilter) {
+                return false;
+            }
 
             return true;
         });
-    }, [items]);
+    }, [items, selectedBranchFilter]);
 
     const handleToggleSelect = (id: string) => {
         setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -167,14 +175,30 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
                 <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                     <ClipboardList className="w-6 h-6 text-blue-600" /> 2. รับงาน (Receive Job)
                 </h3>
-                {selectedIds.length > 0 && (
-                    <button
-                        onClick={() => setShowModal(true)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition-all flex items-center gap-2"
+
+                <div className="flex items-center gap-3">
+                    <select
+                        value={selectedBranchFilter}
+                        onChange={(e) => setSelectedBranchFilter(e.target.value)}
+                        className="p-2 border border-slate-300 rounded-lg text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+                        aria-label="กรองข้อมูลตามสาขา"
+                        title="กรองข้อมูลตามสาขา"
                     >
-                        <Truck className="w-5 h-5" /> สร้างงานรับสินค้า ({selectedIds.length})
-                    </button>
-                )}
+                        <option value="">ทั้งหมด (All Branches)</option>
+                        {BRANCH_LIST.map(b => (
+                            <option key={b} value={b}>{b}</option>
+                        ))}
+                    </select>
+
+                    {selectedIds.length > 0 && (
+                        <button
+                            onClick={() => setShowModal(true)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition-all flex items-center gap-2"
+                        >
+                            <Truck className="w-5 h-5" /> สร้างงานรับสินค้า ({selectedIds.length})
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col">
