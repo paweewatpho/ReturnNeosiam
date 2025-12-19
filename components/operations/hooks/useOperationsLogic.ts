@@ -331,6 +331,11 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             destinationCustomer: prev.destinationCustomer,
             neoRefNo: prev.neoRefNo,
             refNo: prev.refNo,
+            documentNo: prev.documentNo, // Preserve R No
+            invoiceNo: prev.invoiceNo,   // Preserve Invoice
+            tmNo: prev.tmNo,             // Preserve TM
+            controlDate: prev.controlDate, // Preserve Control Date
+            documentType: prev.documentType, // Preserve Doc Type
             problemAnalysis: prev.problemAnalysis // Keep Problem Source for batch entry
         }));
         setCustomProblemType('');

@@ -11,7 +11,7 @@ interface Step2JobAcceptProps {
 }
 
 export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) => {
-    const { items, updateReturnRecord, deleteReturnRecord } = useData();
+    const { items, updateReturnRecord, deleteReturnRecord, getNextCollectionNumber } = useData();
 
     const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
     const [showModal, setShowModal] = React.useState(false);
@@ -100,7 +100,8 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
 
         setIsSubmitting(true);
         try {
-            const newColId = `COL-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
+            // Use Centralized COL Number Generator (Safe & Sequential)
+            const newColId = await getNextCollectionNumber();
 
             const newOrder: CollectionOrder = {
                 id: newColId,

@@ -246,6 +246,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const addReturnRecord = async (item: ReturnRecord): Promise<boolean> => {
+    // IRON RULE: Unique Document Number (R No) Check
+    const docNo = (item.documentNo || item.refNo || '').trim();
+    if (docNo) {
+      const targetLower = docNo.toLowerCase();
+      const isDuplicate = items.some(existing => {
+        const existingDoc = (existing.documentNo || existing.refNo || '').trim().toLowerCase();
+        // Check if existing doc number matches target
+        // Note: checking specifically the primary doc number field
+        const existingDocField = (existing.documentNo || '').trim().toLowerCase();
+        const existingRefField = (existing.refNo || '').trim().toLowerCase();
+
+        return existingDocField === targetLower || existingRefField === targetLower;
+      });
+
+      if (isDuplicate) {
+        const msg = `ไม่สามารถบันทึกได้: เลขที่เอกสาร (เลข R) "${docNo}" มีอยู่ในระบบแล้ว (กฎเหล็ก: ห้ามซ้ำ)`;
+        console.warn("🚫 " + msg);
+        alert(msg);
+        return false;
+      }
+    }
+
     try {
       await set(ref(db, 'return_records/' + item.id), item);
       return true;
@@ -262,6 +284,25 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateReturnRecord = async (id: string, data: Partial<ReturnRecord>): Promise<boolean> => {
+    // IRON RULE: Unique Document Number Check on Update
+    const docNo = (data.documentNo || data.refNo || '').trim();
+    if (docNo) {
+      const targetLower = docNo.toLowerCase();
+      const isDuplicate = items.some(existing => {
+        if (existing.id === id) return false; // Skip self
+        const existingDocField = (existing.documentNo || '').trim().toLowerCase();
+        const existingRefField = (existing.refNo || '').trim().toLowerCase();
+        return existingDocField === targetLower || existingRefField === targetLower;
+      });
+
+      if (isDuplicate) {
+        const msg = `ไม่สามารถบันทึกได้: เลขที่เอกสาร (เลข R) "${docNo}" มีอยู่ในระบบแล้ว (กฎเหล็ก: ห้ามซ้ำ)`;
+        console.warn("🚫 " + msg);
+        alert(msg);
+        return false;
+      }
+    }
+
     try {
       await update(ref(db, 'return_records/' + id), data);
       return true;
@@ -410,13 +451,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const { committed, snapshot } = await runTransaction(counterRef, (currentData) => {
+        const currentMonth = new Date().getMonth() + 1;
         if (currentData === null) {
-          return { year: currentYear, lastNumber: 1 };
+          return { year: currentYear, month: currentMonth, lastNumber: 1 };
         }
-        if (currentData.year === currentYear) {
+        // Reset if Year OR Month changes
+        if (currentData.year === currentYear && currentData.month === currentMonth) {
           currentData.lastNumber++;
         } else {
           currentData.year = currentYear;
+          currentData.month = currentMonth;
           currentData.lastNumber = 1;
         }
         return currentData;
@@ -424,8 +468,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (committed) {
         const data = snapshot.val();
+        const monthStr = String(data.month).padStart(2, '0');
         const paddedNumber = String(data.lastNumber).padStart(4, '0');
-        return `COL-${data.year}-${paddedNumber}`;
+        return `COL-${data.year}${monthStr}-${paddedNumber}`;
       } else {
         throw new Error("Failed to get next Collection number, transaction aborted.");
       }

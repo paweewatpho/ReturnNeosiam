@@ -324,31 +324,45 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                     }
 
                                     // 2. Check for Duplicates
-                                    // Duplicate Definition: Same Invoice No AND Same Branch AND Same Document No (if exists)
-                                    const isDuplicate = existingItems.some(item => {
-                                        const sameBranch = item.branch === formData.branch;
-                                        const sameInvoice = formData.invoiceNo && item.invoiceNo === formData.invoiceNo;
-                                        const sameDocNo = formData.documentNo && (item.documentNo === formData.documentNo || item.refNo === formData.documentNo);
-
-                                        // If Invoice is present, it must be unique per branch? Or globally?
-                                        // Let's assume Invoice + Branch combination should be unique if Invoice is provided.
-                                        if (formData.invoiceNo && sameBranch && sameInvoice) return true;
-
-                                        // If Doc No is present
-                                        if (formData.documentNo && sameBranch && sameDocNo) return true;
-
-                                        return false;
-                                    });
-
-                                    if (isDuplicate) {
-                                        Swal.fire({
-                                            icon: 'error',
-                                            title: 'พบข้อมูลซ้ำ (Duplicate)',
-                                            text: `มีรายการที่ใช้เลข Invoice: ${formData.invoiceNo} หรือ Doc No: ${formData.documentNo} ในสาขานี้แล้ว`,
-                                            footer: 'กรุณาตรวจสอบเลขเอกสารอีกครั้ง',
-                                            confirmButtonColor: '#ef4444'
+                                    // IRON RULE: Global Uniqueness for Document Number (R No) - CASE INSENSITIVE
+                                    const rawTargetDocNo = (formData.documentNo || formData.refNo || '').trim();
+                                    if (rawTargetDocNo) {
+                                        const targetDocLower = rawTargetDocNo.toLowerCase();
+                                        const rNoDuplicate = existingItems.some(item => {
+                                            if (item.id === formData.id) return false; // Exclude self
+                                            const itemDocLower = (item.documentNo || '').trim().toLowerCase();
+                                            const itemRefLower = (item.refNo || '').trim().toLowerCase();
+                                            return itemDocLower === targetDocLower || itemRefLower === targetDocLower;
                                         });
-                                        return;
+
+                                        if (rNoDuplicate) {
+                                            Swal.fire({
+                                                icon: 'error',
+                                                title: 'ผิดกฎเหล็ก! (Duplicate R No)',
+                                                html: `เลขที่เอกสาร <b>${rawTargetDocNo}</b> มีอยู่ในระบบแล้ว<br/>ไม่สามารถสร้างเลขซ้ำได้ (กฎเหล็ก: ห้ามซ้ำ)`,
+                                                confirmButtonColor: '#ef4444'
+                                            });
+                                            return;
+                                        }
+                                    }
+
+                                    // Check Invoice Duplicate (Per Branch)
+                                    if (formData.invoiceNo) {
+                                        const invoiceDuplicate = existingItems.some(item =>
+                                            item.id !== formData.id && // Exclude self if editing
+                                            item.branch === formData.branch &&
+                                            item.invoiceNo === formData.invoiceNo
+                                        );
+
+                                        if (invoiceDuplicate) {
+                                            Swal.fire({
+                                                icon: 'error',
+                                                title: 'พบเลขอินวอยซ์ซ้ำ',
+                                                text: `เลข Invoice: ${formData.invoiceNo} มีอยู่ในระบบแล้วสำหรับสาขา ${formData.branch}`,
+                                                confirmButtonColor: '#ef4444'
+                                            });
+                                            return;
+                                        }
                                     }
 
                                     // 3. Allow Submission
@@ -373,6 +387,6 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
 
                 </div>
             </div>
-        </div>
+        </div >
     );
 };

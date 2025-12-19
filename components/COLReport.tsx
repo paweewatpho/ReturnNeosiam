@@ -17,7 +17,7 @@ interface COLReportProps {
 }
 
 const COLReport: React.FC<COLReportProps> = () => {
-  const { items, updateReturnRecord, deleteReturnRecord } = useData();
+  const { items, updateReturnRecord, deleteReturnRecord, getNextCollectionNumber } = useData();
 
   // Filters State
   const [filters, setFilters] = useState({
@@ -598,6 +598,30 @@ const COLReport: React.FC<COLReportProps> = () => {
                     onChange={e => setEditItem({ ...editItem, documentNo: e.target.value })}
                     className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
                   />
+                </div>
+                <div className="col-span-1">
+                  <label htmlFor="edit-colno" className="block text-sm font-bold text-slate-700 mb-1">COL No</label>
+                  <div className="flex gap-2">
+                    <input
+                      id="edit-colno"
+                      type="text"
+                      value={editItem.collectionOrderId || ''}
+                      onChange={e => setEditItem({ ...editItem, collectionOrderId: e.target.value })}
+                      className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="COL-xxxx-xxx"
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const newColNo = await getNextCollectionNumber();
+                        setEditItem({ ...editItem, collectionOrderId: newColNo });
+                      }}
+                      className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 text-xs font-bold whitespace-nowrap transition-colors"
+                      title="Run Auto (สร้างเลขอัตโนมัติ)"
+                    >
+                      Auto
+                    </button>
+                  </div>
                 </div>
 
                 <div className="col-span-1">
