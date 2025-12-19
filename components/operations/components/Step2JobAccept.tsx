@@ -5,6 +5,7 @@ import { useData } from '../../../DataContext';
 import { ReturnRecord, CollectionOrder } from '../../../types';
 import { db } from '../../../firebase';
 import { ref, set } from 'firebase/database';
+import { BRANCH_LIST } from '../../../constants';
 
 interface Step2JobAcceptProps {
     onComplete?: () => void;
@@ -202,7 +203,7 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
                         <tbody className="divide-y divide-slate-100">
                             {requestedItems.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="p-12 text-center text-slate-400">
+                                    <td colSpan={9} className="p-12 text-center text-slate-400">
                                         <div className="flex flex-col items-center gap-2">
                                             <ClipboardList className="w-8 h-8 opacity-20" />
                                             <span>ไม่มีรายการใหม่ที่ต้องการการรับงาน</span>
@@ -216,7 +217,20 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
                                             <input type="checkbox" aria-label={`เลือกรายการ ${item.id}`} title={`เลือกรายการ ${item.id}`} checked={selectedIds.includes(item.id)} onChange={() => { }} className="accent-blue-600 w-4 h-4" />
                                         </td>
                                         <td className="p-4 align-top">
-                                            <div className="font-bold text-slate-700">{item.branch}</div>
+                                            <select
+                                                onClick={(e) => e.stopPropagation()}
+                                                onChange={(e) => updateReturnRecord(item.id, { branch: e.target.value })}
+                                                value={item.branch || ''}
+                                                className="font-bold text-slate-700 bg-transparent border-b border-dashed border-slate-300 hover:border-blue-400 focus:border-blue-600 focus:ring-0 cursor-pointer py-1 pr-6"
+                                                title="แก้ไขสาขา"
+                                            >
+                                                <option value="" disabled>เลือกสาขา</option>
+                                                {BRANCH_LIST.map((branch) => (
+                                                    <option key={branch} value={branch}>
+                                                        {branch}
+                                                    </option>
+                                                ))}
+                                            </select>
                                         </td>
                                         <td className="p-4 align-top">
                                             <div className="text-sm font-semibold text-slate-700">{item.invoiceNo || '-'}</div>
@@ -307,6 +321,6 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
                     </div>
                 )
             }
-        </div >
+        </div>
     );
 };

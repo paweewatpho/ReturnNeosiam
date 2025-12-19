@@ -162,8 +162,12 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ onClose, onC
                     const hasAny = (text: string, keywords: string[]) => keywords.some(k => text.includes(k));
 
                     if (province) {
+                        // Rule: EKP Lampang (ลำปาง, เชียงราย, แพร่, น่าน)
+                        if (hasAny(province, ['ลำปาง', 'เชียงราย', 'แพร่', 'น่าน'])) {
+                            newItem.branch = 'EKP ลำปาง';
+                        }
                         // Rule: Chiang Mai (เชียงใหม่, ลำพูน, พะเยา, แม่ฮ่องสอน)
-                        if (hasAny(province, ['เชียงใหม่', 'ลำพูน', 'พะเยา', 'แม่ฮ่องสอน'])) {
+                        else if (hasAny(province, ['เชียงใหม่', 'ลำพูน', 'พะเยา', 'แม่ฮ่องสอน'])) {
                             newItem.branch = 'เชียงใหม่';
                         }
                         // Rule: Mae Sot (ตาก + อ.แม่สอด)
@@ -326,23 +330,25 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ onClose, onC
                             {/* Preview Table */}
                             <div className="flex-1 overflow-auto border border-slate-200 rounded-lg">
                                 <table className="w-full text-xs text-left">
-                                    <thead className="bg-slate-50 text-slate-600 font-bold sticky top-0 border-b border-slate-200">
+                                    <thead className="bg-slate-50 text-slate-600 font-bold sticky top-0 border-b border-slate-200 z-10 shadow-sm">
                                         <tr>
-                                            <th className="p-2 border-r bg-yellow-50 text-yellow-800 w-[120px]">สาขา (Branch)</th>
-                                            <th className="p-2 border-r">R No (Doc No)</th>
-                                            <th className="p-2 border-r">วันที่ (Date)</th>
-                                            <th className="p-2 border-r">ลูกค้า (Customer)</th>
-                                            <th className="p-2 border-r">สินค้า (Product)</th>
-                                            <th className="p-2 border-r">จำนวน (Qty)</th>
-                                            <th className="p-2">Note</th>
+                                            <th className="p-2 border-r bg-yellow-50 text-yellow-800 min-w-[150px] sticky left-0 z-20 shadow-[1px_0_2px_rgba(0,0,0,0.1)]">สาขา (Branch)</th>
+                                            <th className="p-2 border-r min-w-[120px]">R No (Doc No)</th>
+                                            <th className="p-2 border-r min-w-[100px]">วันที่ (Date)</th>
+                                            <th className="p-2 border-r min-w-[150px]">ลูกค้า (Customer)</th>
+                                            <th className="p-2 border-r min-w-[200px]">ที่อยู่ (Address)</th>
+                                            <th className="p-2 border-r min-w-[100px]">จังหวัด (Province)</th>
+                                            <th className="p-2 border-r min-w-[150px]">สินค้า (Product)</th>
+                                            <th className="p-2 border-r min-w-[80px]">จำนวน (Qty)</th>
+                                            <th className="p-2 min-w-[150px]">Note</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
                                         {parsedItems.map((item, idx) => {
                                             const isDup = item.documentNo && duplicateErrors.has(item.documentNo);
                                             return (
-                                                <tr key={idx} className={`hover:bg-slate-50 ${isDup ? 'bg-red-50' : ''}`}>
-                                                    <td className="p-2 border-r bg-slate-50">
+                                                <tr key={idx} className={`hover:bg-slate-50 whitespace-nowrap ${isDup ? 'bg-red-50' : ''}`}>
+                                                    <td className="p-2 border-r bg-slate-50 sticky left-0 z-10 shadow-[1px_0_2px_rgba(0,0,0,0.05)]">
                                                         <select
                                                             value={item.branch || ''}
                                                             aria-label="เลือกสาขา"
@@ -360,10 +366,12 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ onClose, onC
                                                         {isDup && <span className="ml-1 text-[10px] bg-red-100 text-red-600 px-1 rounded border border-red-200">Duplicate</span>}
                                                     </td>
                                                     <td className="p-2 border-r">{item.controlDate || item.date ? String(item.controlDate || item.date) : '-'}</td>
-                                                    <td className="p-2 border-r">{item.customerName || '-'}</td>
-                                                    <td className="p-2 border-r">{item.productName || '-'}</td>
+                                                    <td className="p-2 border-r max-w-[200px] truncate" title={item.customerName || ''}>{item.customerName || '-'}</td>
+                                                    <td className="p-2 border-r max-w-[300px] truncate" title={item.customerAddress || ''}>{item.customerAddress || '-'}</td>
+                                                    <td className="p-2 border-r text-indigo-600 font-medium">{item.province || '-'}</td>
+                                                    <td className="p-2 border-r max-w-[200px] truncate" title={item.productName || ''}>{item.productName || '-'}</td>
                                                     <td className="p-2 border-r font-bold">{item.quantity} {item.unit}</td>
-                                                    <td className="p-2 text-slate-500 truncate max-w-[150px]">{item.notes}</td>
+                                                    <td className="p-2 text-slate-500 truncate max-w-[150px]" title={item.notes || ''}>{item.notes}</td>
                                                 </tr>
                                             );
                                         })}
