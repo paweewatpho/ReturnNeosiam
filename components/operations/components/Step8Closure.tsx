@@ -132,7 +132,7 @@ export const Step8Closure: React.FC = () => {
             </h3>
 
             {/* Pending Items Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col mb-6" style={{ maxHeight: '60%' }}>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col mb-6 max-h-[60%]">
                 <div className="p-4 bg-purple-50 border-b border-purple-100 flex justify-between items-center">
                     <span className="font-bold text-purple-800">รายการที่ต้องดำเนินการ ({documentedItems.length})</span>
                 </div>
@@ -172,6 +172,7 @@ export const Step8Closure: React.FC = () => {
                                                     <button
                                                         onClick={() => handleCompleteJob(item.id)}
                                                         disabled={isSubmitting}
+                                                        aria-label="ปิดงาน (Complete)"
                                                         className="bg-green-600 hover:bg-green-700 text-white px-2 py-1.5 rounded text-xs font-bold shadow-sm flex items-center gap-1 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-wait"
                                                         title="ปิดงาน (Complete)"
                                                     >
@@ -180,6 +181,7 @@ export const Step8Closure: React.FC = () => {
                                                     <button
                                                         onClick={() => handleUndo(item)}
                                                         disabled={isSubmitting}
+                                                        aria-label="ย้อนกลับ (Undo to Docs)"
                                                         className="bg-amber-100 hover:bg-amber-200 text-amber-700 px-2 py-1.5 rounded text-xs font-bold shadow-sm flex items-center gap-1 transition-all active:scale-95 border border-amber-300 disabled:opacity-50 disabled:cursor-wait"
                                                         title="ย้อนกลับ (Undo to Docs)"
                                                     >
@@ -201,7 +203,9 @@ export const Step8Closure: React.FC = () => {
                                             <td className="px-3 py-2 border-r text-slate-700">{item.ncrNumber || '-'}</td>
                                             <td className="px-3 py-2 border-r text-indigo-700 font-bold">{item.collectionOrderId || '-'}</td>
                                             <td className="px-3 py-2 border-r text-slate-700">{item.neoRefNo || '-'}</td>
-                                            <td className="px-3 py-2 border-r font-mono text-blue-700 font-bold">{item.refNo || '-'}</td>
+                                            <td className="px-3 py-2 border-r font-mono text-blue-700 font-bold">
+                                                {isNCR ? '-' : (item.documentNo || item.refNo || '-')}
+                                            </td>
                                             <td className="px-3 py-2 border-r font-mono text-slate-700">{item.transportManifestNo || '-'}</td>
                                             <td className="px-3 py-2 border-r font-mono text-slate-700">{item.invoiceNo || '-'}</td>
                                             <td className="px-3 py-2 border-r text-slate-700">{item.customerName}</td>
@@ -260,7 +264,9 @@ export const Step8Closure: React.FC = () => {
                                     <td className="px-3 py-2 border-r text-slate-600">{item.ncrNumber || '-'}</td>
                                     <td className="px-3 py-2 border-r text-indigo-600 font-bold">{item.collectionOrderId || '-'}</td>
                                     <td className="px-3 py-2 border-r text-slate-600">{item.neoRefNo || '-'}</td>
-                                    <td className="px-3 py-2 border-r font-mono text-blue-600 font-bold">{item.refNo || '-'}</td>
+                                    <td className="px-3 py-2 border-r font-mono text-blue-600 font-bold">
+                                        {(item.documentType === 'NCR' || !!item.ncrNumber || (item.id && item.id.startsWith('NCR'))) ? '-' : (item.documentNo || item.refNo || '-')}
+                                    </td>
                                     <td className="px-3 py-2 border-r font-mono text-slate-600">{item.transportManifestNo || '-'}</td>
                                     <td className="px-3 py-2 border-r font-mono text-slate-600">{item.invoiceNo || '-'}</td>
                                     <td className="px-3 py-2 border-r text-slate-600">{item.customerName}</td>

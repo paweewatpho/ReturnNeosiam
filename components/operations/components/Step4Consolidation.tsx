@@ -114,10 +114,27 @@ export const Step4Consolidation: React.FC<Step4ConsolidationProps> = ({ onComple
         if (password === '1234') {
             setIsSubmitting(true);
             try {
-                await updateReturnRecord(id, {
-                    status: 'COL_BranchReceived'
+                const success = await updateReturnRecord(id, {
+                    status: 'COL_JobAccepted'
                 });
-                Swal.fire('ย้อนกลับเรียบร้อย', '', 'success');
+
+                if (success) {
+                    // Wait for Firebase listener to update UI
+                    await new Promise(resolve => setTimeout(resolve, 500));
+
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'ย้อนกลับเรียบร้อย',
+                        text: 'รายการจะไปปรากฏใน Step 3',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถย้อนกลับได้', 'error');
+                }
+            } catch (error) {
+                console.error('[Step4] Undo Error:', error);
+                Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถย้อนกลับได้', 'error');
             } finally {
                 setIsSubmitting(false);
             }
@@ -138,6 +155,8 @@ export const Step4Consolidation: React.FC<Step4ConsolidationProps> = ({ onComple
                             <span className="text-sm font-bold text-slate-600">วันที่รวม:</span>
                             <input
                                 type="date"
+                                aria-label="วันที่รวมสินค้า"
+                                title="วันที่รวมสินค้า"
                                 value={consolidationDate}
                                 onChange={(e) => setConsolidationDate(e.target.value)}
                                 className="outline-none text-slate-700 font-medium text-sm"
@@ -256,7 +275,7 @@ export const Step4Consolidation: React.FC<Step4ConsolidationProps> = ({ onComple
                                     <Share2 className="w-6 h-6 text-indigo-600" />
                                     เพิ่มการตัดสินใจเบื้องต้น (รวมสินค้า {targetConsolidateIds.length} รายการ)
                                 </h3>
-                                <button onClick={() => setIsDecisionModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                                <button onClick={() => setIsDecisionModalOpen(false)} aria-label="ปิด" title="ปิด" className="text-slate-400 hover:text-slate-600">
                                     <X className="w-6 h-6" />
                                 </button>
                             </div>

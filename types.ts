@@ -1,5 +1,12 @@
 
-export type UserRole = 'ADMIN' | 'MANAGER' | 'OPERATOR' | 'VIEWER';
+export type UserRole =
+  | 'ADMIN'           // ผู้ดูแลระบบ - Full Access
+  | 'NCR_OPERATOR'    // พนักงาน NCR - บันทึกข้อมูล NCR
+  | 'COL_OPERATOR'    // พนักงาน Collection - บันทึกข้อมูล COL
+  | 'REQUEST_ENTRY'   // พนักงานคีย์ใบสั่งงาน - สร้าง COL Request เท่านั้น
+  | 'QC_OPERATOR'     // พนักงาน QC - ตรวจสอบคุณภาพและออกเอกสาร
+  | 'CLOSURE_OPERATOR' // พนักงานปิดงาน - ปิดงานให้เสร็จสมบูรณ์
+  | 'VIEWER';         // ผู้ดูข้อมูล - Read-Only
 
 export interface User {
   uid: string;

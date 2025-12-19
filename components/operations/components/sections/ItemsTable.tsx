@@ -58,6 +58,8 @@ export const ItemsTable: React.FC<ItemsTableProps> = ({
                                 <td className="px-4 py-3 text-center">
                                     <button
                                         type="button"
+                                        aria-label="ลบรายการ"
+                                        title="ลบรายการ"
                                         onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleRemoveItem(idx); }}
                                         className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
                                     >

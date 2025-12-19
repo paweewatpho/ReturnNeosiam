@@ -48,8 +48,25 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
                 setIsSubmitting(true);
                 try {
                     // Actual delete call
-                    await deleteReturnRecord(id);
-                    Swal.fire('ลบเรียบร้อย', '', 'success');
+                    const success = await deleteReturnRecord(id);
+
+                    if (success) {
+                        // Wait for Firebase listener to update UI
+                        await new Promise(resolve => setTimeout(resolve, 500));
+
+                        await Swal.fire({
+                            icon: 'success',
+                            title: 'ลบเรียบร้อย',
+                            text: 'ใบงานถูกลบออกจากระบบแล้ว',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถลบได้', 'error');
+                    }
+                } catch (error) {
+                    console.error('[Step2] Delete Error:', error);
+                    Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถลบได้', 'error');
                 } finally {
                     setIsSubmitting(false);
                 }
@@ -165,6 +182,8 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
                             <tr>
                                 <th className="p-4 border-b w-10">
                                     <input type="checkbox"
+                                        aria-label="เลือกทั้งหมด"
+                                        title="เลือกทั้งหมด"
                                         onChange={(e) => setSelectedIds(e.target.checked ? requestedItems.map(i => i.id) : [])}
                                         checked={requestedItems.length > 0 && selectedIds.length === requestedItems.length}
                                     />
@@ -193,7 +212,7 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
                                 requestedItems.map(item => (
                                     <tr key={item.id} className="hover:bg-blue-50/50 transition-colors cursor-pointer" onClick={() => handleToggleSelect(item.id)}>
                                         <td className="p-4 align-top">
-                                            <input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => { }} className="accent-blue-600 w-4 h-4" />
+                                            <input type="checkbox" aria-label={`เลือกรายการ ${item.id}`} title={`เลือกรายการ ${item.id}`} checked={selectedIds.includes(item.id)} onChange={() => { }} className="accent-blue-600 w-4 h-4" />
                                         </td>
                                         <td className="p-4 align-top">
                                             <div className="font-bold text-slate-700">{item.branch}</div>
@@ -265,13 +284,15 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
                         <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-up">
                             <div className="bg-blue-600 p-4 flex justify-between items-center text-white">
                                 <h3 className="font-bold flex items-center gap-2"><Truck className="w-5 h-5" /> สร้างงานรับสินค้า</h3>
-                                <button onClick={() => setShowModal(false)}><X className="w-5 h-5" /></button>
+                                <button onClick={() => setShowModal(false)} aria-label="ปิด" title="ปิด"><X className="w-5 h-5" /></button>
                             </div>
                             <div className="p-6 space-y-4">
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 mb-1">วันที่รับสินค้า (Date)</label>
                                     <input
                                         type="date"
+                                        aria-label="วันที่รับสินค้า"
+                                        title="วันที่รับสินค้า"
                                         className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                         value={pickupDate}
                                         onChange={e => setPickupDate(e.target.value)}

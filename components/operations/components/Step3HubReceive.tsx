@@ -108,6 +108,8 @@ export const Step3HubReceive: React.FC = () => {
                         <label className="block text-xs font-medium text-slate-500 mb-1">สาขาต้นทาง</label>
                         <select
                             className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            aria-label="สาขาต้นทาง"
+                            title="สาขาต้นทาง"
                             value={filterBranch}
                             onChange={(e) => setFilterBranch(e.target.value)}
                         >
@@ -122,6 +124,8 @@ export const Step3HubReceive: React.FC = () => {
                         <input
                             type="text"
                             className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            aria-label="ชื่อลูกค้า"
+                            title="ชื่อลูกค้า"
                             placeholder="ค้นหาชื่อลูกค้า..."
                             value={filterCustomer}
                             onChange={(e) => setFilterCustomer(e.target.value)}
@@ -132,6 +136,8 @@ export const Step3HubReceive: React.FC = () => {
                         <input
                             type="text"
                             className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            aria-label="สถานที่ส่ง (ปลายทาง)"
+                            title="สถานที่ส่ง (ปลายทาง)"
                             placeholder="ค้นหาสถานที่ส่ง..."
                             value={filterDestination}
                             onChange={(e) => setFilterDestination(e.target.value)}
@@ -226,10 +232,10 @@ export const Step3HubReceive: React.FC = () => {
                                 </div>
 
                                 <div className="flex gap-2 ml-auto self-stretch md:self-auto">
-                                    <button onClick={() => handleUndo(item.id)} className="bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 px-4 py-2 rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 transition-colors whitespace-nowrap border border-slate-200 hover:border-red-200">
+                                    <button onClick={() => handleUndo(item.id)} aria-label="ส่งกลับ Step 2" title="ส่งกลับ Step 2" className="bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 px-4 py-2 rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 transition-colors whitespace-nowrap border border-slate-200 hover:border-red-200">
                                         <IconUndo className="w-4 h-4" /> ส่งกลับ Step 2
                                     </button>
-                                    <button onClick={() => handleIntakeReceive(item.id)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 transition-colors whitespace-nowrap">
+                                    <button onClick={() => handleIntakeReceive(item.id)} aria-label="รับของ" title="รับของ" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 transition-colors whitespace-nowrap">
                                         <CheckCircle className="w-4 h-4" /> รับของ
                                     </button>
                                 </div>

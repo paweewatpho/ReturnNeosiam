@@ -164,6 +164,8 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                         <span className="text-xs text-white">ส่วนลด</span>
                         <input
                             type="number"
+                            aria-label="ส่วนลดเปอร์เซ็นต์"
+                            title="ส่วนลดเปอร์เซ็นต์"
                             value={discountRate}
                             onChange={e => setDiscountRate(Number(e.target.value))}
                             className="w-12 bg-slate-800 border border-slate-500 rounded px-1 text-center text-xs text-white focus:ring-1 focus:ring-blue-500 outline-none"
@@ -182,6 +184,8 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                             <div className="flex items-center gap-1 border-l border-slate-600 pl-2">
                                 <input
                                     type="number"
+                                    aria-label="อัตราภาษีมูลค่าเพิ่ม"
+                                    title="อัตราภาษีมูลค่าเพิ่ม"
                                     value={vatRate}
                                     onChange={e => setVatRate(Number(e.target.value))}
                                     className="w-12 bg-slate-800 border border-slate-500 rounded px-1 text-center text-xs text-white focus:ring-1 focus:ring-blue-500 outline-none"
@@ -229,7 +233,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                         )}
                     </button>
 
-                    <button onClick={onClose} className="ml-2 p-2 hover:bg-slate-700 rounded-full">
+                    <button onClick={onClose} aria-label="Close" title="ปิด" className="ml-2 p-2 hover:bg-slate-700 rounded-full">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -247,10 +251,10 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                         <div className="flex-1">
                             {isDocEditable ? (
                                 <div className="space-y-1">
-                                    <input value={docConfig.companyNameTH} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDocConfig({ ...docConfig, companyNameTH: e.target.value })} className="w-full text-lg font-bold border rounded px-1" />
-                                    <input value={docConfig.companyNameEN} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDocConfig({ ...docConfig, companyNameEN: e.target.value })} className="w-full text-sm border rounded px-1" />
-                                    <input value={docConfig.address} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDocConfig({ ...docConfig, address: e.target.value })} className="w-full text-xs text-slate-600 border rounded px-1" />
-                                    <input value={docConfig.contact} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDocConfig({ ...docConfig, contact: e.target.value })} className="w-full text-xs text-slate-600 border rounded px-1" />
+                                    <input aria-label="ชื่อบริษัท (TH)" title="ชื่อบริษัท (TH)" value={docConfig.companyNameTH} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDocConfig({ ...docConfig, companyNameTH: e.target.value })} className="w-full text-lg font-bold border rounded px-1" />
+                                    <input aria-label="ชื่อบริษัท (EN)" title="ชื่อบริษัท (EN)" value={docConfig.companyNameEN} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDocConfig({ ...docConfig, companyNameEN: e.target.value })} className="w-full text-sm border rounded px-1" />
+                                    <input aria-label="ที่อยู่" title="ที่อยู่" value={docConfig.address} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDocConfig({ ...docConfig, address: e.target.value })} className="w-full text-xs text-slate-600 border rounded px-1" />
+                                    <input aria-label="ข้อมูลติดต่อ" title="ข้อมูลติดต่อ" value={docConfig.contact} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDocConfig({ ...docConfig, contact: e.target.value })} className="w-full text-xs text-slate-600 border rounded px-1" />
                                 </div>
                             ) : (
                                 <>
@@ -273,7 +277,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                     {/* Title */}
                     <div className="text-center mb-8">
                         {isDocEditable ? (
-                            <input value={docConfig.titleTH} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDocConfig({ ...docConfig, titleTH: e.target.value })} className="text-CENTER text-2xl font-bold border rounded px-2 w-full mb-1" />
+                            <input aria-label="ชื่อเอกสาร (TH)" title="ชื่อเอกสาร (TH)" value={docConfig.titleTH} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDocConfig({ ...docConfig, titleTH: e.target.value })} className="text-CENTER text-2xl font-bold border rounded px-2 w-full mb-1" />
                         ) : (
                             <h2 className="text-2xl font-bold uppercase border-b border-black inline-block px-8 pb-1">{docConfig.titleTH || getISODetails(docData.type).th}</h2>
                         )}
@@ -326,6 +330,8 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                                         {isDocEditable ? (
                                             <input
                                                 type="number"
+                                                aria-label="ราคาต่อหน่วย"
+                                                title="ราคาต่อหน่วย"
                                                 className="w-full text-right bg-transparent border-b border-dashed border-gray-300 focus:border-blue-500 outline-none text-sm font-bold print:border-none"
                                                 value={item.pricePerUnit ?? ((item.priceBill || 0) / (item.quantity || 1))}
                                                 onChange={(e) => {
@@ -391,7 +397,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                     <div className="mb-8 p-4 border border-slate-300 rounded print:border-black">
                         <span className="font-bold underline text-sm">หมายเหตุ:</span>
                         {isDocEditable ? (
-                            <textarea value={docConfig.remarks} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDocConfig({ ...docConfig, remarks: e.target.value })} className="w-full mt-1 p-1 border rounded" rows={2} />
+                            <textarea aria-label="หมายเหตุ" title="หมายเหตุ" value={docConfig.remarks} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDocConfig({ ...docConfig, remarks: e.target.value })} className="w-full mt-1 p-1 border rounded" rows={2} />
                         ) : (
                             <p className="text-sm mt-1 indent-4">{docConfig.remarks}</p>
                         )}

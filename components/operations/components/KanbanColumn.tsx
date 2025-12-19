@@ -21,9 +21,11 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, icon:
         return items.filter(i => i.disposition === status && (status === 'RTV' ? !i.documentNo : true));
     }, [items, status, overrideFilter]);
 
+    const borderColorClass = color.replace('bg-', 'border-').replace('500', '200');
+
     return (
         <div className="min-w-[300px] bg-slate-100 rounded-xl p-4 flex flex-col h-full border border-slate-200">
-            <div className={`font-bold text-slate-700 mb-4 flex justify-between items-center pb-2 border-b-2`} style={{ borderColor: color.replace('bg-', 'text-').replace('500', '200') }}>
+            <div className={`font-bold text-slate-700 mb-4 flex justify-between items-center pb-2 border-b-2 ${borderColorClass}`}>
                 <div className="flex items-center gap-2">
                     <div className={`p-1.5 rounded-lg ${color} text-white`}><Icon className="w-4 h-4" /></div>
                     <span>{title}</span>
@@ -61,6 +63,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, icon:
                                             onSplitClick(item);
                                         }}
                                         className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-blue-600 transition-colors"
+                                        aria-label={`แยกรายการ (Split Item) - ${item.quantity} ${item.unit}`}
                                         title={`แยกรายการ (Split Item) - ${item.quantity} ${item.unit}`}
                                     >
                                         <GitFork className="w-3 h-3" />
@@ -130,7 +133,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, icon:
             </div>
 
             {columnItems.length > 0 && (
-                <button onClick={() => (onPrintClick as any)(status, columnItems)} className="mt-4 w-full py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center justify-center gap-2 transition-colors">
+                <button onClick={() => (onPrintClick as any)(status, columnItems)} aria-label={`ออกเอกสาร (${columnItems.length})`} className="mt-4 w-full py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center justify-center gap-2 transition-colors">
                     <Printer className="w-4 h-4" /> ออกเอกสาร ({columnItems.length})
                 </button>
             )}

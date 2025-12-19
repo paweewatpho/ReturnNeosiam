@@ -511,9 +511,9 @@ const NCRSystem: React.FC = () => {
                 <h1 className="text-xl font-bold text-center border-2 border-black print-border-2 py-2 mb-6 bg-white text-slate-900 print:bg-transparent">ใบแจ้งปัญหาระบบ (NCR) / ใบแจ้งปัญหารับสินค้าคืน</h1>
 
                 <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm mb-8 print-text-readable">
-                    <div className="flex items-center gap-2"><label className="font-bold w-24 text-slate-800">ถึงหน่วยงาน:</label><input type="text" className="flex-1 border-b border-dotted border-slate-400 bg-transparent outline-none px-1 text-slate-700 print:border-none" value={formData.toDept} onChange={e => setFormData({ ...formData, toDept: e.target.value })} /></div>
-                    <div className="flex items-center gap-2"><label className="font-bold w-24 text-slate-800">วันที่:</label><input type="date" className="flex-1 border-b border-dotted border-slate-400 bg-transparent outline-none px-1 text-slate-700 print:border-none" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} /></div>
-                    <div className="flex items-center gap-2"><label className="font-bold w-24 text-slate-800">สำเนา:</label><input type="text" className="flex-1 border-b border-dotted border-slate-400 bg-transparent outline-none px-1 text-slate-700 print:border-none" value={formData.copyTo} onChange={e => setFormData({ ...formData, copyTo: e.target.value })} /></div>
+                    <div className="flex items-center gap-2"><label className="font-bold w-24 text-slate-800">ถึงหน่วยงาน:</label><input type="text" aria-label="ถึงหน่วยงาน" title="ถึงหน่วยงาน" className="flex-1 border-b border-dotted border-slate-400 bg-transparent outline-none px-1 text-slate-700 print:border-none" value={formData.toDept} onChange={e => setFormData({ ...formData, toDept: e.target.value })} /></div>
+                    <div className="flex items-center gap-2"><label className="font-bold w-24 text-slate-800">วันที่:</label><input type="date" aria-label="วันที่" title="วันที่" className="flex-1 border-b border-dotted border-slate-400 bg-transparent outline-none px-1 text-slate-700 print:border-none" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} /></div>
+                    <div className="flex items-center gap-2"><label className="font-bold w-24 text-slate-800">สำเนา:</label><input type="text" aria-label="สำเนา" title="สำเนา" className="flex-1 border-b border-dotted border-slate-400 bg-transparent outline-none px-1 text-slate-700 print:border-none" value={formData.copyTo} onChange={e => setFormData({ ...formData, copyTo: e.target.value })} /></div>
                     <div className="flex items-center gap-2">
                         <label className="font-bold w-24 text-slate-800">เลขที่ NCR: <span className="text-red-500 no-print">*</span></label>
                         <div className="flex-1 border-b border-dotted border-slate-400 bg-slate-100 outline-none px-2 py-1 font-mono text-slate-500 font-bold rounded-sm text-center print:bg-transparent print:text-black">
@@ -521,7 +521,7 @@ const NCRSystem: React.FC = () => {
                         </div>
                     </div>
                     <div className="flex items-center gap-2"><label className="font-bold w-24 text-slate-800">ผู้พบปัญหา: <span className="text-red-500 no-print">*</span></label><LineAutocomplete className="w-full border-b border-dotted border-slate-400 bg-transparent outline-none px-1 text-slate-700 print:border-none" value={formData.founder} onChange={val => setFormData({ ...formData, founder: val })} options={uniqueFounders} /></div>
-                    <div className="flex items-center gap-2"><label className="font-bold w-32 text-slate-800">เลขที่ใบสั่งซื้อ/ผลิต:</label><input type="text" className="flex-1 border-b border-dotted border-slate-400 bg-transparent outline-none px-1 text-slate-700 print:border-none" value={formData.poNo} onChange={e => setFormData({ ...formData, poNo: e.target.value })} /></div>
+                    <div className="flex items-center gap-2"><label className="font-bold w-32 text-slate-800">เลขที่ใบสั่งซื้อ/ผลิต:</label><input type="text" aria-label="เลขที่ใบสั่งซื้อ/ผลิต" title="เลขที่ใบสั่งซื้อ/ผลิต" className="flex-1 border-b border-dotted border-slate-400 bg-transparent outline-none px-1 text-slate-700 print:border-none" value={formData.poNo} onChange={e => setFormData({ ...formData, poNo: e.target.value })} /></div>
                 </div>
 
                 {/* ITEM LIST */}
@@ -575,38 +575,38 @@ const NCRSystem: React.FC = () => {
                     <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemNoBarcode} onChange={() => handleProblemSelection('problemNoBarcode')} /> บาร์โค๊ตไม่ขึ้น</label>
                     <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemNotOrdered} onChange={() => handleProblemSelection('problemNotOrdered')} /> ไม่ได้สั่งสินค้า</label>
 
-                    <div className="flex items-center gap-2 p-1 col-span-2"><input type="checkbox" checked={formData.problemOther} onChange={() => handleProblemSelection('problemOther')} /> <span>อื่นๆ</span><input type="text" className="border-b border-dotted border-slate-400 bg-transparent outline-none w-full text-slate-700 print:border-none" value={formData.problemOtherText} onChange={e => setFormData({ ...formData, problemOtherText: e.target.value })} /></div>
-                </div><div className="font-bold underline mb-1 text-slate-900">รายละเอียด:</div><textarea className="w-full h-32 border border-slate-200 bg-slate-50 p-2 text-sm resize-none focus:ring-1 focus:ring-blue-500 outline-none text-slate-700 print:border-none" value={formData.problemDetail} onChange={e => setFormData({ ...formData, problemDetail: e.target.value })}></textarea></td></tr></tbody></table>
+                    <div className="flex items-center gap-2 p-1 col-span-2"><input type="checkbox" aria-label="อื่นๆ" title="อื่นๆ" checked={formData.problemOther} onChange={() => handleProblemSelection('problemOther')} /> <span>อื่นๆ</span><input type="text" aria-label="ระบุปัญหาอื่นๆ" title="ระบุปัญหาอื่นๆ" className="border-b border-dotted border-slate-400 bg-transparent outline-none w-full text-slate-700 print:border-none" value={formData.problemOtherText} onChange={e => setFormData({ ...formData, problemOtherText: e.target.value })} /></div>
+                </div><div className="font-bold underline mb-1 text-slate-900">รายละเอียด:</div><textarea aria-label="รายละเอียดปัญหา" title="รายละเอียดปัญหา" className="w-full h-32 border border-slate-200 bg-slate-50 p-2 text-sm resize-none focus:ring-1 focus:ring-blue-500 outline-none text-slate-700 print:border-none" value={formData.problemDetail} onChange={e => setFormData({ ...formData, problemDetail: e.target.value })}></textarea></td></tr></tbody></table>
 
                 {/* SECTION 2: ACTION (GRID LAYOUT) */}
                 <table className="w-full border-2 border-black mb-6 text-sm bg-white print-border-2">
                     <thead><tr className="bg-slate-200 print:bg-transparent border-b-2 border-black print-border-2"><th colSpan={2} className="py-2 text-center font-bold text-slate-900">การดำเนินการ</th></tr></thead>
                     <tbody className="divide-y divide-black border-b-2 border-black print-border-2">
                         <tr>
-                            <td className="p-2 border-r border-black w-1/2 print-border"><div className="flex items-center gap-2"><input type="checkbox" checked={formData.actionReject} onChange={() => handleActionSelection('actionReject')} /> <span className="font-bold">ส่งคืน (Reject)</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" className="w-20 border-b border-dotted border-black text-center bg-transparent print:border-none outline-none" value={formData.actionRejectQty || ''} onChange={e => setFormData({ ...formData, actionRejectQty: parseInt(e.target.value) || 0 })} /></div></td>
-                            <td className="p-2 w-1/2 print-border"><div className="flex items-center gap-2"><input type="checkbox" checked={formData.actionRejectSort} onChange={() => handleActionSelection('actionRejectSort')} /> <span className="font-bold">คัดแยกของเสียเพื่อส่งคืน</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" className="w-20 border-b border-dotted border-black text-center bg-transparent print:border-none outline-none" value={formData.actionRejectSortQty || ''} onChange={e => setFormData({ ...formData, actionRejectSortQty: parseInt(e.target.value) || 0 })} /></div></td>
+                            <td className="p-2 border-r border-black w-1/2 print-border"><div className="flex items-center gap-2"><input type="checkbox" title="ส่งคืน (Reject)" checked={formData.actionReject} onChange={() => handleActionSelection('actionReject')} /> <span className="font-bold">ส่งคืน (Reject)</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" aria-label="จำนวนส่งคืน" title="จำนวนส่งคืน" className="w-20 border-b border-dotted border-black text-center bg-transparent print:border-none outline-none" value={formData.actionRejectQty || ''} onChange={e => setFormData({ ...formData, actionRejectQty: parseInt(e.target.value) || 0 })} /></div></td>
+                            <td className="p-2 w-1/2 print-border"><div className="flex items-center gap-2"><input type="checkbox" title="คัดแยกของเสีย" checked={formData.actionRejectSort} onChange={() => handleActionSelection('actionRejectSort')} /> <span className="font-bold">คัดแยกของเสียเพื่อส่งคืน</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" aria-label="จำนวนคัดแยก" title="จำนวนคัดแยก" className="w-20 border-b border-dotted border-black text-center bg-transparent print:border-none outline-none" value={formData.actionRejectSortQty || ''} onChange={e => setFormData({ ...formData, actionRejectSortQty: parseInt(e.target.value) || 0 })} /></div></td>
                         </tr>
                         <tr>
-                            <td className="p-2 border-r border-black print-border"><div className="flex items-center gap-2"><input type="checkbox" checked={formData.actionRework} onChange={() => handleActionSelection('actionRework')} /> <span className="font-bold">แก้ไข (Rework)</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" className="w-20 border-b border-dotted border-black text-center bg-transparent print:border-none outline-none" value={formData.actionReworkQty || ''} onChange={e => setFormData({ ...formData, actionReworkQty: parseInt(e.target.value) || 0 })} /></div></td>
-                            <td className="p-2 print-border"><div className="flex items-center gap-2"><span className="font-bold">วิธีการแก้ไข</span><input type="text" className="flex-1 border-b border-dotted border-black bg-transparent print:border-none outline-none" value={formData.actionReworkMethod} onChange={e => setFormData({ ...formData, actionReworkMethod: e.target.value })} /></div></td>
+                            <td className="p-2 border-r border-black print-border"><div className="flex items-center gap-2"><input type="checkbox" title="แก้ไข (Rework)" checked={formData.actionRework} onChange={() => handleActionSelection('actionRework')} /> <span className="font-bold">แก้ไข (Rework)</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" aria-label="จำนวนแก้ไข" title="จำนวนแก้ไข" className="w-20 border-b border-dotted border-black text-center bg-transparent print:border-none outline-none" value={formData.actionReworkQty || ''} onChange={e => setFormData({ ...formData, actionReworkQty: parseInt(e.target.value) || 0 })} /></div></td>
+                            <td className="p-2 print-border"><div className="flex items-center gap-2"><span className="font-bold">วิธีการแก้ไข</span><input type="text" aria-label="วิธีการแก้ไข" title="วิธีการแก้ไข" className="flex-1 border-b border-dotted border-black bg-transparent print:border-none outline-none" value={formData.actionReworkMethod} onChange={e => setFormData({ ...formData, actionReworkMethod: e.target.value })} /></div></td>
                         </tr>
                         <tr>
-                            <td className="p-2 border-r border-black print-border"><div className="flex items-center gap-2"><input type="checkbox" checked={formData.actionSpecialAcceptance} onChange={() => handleActionSelection('actionSpecialAcceptance')} /> <span className="font-bold">ยอมรับกรณีพิเศษ</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" className="w-20 border-b border-dotted border-black text-center bg-transparent print:border-none outline-none" value={formData.actionSpecialAcceptanceQty || ''} onChange={e => setFormData({ ...formData, actionSpecialAcceptanceQty: parseInt(e.target.value) || 0 })} /></div></td>
-                            <td className="p-2 print-border"><div className="flex items-center gap-2"><span className="font-bold">เหตุผลในการยอมรับ</span><input type="text" className="flex-1 border-b border-dotted border-black bg-transparent print:border-none outline-none" value={formData.actionSpecialAcceptanceReason} onChange={e => setFormData({ ...formData, actionSpecialAcceptanceReason: e.target.value })} /></div></td>
+                            <td className="p-2 border-r border-black print-border"><div className="flex items-center gap-2"><input type="checkbox" title="ยอมรับกรณีพิเศษ" checked={formData.actionSpecialAcceptance} onChange={() => handleActionSelection('actionSpecialAcceptance')} /> <span className="font-bold">ยอมรับกรณีพิเศษ</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" aria-label="จำนวนยอมรับ" title="จำนวนยอมรับ" className="w-20 border-b border-dotted border-black text-center bg-transparent print:border-none outline-none" value={formData.actionSpecialAcceptanceQty || ''} onChange={e => setFormData({ ...formData, actionSpecialAcceptanceQty: parseInt(e.target.value) || 0 })} /></div></td>
+                            <td className="p-2 print-border"><div className="flex items-center gap-2"><span className="font-bold">เหตุผลในการยอมรับ</span><input type="text" aria-label="เหตุผลในการยอมรับ" title="เหตุผลในการยอมรับ" className="flex-1 border-b border-dotted border-black bg-transparent print:border-none outline-none" value={formData.actionSpecialAcceptanceReason} onChange={e => setFormData({ ...formData, actionSpecialAcceptanceReason: e.target.value })} /></div></td>
                         </tr>
                         <tr>
-                            <td className="p-2 border-r border-black print-border"><div className="flex items-center gap-2"><input type="checkbox" checked={formData.actionScrap} onChange={() => handleActionSelection('actionScrap')} /> <span className="font-bold">ทำลาย (Scrap)</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" className="w-20 border-b border-dotted border-black text-center bg-transparent print:border-none outline-none" value={formData.actionScrapQty || ''} onChange={e => setFormData({ ...formData, actionScrapQty: parseInt(e.target.value) || 0 })} /></div></td>
-                            <td className="p-2 print-border"><div className="flex items-center gap-2"><input type="checkbox" checked={formData.actionReplace} onChange={() => handleActionSelection('actionReplace')} /> <span className="font-bold">เปลี่ยนสินค้าใหม่</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" className="w-20 border-b border-dotted border-black text-center bg-transparent print:border-none outline-none" value={formData.actionReplaceQty || ''} onChange={e => setFormData({ ...formData, actionReplaceQty: parseInt(e.target.value) || 0 })} /></div></td>
+                            <td className="p-2 border-r border-black print-border"><div className="flex items-center gap-2"><input type="checkbox" title="ทำลาย (Scrap)" checked={formData.actionScrap} onChange={() => handleActionSelection('actionScrap')} /> <span className="font-bold">ทำลาย (Scrap)</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" aria-label="จำนวนทำลาย" title="จำนวนทำลาย" className="w-20 border-b border-dotted border-black text-center bg-transparent print:border-none outline-none" value={formData.actionScrapQty || ''} onChange={e => setFormData({ ...formData, actionScrapQty: parseInt(e.target.value) || 0 })} /></div></td>
+                            <td className="p-2 print-border"><div className="flex items-center gap-2"><input type="checkbox" title="เปลี่ยนสินค้าใหม่" checked={formData.actionReplace} onChange={() => handleActionSelection('actionReplace')} /> <span className="font-bold">เปลี่ยนสินค้าใหม่</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" aria-label="จำนวนเปลี่ยน" title="จำนวนเปลี่ยน" className="w-20 border-b border-dotted border-black text-center bg-transparent print:border-none outline-none" value={formData.actionReplaceQty || ''} onChange={e => setFormData({ ...formData, actionReplaceQty: parseInt(e.target.value) || 0 })} /></div></td>
                         </tr>
                     </tbody>
                     <tfoot>
                         <tr>
                             <td colSpan={2} className="p-3 bg-white print:bg-transparent">
                                 <div className="flex justify-between items-center gap-4 text-sm">
-                                    <div className="flex items-center gap-2"><span>กำหนดแล้วเสร็จ</span><input type="date" className="border-b border-dotted border-black bg-transparent print:border-none text-slate-700 outline-none" value={formData.dueDate} onChange={e => setFormData({ ...formData, dueDate: e.target.value })} /></div>
-                                    <div className="flex items-center gap-2"><span>ผู้อนุมัติ</span><input type="text" className="w-32 border-b border-dotted border-black bg-transparent print:border-none text-slate-700 text-center outline-none" value={formData.approver} onChange={e => setFormData({ ...formData, approver: e.target.value })} /></div>
-                                    <div className="flex items-center gap-2"><span>ตำแหน่ง</span><input type="text" className="w-24 border-b border-dotted border-black bg-transparent print:border-none text-slate-700 text-center outline-none" value={formData.approverPosition} onChange={e => setFormData({ ...formData, approverPosition: e.target.value })} /></div>
-                                    <div className="flex items-center gap-2"><span>วันที่</span><input type="date" className="border-b border-dotted border-black bg-transparent print:border-none text-slate-700 outline-none" value={formData.approverDate} onChange={e => setFormData({ ...formData, approverDate: e.target.value })} /></div>
+                                    <div className="flex items-center gap-2"><span>กำหนดแล้วเสร็จ</span><input type="date" aria-label="กำหนดแล้วเสร็จ" title="กำหนดแล้วเสร็จ" className="border-b border-dotted border-black bg-transparent print:border-none text-slate-700 outline-none" value={formData.dueDate} onChange={e => setFormData({ ...formData, dueDate: e.target.value })} /></div>
+                                    <div className="flex items-center gap-2"><span>ผู้อนุมัติ</span><input type="text" aria-label="ผู้อนุมัติ" title="ผู้อนุมัติ" className="w-32 border-b border-dotted border-black bg-transparent print:border-none text-slate-700 text-center outline-none" value={formData.approver} onChange={e => setFormData({ ...formData, approver: e.target.value })} /></div>
+                                    <div className="flex items-center gap-2"><span>ตำแหน่ง</span><input type="text" aria-label="ตำแหน่ง" title="ตำแหน่ง" className="w-24 border-b border-dotted border-black bg-transparent print:border-none text-slate-700 text-center outline-none" value={formData.approverPosition} onChange={e => setFormData({ ...formData, approverPosition: e.target.value })} /></div>
+                                    <div className="flex items-center gap-2"><span>วันที่</span><input type="date" aria-label="วันที่อนุมัติ" title="วันที่อนุมัติ" className="border-b border-dotted border-black bg-transparent print:border-none text-slate-700 outline-none" value={formData.approverDate} onChange={e => setFormData({ ...formData, approverDate: e.target.value })} /></div>
                                 </div>
                             </td>
                         </tr>
@@ -630,20 +630,20 @@ const NCRSystem: React.FC = () => {
                             <td className="align-top p-0 print-border">
                                 <div className="h-24 border-b border-black p-2 flex flex-col print-border">
                                     <div className="font-bold mb-1">รายละเอียดสาเหตุ :</div>
-                                    <textarea className="flex-1 w-full bg-transparent outline-none resize-none text-slate-700" value={formData.causeDetail} onChange={e => setFormData({ ...formData, causeDetail: e.target.value })}></textarea>
+                                    <textarea aria-label="รายละเอียดสาเหตุ" title="รายละเอียดสาเหตุ" className="flex-1 w-full bg-transparent outline-none resize-none text-slate-700" value={formData.causeDetail} onChange={e => setFormData({ ...formData, causeDetail: e.target.value })}></textarea>
                                 </div>
                                 <div className="h-24 p-2 flex flex-col">
                                     <div className="font-bold underline mb-1">แนวทางป้องกัน :</div>
-                                    <textarea className="flex-1 w-full bg-transparent outline-none resize-none text-slate-700" value={formData.preventionDetail} onChange={e => setFormData({ ...formData, preventionDetail: e.target.value })}></textarea>
+                                    <textarea aria-label="แนวทางป้องกัน" title="แนวทางป้องกัน" className="flex-1 w-full bg-transparent outline-none resize-none text-slate-700" value={formData.preventionDetail} onChange={e => setFormData({ ...formData, preventionDetail: e.target.value })}></textarea>
                                 </div>
                             </td>
                         </tr>
                         <tr className="border-t-2 border-black print-border-2">
                             <td colSpan={2} className="p-3 bg-white print:bg-transparent">
                                 <div className="flex justify-between items-center gap-4 text-sm">
-                                    <div className="flex items-center gap-2"><span>กำหนดการป้องกันแล้วเสร็จ</span><input type="date" className="border-b border-dotted border-black bg-transparent print:border-none text-slate-700 outline-none" value={formData.preventionDueDate} onChange={e => setFormData({ ...formData, preventionDueDate: e.target.value })} /></div>
-                                    <div className="flex items-center gap-2"><span>ผู้รับผิดชอบ</span><input type="text" className="w-32 border-b border-dotted border-black bg-transparent print:border-none text-slate-700 text-center outline-none" value={formData.responsiblePerson} onChange={e => setFormData({ ...formData, responsiblePerson: e.target.value })} /></div>
-                                    <div className="flex items-center gap-2"><span>ตำแหน่ง</span><input type="text" className="w-24 border-b border-dotted border-black bg-transparent print:border-none text-slate-700 text-center outline-none" value={formData.responsiblePosition} onChange={e => setFormData({ ...formData, responsiblePosition: e.target.value })} /></div>
+                                    <div className="flex items-center gap-2"><span>กำหนดการป้องกันแล้วเสร็จ</span><input type="date" aria-label="กำหนดการป้องกันแล้วเสร็จ" title="กำหนดการป้องกันแล้วเสร็จ" className="border-b border-dotted border-black bg-transparent print:border-none text-slate-700 outline-none" value={formData.preventionDueDate} onChange={e => setFormData({ ...formData, preventionDueDate: e.target.value })} /></div>
+                                    <div className="flex items-center gap-2"><span>ผู้รับผิดชอบ</span><input type="text" aria-label="ผู้รับผิดชอบ" title="ผู้รับผิดชอบ" className="w-32 border-b border-dotted border-black bg-transparent print:border-none text-slate-700 text-center outline-none" value={formData.responsiblePerson} onChange={e => setFormData({ ...formData, responsiblePerson: e.target.value })} /></div>
+                                    <div className="flex items-center gap-2"><span>ตำแหน่ง</span><input type="text" aria-label="ตำแหน่งผู้รับผิดชอบ" title="ตำแหน่งผู้รับผิดชอบ" className="w-24 border-b border-dotted border-black bg-transparent print:border-none text-slate-700 text-center outline-none" value={formData.responsiblePosition} onChange={e => setFormData({ ...formData, responsiblePosition: e.target.value })} /></div>
                                 </div>
                             </td>
                         </tr>
@@ -663,9 +663,9 @@ const NCRSystem: React.FC = () => {
                             <tr className="border-b-2 border-black print-border-2">
                                 <td colSpan={2} className="p-4 print-border">
                                     <div className="flex items-center gap-8">
-                                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={formData.qaAccept} onChange={e => setFormData({ ...formData, qaAccept: e.target.checked, qaReject: false })} /> ยอมรับแนวทางการป้องกัน</label>
-                                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={formData.qaReject} onChange={e => setFormData({ ...formData, qaReject: e.target.checked, qaAccept: false })} /> ไม่ยอมรับแนวทางการป้องกัน</label>
-                                        <input type="text" className="flex-1 border-b border-dotted border-black bg-transparent outline-none text-slate-700 print:border-none" placeholder="ระบุเหตุผล (ถ้ามี)" value={formData.qaReason} onChange={e => setFormData({ ...formData, qaReason: e.target.value })} />
+                                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" title="ยอมรับ" checked={formData.qaAccept} onChange={e => setFormData({ ...formData, qaAccept: e.target.checked, qaReject: false })} /> ยอมรับแนวทางการป้องกัน</label>
+                                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" title="ไม่ยอมรับ" checked={formData.qaReject} onChange={e => setFormData({ ...formData, qaReject: e.target.checked, qaAccept: false })} /> ไม่ยอมรับแนวทางการป้องกัน</label>
+                                        <input type="text" aria-label="เหตุผลไม่ยอมรับ" title="เหตุผลไม่ยอมรับ" className="flex-1 border-b border-dotted border-black bg-transparent outline-none text-slate-700 print:border-none" placeholder="ระบุเหตุผล (ถ้ามี)" value={formData.qaReason} onChange={e => setFormData({ ...formData, qaReason: e.target.value })} />
                                     </div>
                                 </td>
                             </tr>
@@ -695,7 +695,7 @@ const NCRSystem: React.FC = () => {
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col">
                         <div className="flex justify-between items-center p-4 border-b sticky top-0 bg-white z-10">
                             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2"><Plus className="w-5 h-5 text-blue-600" /> เพิ่มรายการสินค้า (Add Item)</h3>
-                            <button onClick={() => setShowItemModal(false)} className="text-slate-400 hover:text-slate-600"><X className="w-6 h-6" /></button>
+                            <button onClick={() => setShowItemModal(false)} aria-label="Close" title="ปิด" className="text-slate-400 hover:text-slate-600"><X className="w-6 h-6" /></button>
                         </div>
 
                         <div className="p-6 space-y-6 flex-1 overflow-y-auto">
@@ -703,7 +703,7 @@ const NCRSystem: React.FC = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 mb-1">สาขาต้นทาง <span className="text-red-500">*</span></label>
-                                    <select className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 bg-slate-50" value={newItem.branch} onChange={e => setNewItem({ ...newItem, branch: e.target.value })}>
+                                    <select aria-label="เลือกสาขา" title="เลือกสาขา" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 bg-slate-50" value={newItem.branch} onChange={e => setNewItem({ ...newItem, branch: e.target.value })}>
                                         <option value="">-- เลือกสาขา --</option>
                                         {WAREHOUSE_BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
                                     </select>
@@ -711,15 +711,15 @@ const NCRSystem: React.FC = () => {
                                 <div className="grid grid-cols-3 gap-2">
                                     <div>
                                         <label className="block text-sm font-bold text-slate-700 mb-1">รหัสสินค้า <span className="text-red-500">*</span></label>
-                                        <input type="text" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={newItem.productCode} onChange={e => setNewItem({ ...newItem, productCode: e.target.value })} placeholder="Code" />
+                                        <input type="text" aria-label="รหัสสินค้า" title="รหัสสินค้า" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={newItem.productCode} onChange={e => setNewItem({ ...newItem, productCode: e.target.value })} placeholder="Code" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-bold text-slate-700 mb-1">Ref No.</label>
-                                        <input type="text" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={newItem.refNo} onChange={e => setNewItem({ ...newItem, refNo: e.target.value })} placeholder="Reference" />
+                                        <input type="text" aria-label="Reference No" title="Reference No" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={newItem.refNo} onChange={e => setNewItem({ ...newItem, refNo: e.target.value })} placeholder="Reference" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-bold text-slate-700 mb-1">Neo Ref.</label>
-                                        <input type="text" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={newItem.neoRefNo} onChange={e => setNewItem({ ...newItem, neoRefNo: e.target.value })} placeholder="Neo Ref" />
+                                        <input type="text" aria-label="Neo Reference" title="Neo Reference" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={newItem.neoRefNo} onChange={e => setNewItem({ ...newItem, neoRefNo: e.target.value })} placeholder="Neo Ref" />
                                     </div>
                                 </div>
                             </div>
@@ -728,11 +728,11 @@ const NCRSystem: React.FC = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 mb-1">ชื่อสินค้า</label>
-                                    <input type="text" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={newItem.productName} onChange={e => setNewItem({ ...newItem, productName: e.target.value })} placeholder="Product Name" />
+                                    <input type="text" aria-label="ชื่อสินค้า" title="ชื่อสินค้า" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={newItem.productName} onChange={e => setNewItem({ ...newItem, productName: e.target.value })} placeholder="Product Name" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 mb-1">ลูกค้า</label>
-                                    <input type="text" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={newItem.customerName} onChange={e => setNewItem({ ...newItem, customerName: e.target.value })} placeholder="Customer Name" />
+                                    <input type="text" aria-label="ชื่อลูกค้า" title="ชื่อลูกค้า" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={newItem.customerName} onChange={e => setNewItem({ ...newItem, customerName: e.target.value })} placeholder="Customer Name" />
                                 </div>
                             </div>
 
@@ -743,6 +743,8 @@ const NCRSystem: React.FC = () => {
                                     <div className="flex">
                                         <input
                                             type="number"
+                                            aria-label="จำนวน"
+                                            title="จำนวน"
                                             className="w-full p-2 border rounded-l focus:ring-2 focus:ring-blue-500"
                                             value={newItem.quantity}
                                             onChange={e => {
@@ -751,13 +753,15 @@ const NCRSystem: React.FC = () => {
                                                 setNewItem({ ...newItem, quantity: qty, priceBill: qty * price });
                                             }}
                                         />
-                                        <input type="text" className="w-20 p-2 border border-l-0 rounded-r bg-slate-100 text-center text-sm" placeholder="หน่วย" value={newItem.unit} onChange={e => setNewItem({ ...newItem, unit: e.target.value })} />
+                                        <input type="text" aria-label="หน่วย" title="หน่วย" className="w-20 p-2 border border-l-0 rounded-r bg-slate-100 text-center text-sm" placeholder="หน่วย" value={newItem.unit} onChange={e => setNewItem({ ...newItem, unit: e.target.value })} />
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-blue-700 mb-1">ราคา/หน่วย (Price/Unit)</label>
                                     <input
                                         type="number"
+                                        aria-label="ราคาต่อหน่วย"
+                                        title="ราคาต่อหน่วย"
                                         className="w-full p-2 border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 bg-white"
                                         placeholder="0.00"
                                         value={newItem.pricePerUnit || ''}
@@ -770,7 +774,7 @@ const NCRSystem: React.FC = () => {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 mb-1">ราคาหน้าบิล (Total Bill)</label>
-                                    <input type="number" className="w-full p-2 border bg-slate-100 font-bold text-slate-700 rounded" readOnly value={newItem.priceBill} />
+                                    <input type="number" aria-label="ราคาหน้าบิล" title="ราคาหน้าบิล" className="w-full p-2 border bg-slate-100 font-bold text-slate-700 rounded" readOnly value={newItem.priceBill} />
                                 </div>
                             </div>
 
@@ -778,11 +782,11 @@ const NCRSystem: React.FC = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 mb-1">วันหมดอายุ (Expiry)</label>
-                                    <input type="date" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={newItem.expiryDate} onChange={e => setNewItem({ ...newItem, expiryDate: e.target.value })} />
+                                    <input type="date" aria-label="วันหมดอายุ" title="วันหมดอายุ" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={newItem.expiryDate} onChange={e => setNewItem({ ...newItem, expiryDate: e.target.value })} />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 mb-1">ลูกค้าปลายทาง (Destination)</label>
-                                    <input type="text" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={newItem.destinationCustomer} onChange={e => setNewItem({ ...newItem, destinationCustomer: e.target.value })} placeholder="Optional" />
+                                    <input type="text" aria-label="ลูกค้าปลายทาง" title="ลูกค้าปลายทาง" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" value={newItem.destinationCustomer} onChange={e => setNewItem({ ...newItem, destinationCustomer: e.target.value })} placeholder="Optional" />
                                 </div>
                             </div>
 
@@ -895,7 +899,7 @@ const NCRSystem: React.FC = () => {
                                 <Lock className="w-5 h-5 text-amber-500" />
                                 ยืนยันสิทธิ์ (Authentication)
                             </h3>
-                            <button onClick={() => setShowAuthModal(false)} className="text-slate-400 hover:text-slate-600">
+                            <button onClick={() => setShowAuthModal(false)} aria-label="Close" title="ปิด" className="text-slate-400 hover:text-slate-600">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -904,6 +908,8 @@ const NCRSystem: React.FC = () => {
                                 <label className="block text-sm font-bold text-slate-700 mb-1">รหัสผ่าน (Password)</label>
                                 <input
                                     type="password"
+                                    aria-label="Password"
+                                    title="Password"
                                     className="w-full p-2 border border-slate-300 rounded-lg text-lg tracking-widest outline-none focus:ring-2 focus:ring-amber-500"
                                     autoFocus
                                     value={authPassword}

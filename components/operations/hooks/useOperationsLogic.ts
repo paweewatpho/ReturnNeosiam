@@ -867,7 +867,14 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             // Standard Hub Doc Generation
             let successCount = 0;
             for (const item of docData.items) {
-                const success = await updateReturnRecord(item.id, { status: 'ReturnToSupplier', dateDocumented: today });
+                // Determine correct status based on document type
+                const isNCR = item.documentType === 'NCR' || !!item.ncrNumber || item.status.startsWith('NCR_');
+                const targetStatus = isNCR ? 'NCR_Documented' : 'COL_Documented';
+
+                const success = await updateReturnRecord(item.id, {
+                    status: targetStatus,
+                    dateDocumented: today
+                });
                 if (success) successCount++;
             }
 

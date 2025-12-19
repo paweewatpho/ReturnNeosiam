@@ -456,7 +456,7 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="flex-1 min-h-[200px]">
             {problemAnalysisData.length > 0 ? (
-              <div style={{ width: '100%', height: '100%', minHeight: '300px' }}>
+              <div className="w-full h-full min-h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={problemAnalysisData} layout="vertical" margin={{ left: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
@@ -482,7 +482,7 @@ const Dashboard: React.FC = () => {
             </h3>
             <p className="text-xs text-slate-500">สัดส่วนการจัดการสินค้า</p>
           </div>
-          <div className="flex-1 min-h-[200px] relative" style={{ minHeight: '300px' }}>
+          <div className="flex-1 min-h-[300px] relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={dispositionData} innerRadius={50} outerRadius={70} paddingAngle={2} dataKey="value">
@@ -506,7 +506,7 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="flex-1 min-h-[200px]">
             {financials.costResponsibleData.length > 0 ? (
-              <div style={{ width: '100%', height: '100%', minHeight: '300px' }}>
+              <div className="w-full h-full min-h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={financials.costResponsibleData} layout="vertical" margin={{ left: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
@@ -576,7 +576,7 @@ const Dashboard: React.FC = () => {
           <h3 className="text-blue-700 font-bold text-sm mb-2 flex items-center gap-2">
             <RotateCcw className="w-4 h-4" /> Sync & Cleanup Data
           </h3>
-          <button onClick={handleIntegrityCheck} className="text-blue-600 underline text-xs cursor-pointer hover:text-blue-800 font-semibold">
+          <button onClick={handleIntegrityCheck} aria-label="ตรวจสอบและล้างข้อมูลขยะ" className="text-blue-600 underline text-xs cursor-pointer hover:text-blue-800 font-semibold">
             ตรวจสอบและล้างข้อมูลขยะ
           </button>
           <div className="text-[10px] text-blue-400 mt-1">Remove orphaned NCR records</div>
@@ -589,6 +589,7 @@ const Dashboard: React.FC = () => {
           </h3>
           <button
             onClick={handleFactoryReset}
+            aria-label="ล้างข้อมูลทั้งหมด (Reset All)"
             className="text-red-600 underline text-xs cursor-pointer hover:text-red-800"
           >
             ล้างข้อมูลทั้งหมด (Reset All)

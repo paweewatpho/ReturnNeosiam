@@ -135,10 +135,27 @@ export const Step3BranchReceive: React.FC<Step3BranchReceiveProps> = ({ onComple
         if (password === '1234') {
             setIsSubmitting(true);
             try {
-                await updateReturnRecord(id, {
-                    status: 'COL_JobAccepted'
+                const success = await updateReturnRecord(id, {
+                    status: 'Requested'
                 });
-                Swal.fire('ย้อนกลับเรียบร้อย', '', 'success');
+
+                if (success) {
+                    // Wait for Firebase listener to update UI
+                    await new Promise(resolve => setTimeout(resolve, 500));
+
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'ย้อนกลับเรียบร้อย',
+                        text: 'รายการจะไปปรากฏใน Step 2',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถย้อนกลับได้', 'error');
+                }
+            } catch (error) {
+                console.error('[Step3] Undo Error:', error);
+                Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถย้อนกลับได้', 'error');
             } finally {
                 setIsSubmitting(false);
             }
@@ -259,7 +276,7 @@ export const Step3BranchReceive: React.FC<Step3BranchReceiveProps> = ({ onComple
                             <h3 className="font-bold flex items-center gap-2 text-lg">
                                 <Truck className="w-5 h-5" /> ยืนยันข้อมูลรับสินค้า
                             </h3>
-                            <button onClick={() => setShowModal(false)} className="hover:bg-indigo-700 p-1 rounded-full transition-colors">
+                            <button onClick={() => setShowModal(false)} aria-label="ปิด" title="ปิด" className="hover:bg-indigo-700 p-1 rounded-full transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -279,6 +296,8 @@ export const Step3BranchReceive: React.FC<Step3BranchReceiveProps> = ({ onComple
                                         <label className="block text-xs font-bold text-slate-700 mb-1">จำนวน (Qty)</label>
                                         <input
                                             type="number"
+                                            aria-label="จำนวน"
+                                            title="จำนวน"
                                             className="w-full p-2 border border-slate-300 rounded text-sm font-bold text-blue-600 focus:ring-2 focus:ring-indigo-500 outline-none"
                                             value={editQty}
                                             onChange={(e) => setEditQty(Number(e.target.value))}
@@ -289,6 +308,9 @@ export const Step3BranchReceive: React.FC<Step3BranchReceiveProps> = ({ onComple
                                         <label className="block text-xs font-bold text-slate-700 mb-1">หน่วย (Unit)</label>
                                         <input
                                             type="text"
+                                            aria-label="หน่วย"
+                                            title="หน่วย"
+                                            placeholder="เช่น กล่อง, ชิ้น"
                                             className="w-full p-2 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                                             value={editUnit}
                                             onChange={(e) => setEditUnit(e.target.value)}
@@ -301,6 +323,8 @@ export const Step3BranchReceive: React.FC<Step3BranchReceiveProps> = ({ onComple
                                 <label className="block text-sm font-bold text-slate-700 mb-1">วันที่รับจริง (Received Date) <span className="text-red-500">*</span></label>
                                 <input
                                     type="date"
+                                    aria-label="วันที่รับจริง"
+                                    title="วันที่รับจริง"
                                     className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-slate-700"
                                     value={receivedDate}
                                     onChange={(e) => setReceivedDate(e.target.value)}

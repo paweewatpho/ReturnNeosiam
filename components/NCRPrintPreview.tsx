@@ -65,6 +65,8 @@ export const NCRPrintPreview: React.FC<NCRPrintPreviewProps> = ({ item, onUpdate
                     <button
                         onClick={onClose}
                         className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors"
+                        aria-label="ปิด"
+                        title="ปิด"
                     >
                         <X className="w-6 h-6" />
                     </button>
@@ -74,12 +76,7 @@ export const NCRPrintPreview: React.FC<NCRPrintPreviewProps> = ({ item, onUpdate
             {/* A4 Paper Container - Visual Feedback */}
             <div className="my-8 print:m-0 print:w-full">
                 <div
-                    className="bg-white shadow-2xl mx-auto print:shadow-none print:mx-0 relative flex flex-col print-content-root"
-                    style={{
-                        width: '210mm',
-                        minHeight: '297mm',
-                        padding: '10mm 15mm' // Adjusted padding for A4 margins
-                    }}
+                    className="bg-white shadow-2xl mx-auto print:shadow-none print:mx-0 relative flex flex-col print-content-root ncr-a4-container"
                 >
                     {/* Header */}
                     <div className="flex border-2 border-black mb-4">
@@ -101,8 +98,9 @@ export const NCRPrintPreview: React.FC<NCRPrintPreviewProps> = ({ item, onUpdate
                     {/* Info Section */}
                     <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm mb-6">
                         <div className="flex items-center gap-2">
-                            <span className="font-bold w-24 text-slate-800">ถึงหน่วยงาน:</span>
+                            <label htmlFor="ncr-todept" className="font-bold w-24 text-slate-800">ถึงหน่วยงาน:</label>
                             <input
+                                id="ncr-todept"
                                 type="text"
                                 value={item.toDept || 'แผนกควบคุมคุณภาพ'}
                                 onChange={(e) => onUpdate({ ...item, toDept: e.target.value })}
@@ -110,8 +108,9 @@ export const NCRPrintPreview: React.FC<NCRPrintPreviewProps> = ({ item, onUpdate
                             />
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="font-bold w-20 text-slate-800">วันที่:</span>
+                            <label htmlFor="ncr-date" className="font-bold w-20 text-slate-800">วันที่:</label>
                             <input
+                                id="ncr-date"
                                 type="text"
                                 value={item.date}
                                 onChange={(e) => onUpdate({ ...item, date: e.target.value })}
@@ -119,8 +118,9 @@ export const NCRPrintPreview: React.FC<NCRPrintPreviewProps> = ({ item, onUpdate
                             />
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="font-bold w-24 text-slate-800">สำเนา:</span>
+                            <label htmlFor="ncr-copyto" className="font-bold w-24 text-slate-800">สำเนา:</label>
                             <input
+                                id="ncr-copyto"
                                 type="text"
                                 value={item.copyTo || ''}
                                 onChange={(e) => onUpdate({ ...item, copyTo: e.target.value })}
@@ -132,8 +132,9 @@ export const NCRPrintPreview: React.FC<NCRPrintPreviewProps> = ({ item, onUpdate
                             <div className="flex-1 border-b border-dotted border-black px-1 font-bold">{item.ncrNo}</div>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="font-bold w-24 text-slate-800">ผู้พบปัญหา:</span>
+                            <label htmlFor="ncr-founder" className="font-bold w-24 text-slate-800">ผู้พบปัญหา:</label>
                             <input
+                                id="ncr-founder"
                                 type="text"
                                 value={item.founder || ''}
                                 onChange={(e) => onUpdate({ ...item, founder: e.target.value })}
@@ -141,8 +142,9 @@ export const NCRPrintPreview: React.FC<NCRPrintPreviewProps> = ({ item, onUpdate
                             />
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="font-bold w-20 text-slate-800">เลขที่สั่งซื้อ:</span>
+                            <label htmlFor="ncr-pono" className="font-bold w-20 text-slate-800">เลขที่สั่งซื้อ:</label>
                             <input
+                                id="ncr-pono"
                                 type="text"
                                 value={item.poNo || ''}
                                 onChange={(e) => onUpdate({ ...item, poNo: e.target.value })}
@@ -241,8 +243,9 @@ export const NCRPrintPreview: React.FC<NCRPrintPreviewProps> = ({ item, onUpdate
                                 </div>
 
                                 <div className="mt-4 flex flex-col flex-1">
-                                    <label className="text-xs font-bold mb-1">รายละเอียด:</label>
+                                    <label htmlFor="ncr-detail" className="text-xs font-bold mb-1">รายละเอียด:</label>
                                     <textarea
+                                        id="ncr-detail"
                                         value={item.problemDetail}
                                         onChange={(e) => onUpdate({ ...item, problemDetail: e.target.value })}
                                         className="w-full flex-1 border border-dotted border-black p-2 text-xs resize-none min-h-[100px] outline-none"
@@ -331,6 +334,12 @@ export const NCRPrintPreview: React.FC<NCRPrintPreviewProps> = ({ item, onUpdate
         
         .print-content-root {
           font-family: 'Sarabun', 'TH Sarabun New', sans-serif;
+        }
+
+        .ncr-a4-container {
+          width: 210mm;
+          min-height: 297mm;
+          padding: 10mm 15mm;
         }
 
         @media print {

@@ -24,6 +24,8 @@ export const ProductFormSection: React.FC<ProductFormSectionProps> = ({
                     <label className="block text-sm font-bold text-slate-700 mb-1">เลขที่อ้างอิง (Ref No.) <span className="text-red-500">*</span></label>
                     <input
                         type="text"
+                        aria-label="เลขที่อ้างอิง"
+                        title="เลขที่อ้างอิง"
                         required
                         value={formData.refNo || ''}
                         onChange={e => updateField('refNo', e.target.value)}
@@ -35,6 +37,8 @@ export const ProductFormSection: React.FC<ProductFormSectionProps> = ({
                     <label className="block text-sm font-bold text-slate-700 mb-1">Neo Ref No. (Optional)</label>
                     <input
                         type="text"
+                        aria-label="Neo Ref No."
+                        title="Neo Ref No."
                         value={formData.neoRefNo || ''}
                         onChange={e => updateField('neoRefNo', e.target.value)}
                         className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all font-mono"
@@ -67,6 +71,8 @@ export const ProductFormSection: React.FC<ProductFormSectionProps> = ({
                     <label className="block text-sm font-bold text-slate-700 mb-1">จำนวน <span className="text-red-500">*</span></label>
                     <input
                         type="number"
+                        aria-label="จำนวน"
+                        title="จำนวน"
                         required
                         min="1"
                         value={formData.quantity || ''}
@@ -83,6 +89,8 @@ export const ProductFormSection: React.FC<ProductFormSectionProps> = ({
                     <label className="block text-sm font-bold text-slate-700 mb-1">หน่วย</label>
                     <input
                         type="text"
+                        aria-label="หน่วย"
+                        title="หน่วย"
                         value={formData.unit || 'ชิ้น'}
                         onChange={e => updateField('unit', e.target.value)}
                         className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all text-center"
@@ -93,6 +101,8 @@ export const ProductFormSection: React.FC<ProductFormSectionProps> = ({
                     <div className="relative">
                         <input
                             type="number"
+                            aria-label="ราคาต่อหน่วย"
+                            title="ราคาต่อหน่วย"
                             step="0.01"
                             value={formData.pricePerUnit || ''}
                             onChange={e => {
@@ -111,6 +121,8 @@ export const ProductFormSection: React.FC<ProductFormSectionProps> = ({
                     <label className="block text-sm font-bold text-slate-700 mb-1">วันหมดอายุ</label>
                     <input
                         type="date"
+                        aria-label="วันหมดอายุ"
+                        title="วันหมดอายุ"
                         value={formData.expiryDate || ''}
                         onChange={e => updateField('expiryDate', e.target.value)}
                         className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"
@@ -124,6 +136,8 @@ export const ProductFormSection: React.FC<ProductFormSectionProps> = ({
                     <div className="relative">
                         <input
                             type="number"
+                            aria-label="ราคาหน้าบิลรวม"
+                            title="ราคาหน้าบิลรวม"
                             step="0.01"
                             value={formData.priceBill || 0}
                             readOnly
@@ -138,6 +152,8 @@ export const ProductFormSection: React.FC<ProductFormSectionProps> = ({
                     <div className="relative">
                         <input
                             type="number"
+                            aria-label="ราคาขาย"
+                            title="ราคาขาย"
                             step="0.01"
                             value={formData.priceSell || ''}
                             onChange={e => updateField('priceSell', parseFloat(e.target.value))}

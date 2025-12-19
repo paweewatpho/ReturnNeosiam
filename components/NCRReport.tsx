@@ -375,7 +375,8 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
               value={filters.startDate}
               onChange={e => setFilters({ ...filters, startDate: e.target.value })}
               className="bg-transparent text-xs p-1 outline-none w-28 text-slate-600 cursor-pointer"
-              title="Start Date"
+              aria-label="วันที่เริ่มต้น"
+              title="วันที่เริ่มต้น"
             />
             <span className="text-slate-400">-</span>
             <input
@@ -383,16 +384,17 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
               value={filters.endDate}
               onChange={e => setFilters({ ...filters, endDate: e.target.value })}
               className="bg-transparent text-xs p-1 outline-none w-28 text-slate-600 cursor-pointer"
-              title="End Date"
+              aria-label="วันที่สิ้นสุด"
+              title="วันที่สิ้นสุด"
             />
           </div>
 
-          <select value={filters.action} onChange={e => setFilters({ ...filters, action: e.target.value })} className="bg-slate-50 border border-slate-200 rounded-lg text-xs p-1 outline-none focus:ring-1 focus:ring-blue-500">
+          <select value={filters.action} onChange={e => setFilters({ ...filters, action: e.target.value })} className="bg-slate-50 border border-slate-200 rounded-lg text-xs p-1 outline-none focus:ring-1 focus:ring-blue-500" aria-label="กรองการดำเนินการ" title="กรองการดำเนินการ">
             <option value="All">ทุกการดำเนินการ</option>
             <option value="Reject">Reject</option>
             <option value="Scrap">Scrap</option>
           </select>
-          <select value={filters.returnStatus} onChange={e => setFilters({ ...filters, returnStatus: e.target.value })} className="bg-slate-50 border border-slate-200 rounded-lg text-xs p-1 outline-none focus:ring-1 focus:ring-blue-500">
+          <select value={filters.returnStatus} onChange={e => setFilters({ ...filters, returnStatus: e.target.value })} className="bg-slate-50 border border-slate-200 rounded-lg text-xs p-1 outline-none focus:ring-1 focus:ring-blue-500" aria-label="กรองสถานะการคืน" title="กรองสถานะการคืน">
             <option value="All">ทุกสถานะคืน</option>
             <option value="NotReturned">ยังไม่คืน</option>
             <option value="Requested">รอรับเข้า</option>
@@ -429,7 +431,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col print:hidden">
-        <div className="overflow-auto flex-1 relative" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+        <div className="overflow-auto flex-1 relative ncr-table-container">
           <table className="w-full text-left border-collapse">
             <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10 shadow-sm text-xs uppercase text-slate-500 font-bold">
               <tr className="whitespace-nowrap">
@@ -604,6 +606,8 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
               value={itemsPerPage}
               onChange={(e) => setItemsPerPage(Number(e.target.value))}
               className="bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500 font-bold"
+              aria-label="จำนวนรายการต่อหน้า"
+              title="จำนวนรายการต่อหน้า"
             >
               <option value={20}>20</option>
               <option value={50}>50</option>
@@ -662,7 +666,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                   {isEditMode ? <Edit className="w-5 h-5 text-amber-500" /> : <Eye className="w-5 h-5 text-blue-500" />}
                   {isEditMode ? 'แก้ไขข้อมูล NCR' : 'ดูรายละเอียด NCR'}
                 </h3>
-                <button onClick={() => setShowNCRFormModal(false)} className="text-slate-500 hover:text-slate-700">
+                <button onClick={() => setShowNCRFormModal(false)} className="text-slate-500 hover:text-slate-700" aria-label="ปิด" title="ปิด">
                   <X className="w-6 h-6" />
                 </button>
               </div>
@@ -679,9 +683,9 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
 
                   {/* INFO GRID */}
                   <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm mb-8">
-                    <div className="flex items-center gap-2"><label className="font-bold w-24 text-slate-800">ถึงหน่วยงาน:</label><input type="text" disabled={!isEditMode} className="flex-1 border-b border-dotted border-slate-400 bg-transparent outline-none px-1 text-slate-700" value={ncrFormItem.toDept || ''} onChange={e => handleInputChange('toDept', e.target.value)} /></div>
-                    <div className="flex items-center gap-2"><label className="font-bold w-24 text-slate-800">วันที่:</label><input type="date" disabled={!isEditMode} className="flex-1 border-b border-dotted border-slate-400 bg-transparent outline-none px-1 text-slate-700" value={ncrFormItem.date} onChange={e => handleInputChange('date', e.target.value)} /></div>
-                    <div className="flex items-center gap-2"><label className="font-bold w-24 text-slate-800">สำเนา:</label><input type="text" disabled={!isEditMode} className="flex-1 border-b border-dotted border-slate-400 bg-transparent outline-none px-1 text-slate-700" value={ncrFormItem.copyTo || ''} onChange={e => handleInputChange('copyTo', e.target.value)} /></div>
+                    <div className="flex items-center gap-2"><label className="font-bold w-24 text-slate-800">ถึงหน่วยงาน:</label><input type="text" disabled={!isEditMode} aria-label="ถึงหน่วยงาน" title="ถึงหน่วยงาน" className="flex-1 border-b border-dotted border-slate-400 bg-transparent outline-none px-1 text-slate-700" value={ncrFormItem.toDept || ''} onChange={e => handleInputChange('toDept', e.target.value)} /></div>
+                    <div className="flex items-center gap-2"><label className="font-bold w-24 text-slate-800">วันที่:</label><input type="date" disabled={!isEditMode} aria-label="วันที่" title="วันที่" className="flex-1 border-b border-dotted border-slate-400 bg-transparent outline-none px-1 text-slate-700" value={ncrFormItem.date} onChange={e => handleInputChange('date', e.target.value)} /></div>
+                    <div className="flex items-center gap-2"><label className="font-bold w-24 text-slate-800">สำเนา:</label><input type="text" disabled={!isEditMode} aria-label="สำเนา" title="สำเนา" className="flex-1 border-b border-dotted border-slate-400 bg-transparent outline-none px-1 text-slate-700" value={ncrFormItem.copyTo || ''} onChange={e => handleInputChange('copyTo', e.target.value)} /></div>
                     <div className="flex items-center gap-2">
                       <label className="font-bold w-24 text-slate-800">เลขที่ NCR: <span className="text-red-500">*</span></label>
                       <div className="flex-1 border-b border-dotted border-slate-400 bg-slate-100 outline-none px-2 py-1 font-mono text-slate-500 font-bold rounded-sm text-center">
@@ -689,7 +693,7 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2"><label className="font-bold w-24 text-slate-800">ผู้พบปัญหา: <span className="text-red-500">*</span></label><LineAutocomplete disabled={!isEditMode} className="w-full border-b border-dotted border-slate-400 bg-transparent outline-none px-1 text-slate-700" value={ncrFormItem.founder || ''} onChange={val => handleInputChange('founder', val)} options={uniqueFounders} /></div>
-                    <div className="flex items-center gap-2"><label className="font-bold w-32 text-slate-800">เลขที่ใบสั่งซื้อ/ผลิต:</label><input type="text" disabled={!isEditMode} className="flex-1 border-b border-dotted border-slate-400 bg-transparent outline-none px-1 text-slate-700" value={ncrFormItem.poNo || ''} onChange={e => handleInputChange('poNo', e.target.value)} /></div>
+                    <div className="flex items-center gap-2"><label className="font-bold w-32 text-slate-800">เลขที่ใบสั่งซื้อ/ผลิต:</label><input type="text" disabled={!isEditMode} aria-label="เลขที่ใบสั่งซื้อ/ผลิต" title="เลขที่ใบสั่งซื้อ/ผลิต" className="flex-1 border-b border-dotted border-slate-400 bg-transparent outline-none px-1 text-slate-700" value={ncrFormItem.poNo || ''} onChange={e => handleInputChange('poNo', e.target.value)} /></div>
                   </div>
 
                   {/* ITEM LIST */}
@@ -701,36 +705,36 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                         <tbody className="divide-y divide-black">
                           <tr>
                             <td className="p-2 border-r border-black align-top">
-                              <input type="text" disabled={!isEditMode} className="w-full bg-transparent border-b border-dotted border-slate-300" value={(ncrFormItem.item || (ncrFormItem as any)).branch || ''} onChange={e => handleItemInputChange('branch', e.target.value)} />
+                              <input type="text" disabled={!isEditMode} aria-label="สาขาต้นทาง" title="สาขาต้นทาง" className="w-full bg-transparent border-b border-dotted border-slate-300" value={(ncrFormItem.item || (ncrFormItem as any)).branch || ''} onChange={e => handleItemInputChange('branch', e.target.value)} />
                             </td>
                             <td className="p-2 border-r border-black align-top">
-                              <div className="flex items-center gap-1"><span>Ref:</span><input type="text" disabled={!isEditMode} className="flex-1 bg-transparent border-b border-dotted border-slate-300 w-20" value={(ncrFormItem.item || (ncrFormItem as any)).refNo || ''} onChange={e => handleItemInputChange('refNo', e.target.value)} /></div>
-                              <div className="flex items-center gap-1 mt-1 text-slate-500"><span>Neo:</span><input type="text" disabled={!isEditMode} className="flex-1 bg-transparent border-b border-dotted border-slate-300 w-20" value={(ncrFormItem.item || (ncrFormItem as any)).neoRefNo || ''} onChange={e => handleItemInputChange('neoRefNo', e.target.value)} /></div>
+                              <div className="flex items-center gap-1"><span>Ref:</span><input type="text" disabled={!isEditMode} aria-label="Ref No" title="Ref No" className="flex-1 bg-transparent border-b border-dotted border-slate-300 w-20" value={(ncrFormItem.item || (ncrFormItem as any)).refNo || ''} onChange={e => handleItemInputChange('refNo', e.target.value)} /></div>
+                              <div className="flex items-center gap-1 mt-1 text-slate-500"><span>Neo:</span><input type="text" disabled={!isEditMode} aria-label="Neo Ref No" title="Neo Ref No" className="flex-1 bg-transparent border-b border-dotted border-slate-300 w-20" value={(ncrFormItem.item || (ncrFormItem as any)).neoRefNo || ''} onChange={e => handleItemInputChange('neoRefNo', e.target.value)} /></div>
                             </td>
                             <td className="p-2 border-r border-black align-top">
-                              <input type="text" disabled={!isEditMode} className="w-full font-bold bg-transparent border-b border-dotted border-slate-300 mb-1" value={(ncrFormItem.item || (ncrFormItem as any)).productCode || ''} onChange={e => handleItemInputChange('productCode', e.target.value)} />
-                              <input type="text" disabled={!isEditMode} className="w-full text-slate-600 font-medium bg-transparent border-b border-dotted border-slate-300 mb-1" value={(ncrFormItem.item || (ncrFormItem as any)).productName || ''} onChange={e => handleItemInputChange('productName', e.target.value)} />
-                              <input type="text" disabled={!isEditMode} className="w-full text-slate-500 bg-transparent border-b border-dotted border-slate-300" value={(ncrFormItem.item || (ncrFormItem as any)).customerName || ''} onChange={e => handleItemInputChange('customerName', e.target.value)} />
-                              <div className="mt-1 flex items-center gap-1 text-xs text-blue-600"><span>ปลายทาง:</span><input type="text" disabled={!isEditMode} className="flex-1 bg-transparent border-b border-dotted border-blue-200" value={(ncrFormItem.item || (ncrFormItem as any)).destinationCustomer || ''} onChange={e => handleItemInputChange('destinationCustomer', e.target.value)} /></div>
+                              <input type="text" disabled={!isEditMode} aria-label="รหัสสินค้า" title="รหัสสินค้า" className="w-full font-bold bg-transparent border-b border-dotted border-slate-300 mb-1" value={(ncrFormItem.item || (ncrFormItem as any)).productCode || ''} onChange={e => handleItemInputChange('productCode', e.target.value)} />
+                              <input type="text" disabled={!isEditMode} aria-label="ชื่อสินค้า" title="ชื่อสินค้า" className="w-full text-slate-600 font-medium bg-transparent border-b border-dotted border-slate-300 mb-1" value={(ncrFormItem.item || (ncrFormItem as any)).productName || ''} onChange={e => handleItemInputChange('productName', e.target.value)} />
+                              <input type="text" disabled={!isEditMode} aria-label="ชื่อลูกค้า" title="ชื่อลูกค้า" className="w-full text-slate-500 bg-transparent border-b border-dotted border-slate-300" value={(ncrFormItem.item || (ncrFormItem as any)).customerName || ''} onChange={e => handleItemInputChange('customerName', e.target.value)} />
+                              <div className="mt-1 flex items-center gap-1 text-xs text-blue-600"><span>ปลายทาง:</span><input type="text" disabled={!isEditMode} aria-label="ปลายทาง" title="ปลายทาง" className="flex-1 bg-transparent border-b border-dotted border-blue-200" value={(ncrFormItem.item || (ncrFormItem as any)).destinationCustomer || ''} onChange={e => handleItemInputChange('destinationCustomer', e.target.value)} /></div>
                             </td>
                             <td className="p-2 border-r border-black text-center align-top">
                               <div className="flex items-center justify-center gap-1">
-                                <input type="number" disabled={!isEditMode} className="w-12 text-center bg-transparent border-b border-dotted border-slate-300" value={(ncrFormItem.item || (ncrFormItem as any)).quantity || 0} onChange={e => handleItemInputChange('quantity', Number(e.target.value))} />
-                                <input type="text" disabled={!isEditMode} className="w-8 text-center bg-transparent border-b border-dotted border-slate-300" value={(ncrFormItem.item || (ncrFormItem as any)).unit || ''} onChange={e => handleItemInputChange('unit', e.target.value)} />
+                                <input type="number" disabled={!isEditMode} aria-label="จำนวน" title="จำนวน" className="w-12 text-center bg-transparent border-b border-dotted border-slate-300" value={(ncrFormItem.item || (ncrFormItem as any)).quantity || 0} onChange={e => handleItemInputChange('quantity', Number(e.target.value))} />
+                                <input type="text" disabled={!isEditMode} aria-label="หน่วย" title="หน่วย" className="w-8 text-center bg-transparent border-b border-dotted border-slate-300" value={(ncrFormItem.item || (ncrFormItem as any)).unit || ''} onChange={e => handleItemInputChange('unit', e.target.value)} />
                               </div>
                             </td>
                             <td className="p-2 border-r border-black text-right align-top">
-                              <div><input type="number" step="0.01" disabled={!isEditMode} className="w-20 text-right bg-transparent border-b border-dotted border-slate-300" value={(ncrFormItem.item || (ncrFormItem as any)).priceBill || 0} onChange={e => handleItemInputChange('priceBill', Number(e.target.value))} onBlur={e => handleItemInputChange('priceBill', parseFloat(parseFloat(e.target.value).toFixed(2)))} /> บ.</div>
-                              <div className="text-red-500 mt-1 flex items-center justify-end gap-1"><span>Exp:</span><input type="date" disabled={!isEditMode} className="w-24 bg-transparent border-none text-right text-xs" value={(ncrFormItem.item || (ncrFormItem as any)).expiryDate || ''} onChange={e => handleItemInputChange('expiryDate', e.target.value)} /></div>
+                              <div><input type="number" step="0.01" disabled={!isEditMode} aria-label="ราคา" title="ราคา" className="w-20 text-right bg-transparent border-b border-dotted border-slate-300" value={(ncrFormItem.item || (ncrFormItem as any)).priceBill || 0} onChange={e => handleItemInputChange('priceBill', Number(e.target.value))} onBlur={e => handleItemInputChange('priceBill', parseFloat(parseFloat(e.target.value).toFixed(2)))} /> บ.</div>
+                              <div className="text-red-500 mt-1 flex items-center justify-end gap-1"><span>Exp:</span><input type="date" disabled={!isEditMode} aria-label="วันหมดอายุ" title="วันหมดอายุ" className="w-24 bg-transparent border-none text-right text-xs" value={(ncrFormItem.item || (ncrFormItem as any)).expiryDate || ''} onChange={e => handleItemInputChange('expiryDate', e.target.value)} /></div>
                             </td>
                             <td className="p-2 border-r border-black align-top">
-                              <textarea disabled={!isEditMode} className="w-full h-12 text-xs resize-none bg-transparent border-b border-dotted border-slate-300" value={(ncrFormItem.item || (ncrFormItem as any)).problemSource || ''} onChange={e => handleItemInputChange('problemSource', e.target.value)} placeholder="ระบุสาเหตุ..."></textarea>
+                              <textarea disabled={!isEditMode} aria-label="วิเคราะห์ปัญหาโปรดระบุสาเหตุ" title="วิเคราะห์ปัญหาโปรดระบุสาเหตุ" className="w-full h-12 text-xs resize-none bg-transparent border-b border-dotted border-slate-300" value={(ncrFormItem.item || (ncrFormItem as any)).problemSource || ''} onChange={e => handleItemInputChange('problemSource', e.target.value)} placeholder="ระบุสาเหตุ..."></textarea>
                               <div className="mt-1">
                                 <label className="flex items-center gap-1 text-red-600 font-bold cursor-pointer"><input type="checkbox" disabled={!isEditMode} checked={(ncrFormItem.item || (ncrFormItem as any)).hasCost} onChange={e => handleItemInputChange('hasCost', e.target.checked)} /> Has Cost</label>
                                 {(ncrFormItem.item || (ncrFormItem as any)).hasCost && (
                                   <div className="pl-4 mt-1">
-                                    <div className="flex items-center gap-1"><span className="text-red-600 font-bold">Cost:</span><input type="number" step="0.01" disabled={!isEditMode} className="w-20 bg-transparent border-b border-dotted border-red-300 text-red-600 font-bold" value={(ncrFormItem.item || (ncrFormItem as any)).costAmount || 0} onChange={e => handleItemInputChange('costAmount', Number(e.target.value))} onBlur={e => handleItemInputChange('costAmount', parseFloat(parseFloat(e.target.value).toFixed(2)))} /> บ.</div>
-                                    <div className="flex items-center gap-1 text-slate-500"><span className="text-xs">รับผิดชอบ:</span><input type="text" disabled={!isEditMode} className="w-20 bg-transparent border-b border-dotted border-slate-300 text-xs" value={(ncrFormItem.item || (ncrFormItem as any)).costResponsible || ''} onChange={e => handleItemInputChange('costResponsible', e.target.value)} /></div>
+                                    <div className="flex items-center gap-1"><span className="text-red-600 font-bold">Cost:</span><input type="number" step="0.01" disabled={!isEditMode} aria-label="ค่าใช้จ่าย" title="ค่าใช้จ่าย" className="w-20 bg-transparent border-b border-dotted border-red-300 text-red-600 font-bold" value={(ncrFormItem.item || (ncrFormItem as any)).costAmount || 0} onChange={e => handleItemInputChange('costAmount', Number(e.target.value))} onBlur={e => handleItemInputChange('costAmount', parseFloat(parseFloat(e.target.value).toFixed(2)))} /> บ.</div>
+                                    <div className="flex items-center gap-1 text-slate-500"><span className="text-xs">รับผิดชอบ:</span><input type="text" disabled={!isEditMode} aria-label="ผู้รับผิดชอบค่าใช้จ่าย" title="ผู้รับผิดชอบค่าใช้จ่าย" className="w-20 bg-transparent border-b border-dotted border-slate-300 text-xs" value={(ncrFormItem.item || (ncrFormItem as any)).costResponsible || ''} onChange={e => handleItemInputChange('costResponsible', e.target.value)} /></div>
                                   </div>
                                 )}
                               </div>
@@ -762,38 +766,38 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                     <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemNoBarcode} onChange={() => handleProblemSelection('problemNoBarcode')} /> บาร์โค๊ตไม่ขึ้น</label>
                     <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemNotOrdered} onChange={() => handleProblemSelection('problemNotOrdered')} /> ไม่ได้สั่งสินค้า</label>
 
-                    <div className="flex items-center gap-2 p-1 col-span-2"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.problemOther} onChange={() => handleProblemSelection('problemOther')} /> <span>อื่นๆ</span><input type="text" disabled={!isEditMode} className="border-b border-dotted border-slate-400 bg-transparent outline-none w-full text-slate-700" value={ncrFormItem.problemOtherText || ''} onChange={e => handleInputChange('problemOtherText', e.target.value)} /></div>
-                  </div><div className="font-bold underline mb-1 text-slate-900">รายละเอียด:</div><textarea disabled={!isEditMode} className="w-full h-32 border border-slate-200 bg-slate-50 p-2 text-sm resize-none focus:ring-1 focus:ring-blue-500 outline-none text-slate-700" value={ncrFormItem.problemDetail} onChange={e => handleInputChange('problemDetail', e.target.value)}></textarea></td></tr></tbody></table>
+                    <div className="flex items-center gap-2 p-1 col-span-2"><input type="checkbox" disabled={!isEditMode} aria-label="อื่นๆ" title="อื่นๆ" checked={ncrFormItem.problemOther} onChange={() => handleProblemSelection('problemOther')} /> <span>อื่นๆ</span><input type="text" disabled={!isEditMode} aria-label="ระบุปัญหาอื่นๆ" title="ระบุปัญหาอื่นๆ" className="border-b border-dotted border-slate-400 bg-transparent outline-none w-full text-slate-700" value={ncrFormItem.problemOtherText || ''} onChange={e => handleInputChange('problemOtherText', e.target.value)} /></div>
+                  </div><div className="font-bold underline mb-1 text-slate-900">รายละเอียด:</div><textarea disabled={!isEditMode} aria-label="รายละเอียดปัญหา" title="รายละเอียดปัญหา" className="w-full h-32 border border-slate-200 bg-slate-50 p-2 text-sm resize-none focus:ring-1 focus:ring-blue-500 outline-none text-slate-700" value={ncrFormItem.problemDetail} onChange={e => handleInputChange('problemDetail', e.target.value)}></textarea></td></tr></tbody></table>
 
                   {/* SECTION 2: ACTION (GRID LAYOUT) */}
                   <table className="w-full border-2 border-black mb-6 text-sm bg-white">
                     <thead><tr className="bg-slate-50 border-b-2 border-black"><th colSpan={2} className="py-2 text-center font-bold text-slate-900">การดำเนินการ</th></tr></thead>
                     <tbody className="divide-y divide-black border-b-2 border-black">
                       <tr>
-                        <td className="p-2 border-r border-black w-1/2"><div className="flex items-center gap-2"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.actionReject} onChange={e => handleInputChange('actionReject', e.target.checked)} /> <span className="font-bold">ส่งคืน (Reject)</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" disabled={!isEditMode} className="w-20 border-b border-dotted border-black text-center bg-transparent outline-none" value={ncrFormItem.actionRejectQty || ''} onChange={e => handleInputChange('actionRejectQty', parseInt(e.target.value) || 0)} /></div></td>
-                        <td className="p-2 w-1/2"><div className="flex items-center gap-2"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.actionRejectSort} onChange={e => handleInputChange('actionRejectSort', e.target.checked)} /> <span className="font-bold">คัดแยกของเสียเพื่อส่งคืน</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" disabled={!isEditMode} className="w-20 border-b border-dotted border-black text-center bg-transparent outline-none" value={ncrFormItem.actionRejectSortQty || ''} onChange={e => handleInputChange('actionRejectSortQty', parseInt(e.target.value) || 0)} /></div></td>
+                        <td className="p-2 border-r border-black w-1/2"><div className="flex items-center gap-2"><input type="checkbox" disabled={!isEditMode} title="ส่งคืน (Reject)" checked={ncrFormItem.actionReject} onChange={e => handleInputChange('actionReject', e.target.checked)} /> <span className="font-bold">ส่งคืน (Reject)</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" disabled={!isEditMode} aria-label="จำนวนส่งคืน" title="จำนวนส่งคืน" className="w-20 border-b border-dotted border-black text-center bg-transparent outline-none" value={ncrFormItem.actionRejectQty || ''} onChange={e => handleInputChange('actionRejectQty', parseInt(e.target.value) || 0)} /></div></td>
+                        <td className="p-2 w-1/2"><div className="flex items-center gap-2"><input type="checkbox" disabled={!isEditMode} title="คัดแยกของเสีย" checked={ncrFormItem.actionRejectSort} onChange={e => handleInputChange('actionRejectSort', e.target.checked)} /> <span className="font-bold">คัดแยกของเสียเพื่อส่งคืน</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" disabled={!isEditMode} aria-label="จำนวนคัดแยก" title="จำนวนคัดแยก" className="w-20 border-b border-dotted border-black text-center bg-transparent outline-none" value={ncrFormItem.actionRejectSortQty || ''} onChange={e => handleInputChange('actionRejectSortQty', parseInt(e.target.value) || 0)} /></div></td>
                       </tr>
                       <tr>
-                        <td className="p-2 border-r border-black"><div className="flex items-center gap-2"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.actionRework} onChange={e => handleInputChange('actionRework', e.target.checked)} /> <span className="font-bold">แก้ไข (Rework)</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" disabled={!isEditMode} className="w-20 border-b border-dotted border-black text-center bg-transparent outline-none" value={ncrFormItem.actionReworkQty || ''} onChange={e => handleInputChange('actionReworkQty', parseInt(e.target.value) || 0)} /></div></td>
-                        <td className="p-2"><div className="flex items-center gap-2"><span className="font-bold">วิธีการแก้ไข</span><input type="text" disabled={!isEditMode} className="flex-1 border-b border-dotted border-black bg-transparent outline-none" value={ncrFormItem.actionReworkMethod || ''} onChange={e => handleInputChange('actionReworkMethod', e.target.value)} /></div></td>
+                        <td className="p-2 border-r border-black"><div className="flex items-center gap-2"><input type="checkbox" disabled={!isEditMode} title="แก้ไข (Rework)" checked={ncrFormItem.actionRework} onChange={e => handleInputChange('actionRework', e.target.checked)} /> <span className="font-bold">แก้ไข (Rework)</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" disabled={!isEditMode} aria-label="จำนวนแก้ไข" title="จำนวนแก้ไข" className="w-20 border-b border-dotted border-black text-center bg-transparent outline-none" value={ncrFormItem.actionReworkQty || ''} onChange={e => handleInputChange('actionReworkQty', parseInt(e.target.value) || 0)} /></div></td>
+                        <td className="p-2"><div className="flex items-center gap-2"><span className="font-bold">วิธีการแก้ไข</span><input type="text" disabled={!isEditMode} aria-label="วิธีการแก้ไข" title="วิธีการแก้ไข" className="flex-1 border-b border-dotted border-black bg-transparent outline-none" value={ncrFormItem.actionReworkMethod || ''} onChange={e => handleInputChange('actionReworkMethod', e.target.value)} /></div></td>
                       </tr>
                       <tr>
-                        <td className="p-2 border-r border-black"><div className="flex items-center gap-2"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.actionSpecialAcceptance} onChange={e => handleInputChange('actionSpecialAcceptance', e.target.checked)} /> <span className="font-bold">ยอมรับกรณีพิเศษ</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" disabled={!isEditMode} className="w-20 border-b border-dotted border-black text-center bg-transparent outline-none" value={ncrFormItem.actionSpecialAcceptanceQty || ''} onChange={e => handleInputChange('actionSpecialAcceptanceQty', parseInt(e.target.value) || 0)} /></div></td>
-                        <td className="p-2"><div className="flex items-center gap-2"><span className="font-bold">เหตุผลในการยอมรับ</span><input type="text" disabled={!isEditMode} className="flex-1 border-b border-dotted border-black bg-transparent outline-none" value={ncrFormItem.actionSpecialAcceptanceReason || ''} onChange={e => handleInputChange('actionSpecialAcceptanceReason', e.target.value)} /></div></td>
+                        <td className="p-2 border-r border-black"><div className="flex items-center gap-2"><input type="checkbox" disabled={!isEditMode} title="ยอมรับกรณีพิเศษ" checked={ncrFormItem.actionSpecialAcceptance} onChange={e => handleInputChange('actionSpecialAcceptance', e.target.checked)} /> <span className="font-bold">ยอมรับกรณีพิเศษ</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" disabled={!isEditMode} aria-label="จำนวนยอมรับ" title="จำนวนยอมรับ" className="w-20 border-b border-dotted border-black text-center bg-transparent outline-none" value={ncrFormItem.actionSpecialAcceptanceQty || ''} onChange={e => handleInputChange('actionSpecialAcceptanceQty', parseInt(e.target.value) || 0)} /></div></td>
+                        <td className="p-2"><div className="flex items-center gap-2"><span className="font-bold">เหตุผลในการยอมรับ</span><input type="text" disabled={!isEditMode} aria-label="เหตุผลในการยอมรับ" title="เหตุผลในการยอมรับ" className="flex-1 border-b border-dotted border-black bg-transparent outline-none" value={ncrFormItem.actionSpecialAcceptanceReason || ''} onChange={e => handleInputChange('actionSpecialAcceptanceReason', e.target.value)} /></div></td>
                       </tr>
                       <tr>
-                        <td className="p-2 border-r border-black"><div className="flex items-center gap-2"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.actionScrap} onChange={e => handleInputChange('actionScrap', e.target.checked)} /> <span className="font-bold">ทำลาย (Scrap)</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" disabled={!isEditMode} className="w-20 border-b border-dotted border-black text-center bg-transparent outline-none" value={ncrFormItem.actionScrapQty || ''} onChange={e => handleInputChange('actionScrapQty', parseInt(e.target.value) || 0)} /></div></td>
-                        <td className="p-2"><div className="flex items-center gap-2"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.actionReplace} onChange={e => handleInputChange('actionReplace', e.target.checked)} /> <span className="font-bold">เปลี่ยนสินค้าใหม่</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" disabled={!isEditMode} className="w-20 border-b border-dotted border-black text-center bg-transparent outline-none" value={ncrFormItem.actionReplaceQty || ''} onChange={e => handleInputChange('actionReplaceQty', parseInt(e.target.value) || 0)} /></div></td>
+                        <td className="p-2 border-r border-black"><div className="flex items-center gap-2"><input type="checkbox" disabled={!isEditMode} title="ทำลาย (Scrap)" checked={ncrFormItem.actionScrap} onChange={e => handleInputChange('actionScrap', e.target.checked)} /> <span className="font-bold">ทำลาย (Scrap)</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" disabled={!isEditMode} aria-label="จำนวนทำลาย" title="จำนวนทำลาย" className="w-20 border-b border-dotted border-black text-center bg-transparent outline-none" value={ncrFormItem.actionScrapQty || ''} onChange={e => handleInputChange('actionScrapQty', parseInt(e.target.value) || 0)} /></div></td>
+                        <td className="p-2"><div className="flex items-center gap-2"><input type="checkbox" disabled={!isEditMode} title="เปลี่ยนสินค้าใหม่" checked={ncrFormItem.actionReplace} onChange={e => handleInputChange('actionReplace', e.target.checked)} /> <span className="font-bold">เปลี่ยนสินค้าใหม่</span><span className="ml-auto text-slate-600">จำนวน:</span><input type="number" disabled={!isEditMode} aria-label="จำนวนเปลี่ยน" title="จำนวนเปลี่ยน" className="w-20 border-b border-dotted border-black text-center bg-transparent outline-none" value={ncrFormItem.actionReplaceQty || ''} onChange={e => handleInputChange('actionReplaceQty', parseInt(e.target.value) || 0)} /></div></td>
                       </tr>
                     </tbody>
                     <tfoot>
                       <tr>
                         <td colSpan={2} className="p-3 bg-white">
                           <div className="flex justify-between items-center gap-4 text-sm">
-                            <div className="flex items-center gap-2"><span>กำหนดแล้วเสร็จ</span><input type="date" disabled={!isEditMode} className="border-b border-dotted border-black bg-transparent text-slate-700 outline-none" value={ncrFormItem.dueDate || ''} onChange={e => handleInputChange('dueDate', e.target.value)} /></div>
-                            <div className="flex items-center gap-2"><span>ผู้อนุมัติ</span><input type="text" disabled={!isEditMode} className="w-32 border-b border-dotted border-black bg-transparent text-slate-700 text-center outline-none" value={ncrFormItem.approver || ''} onChange={e => handleInputChange('approver', e.target.value)} /></div>
-                            <div className="flex items-center gap-2"><span>ตำแหน่ง</span><input type="text" disabled={!isEditMode} className="w-24 border-b border-dotted border-black bg-transparent text-slate-700 text-center outline-none" value={ncrFormItem.approverPosition || ''} onChange={e => handleInputChange('approverPosition', e.target.value)} /></div>
-                            <div className="flex items-center gap-2"><span>วันที่</span><input type="date" disabled={!isEditMode} className="border-b border-dotted border-black bg-transparent text-slate-700 outline-none" value={ncrFormItem.approverDate || ''} onChange={e => handleInputChange('approverDate', e.target.value)} /></div>
+                            <div className="flex items-center gap-2"><span>กำหนดแล้วเสร็จ</span><input type="date" disabled={!isEditMode} aria-label="กำหนดแล้วเสร็จ" title="กำหนดแล้วเสร็จ" className="border-b border-dotted border-black bg-transparent text-slate-700 outline-none" value={ncrFormItem.dueDate || ''} onChange={e => handleInputChange('dueDate', e.target.value)} /></div>
+                            <div className="flex items-center gap-2"><span>ผู้อนุมัติ</span><input type="text" disabled={!isEditMode} aria-label="ผู้อนุมัติ" title="ผู้อนุมัติ" className="w-32 border-b border-dotted border-black bg-transparent text-slate-700 text-center outline-none" value={ncrFormItem.approver || ''} onChange={e => handleInputChange('approver', e.target.value)} /></div>
+                            <div className="flex items-center gap-2"><span>ตำแหน่ง</span><input type="text" disabled={!isEditMode} aria-label="ตำแหน่ง" title="ตำแหน่ง" className="w-24 border-b border-dotted border-black bg-transparent text-slate-700 text-center outline-none" value={ncrFormItem.approverPosition || ''} onChange={e => handleInputChange('approverPosition', e.target.value)} /></div>
+                            <div className="flex items-center gap-2"><span>วันที่</span><input type="date" disabled={!isEditMode} aria-label="วันที่อนุมัติ" title="วันที่อนุมัติ" className="border-b border-dotted border-black bg-transparent text-slate-700 outline-none" value={ncrFormItem.approverDate || ''} onChange={e => handleInputChange('approverDate', e.target.value)} /></div>
                           </div>
                         </td>
                       </tr>
@@ -817,20 +821,20 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                         <td className="align-top p-0">
                           <div className="h-24 border-b border-black p-2 flex flex-col">
                             <div className="font-bold mb-1">รายละเอียดสาเหตุ :</div>
-                            <textarea disabled={!isEditMode} className="flex-1 w-full bg-transparent outline-none resize-none text-slate-700" value={ncrFormItem.causeDetail || ''} onChange={e => handleInputChange('causeDetail', e.target.value)}></textarea>
+                            <textarea disabled={!isEditMode} aria-label="รายละเอียดสาเหตุ" title="รายละเอียดสาเหตุ" className="flex-1 w-full bg-transparent outline-none resize-none text-slate-700" value={ncrFormItem.causeDetail || ''} onChange={e => handleInputChange('causeDetail', e.target.value)}></textarea>
                           </div>
                           <div className="h-24 p-2 flex flex-col">
                             <div className="font-bold underline mb-1">แนวทางป้องกัน :</div>
-                            <textarea disabled={!isEditMode} className="flex-1 w-full bg-transparent outline-none resize-none text-slate-700" value={ncrFormItem.preventionDetail || ''} onChange={e => handleInputChange('preventionDetail', e.target.value)}></textarea>
+                            <textarea disabled={!isEditMode} aria-label="แนวทางป้องกัน" title="แนวทางป้องกัน" className="flex-1 w-full bg-transparent outline-none resize-none text-slate-700" value={ncrFormItem.preventionDetail || ''} onChange={e => handleInputChange('preventionDetail', e.target.value)}></textarea>
                           </div>
                         </td>
                       </tr>
                       <tr className="border-t-2 border-black">
                         <td colSpan={2} className="p-3 bg-white">
                           <div className="flex justify-between items-center gap-4 text-sm">
-                            <div className="flex items-center gap-2"><span>กำหนดการป้องกันแล้วเสร็จ</span><input type="date" disabled={!isEditMode} className="border-b border-dotted border-black bg-transparent text-slate-700 outline-none" value={ncrFormItem.preventionDueDate || ''} onChange={e => handleInputChange('preventionDueDate', e.target.value)} /></div>
-                            <div className="flex items-center gap-2"><span>ผู้รับผิดชอบ</span><input type="text" disabled={!isEditMode} className="w-32 border-b border-dotted border-black bg-transparent text-slate-700 text-center outline-none" value={ncrFormItem.responsiblePerson || ''} onChange={e => handleInputChange('responsiblePerson', e.target.value)} /></div>
-                            <div className="flex items-center gap-2"><span>ตำแหน่ง</span><input type="text" disabled={!isEditMode} className="w-24 border-b border-dotted border-black bg-transparent text-slate-700 text-center outline-none" value={ncrFormItem.responsiblePosition || ''} onChange={e => handleInputChange('responsiblePosition', e.target.value)} /></div>
+                            <div className="flex items-center gap-2"><span>กำหนดการป้องกันแล้วเสร็จ</span><input type="date" disabled={!isEditMode} aria-label="กำหนดการป้องกันแล้วเสร็จ" title="กำหนดการป้องกันแล้วเสร็จ" className="border-b border-dotted border-black bg-transparent text-slate-700 outline-none" value={ncrFormItem.preventionDueDate || ''} onChange={e => handleInputChange('preventionDueDate', e.target.value)} /></div>
+                            <div className="flex items-center gap-2"><span>ผู้รับผิดชอบ</span><input type="text" disabled={!isEditMode} aria-label="ผู้รับผิดชอบ" title="ผู้รับผิดชอบ" className="w-32 border-b border-dotted border-black bg-transparent text-slate-700 text-center outline-none" value={ncrFormItem.responsiblePerson || ''} onChange={e => handleInputChange('responsiblePerson', e.target.value)} /></div>
+                            <div className="flex items-center gap-2"><span>ตำแหน่ง</span><input type="text" disabled={!isEditMode} aria-label="ตำแหน่งผู้รับผิดชอบ" title="ตำแหน่งผู้รับผิดชอบ" className="w-24 border-b border-dotted border-black bg-transparent text-slate-700 text-center outline-none" value={ncrFormItem.responsiblePosition || ''} onChange={e => handleInputChange('responsiblePosition', e.target.value)} /></div>
                           </div>
                         </td>
                       </tr>
@@ -849,9 +853,9 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
                       <tr className="border-b-2 border-black">
                         <td colSpan={2} className="p-4">
                           <div className="flex items-center gap-8">
-                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.qaAccept} onChange={e => handleInputChange('qaAccept', e.target.checked)} /> ยอมรับแนวทางการป้องกัน</label>
-                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" disabled={!isEditMode} checked={ncrFormItem.qaReject} onChange={e => handleInputChange('qaReject', e.target.checked)} /> ไม่ยอมรับแนวทางการป้องกัน</label>
-                            <input type="text" disabled={!isEditMode} className="flex-1 border-b border-dotted border-black bg-transparent outline-none text-slate-700" placeholder="ระบุเหตุผล (ถ้ามี)" value={ncrFormItem.qaReason || ''} onChange={e => handleInputChange('qaReason', e.target.value)} />
+                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" disabled={!isEditMode} title="ยอมรับ" checked={ncrFormItem.qaAccept} onChange={e => handleInputChange('qaAccept', e.target.checked)} /> ยอมรับแนวทางการป้องกัน</label>
+                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" disabled={!isEditMode} title="ไม่ยอมรับ" checked={ncrFormItem.qaReject} onChange={e => handleInputChange('qaReject', e.target.checked)} /> ไม่ยอมรับแนวทางการป้องกัน</label>
+                            <input type="text" disabled={!isEditMode} aria-label="เหตุผลไม่ยอมรับ" title="เหตุผลไม่ยอมรับ" className="flex-1 border-b border-dotted border-black bg-transparent outline-none text-slate-700" placeholder="ระบุเหตุผล (ถ้ามี)" value={ncrFormItem.qaReason || ''} onChange={e => handleInputChange('qaReason', e.target.value)} />
                           </div>
                         </td>
                       </tr>
@@ -950,6 +954,13 @@ const NCRReport: React.FC<NCRReportProps> = ({ onTransfer }) => {
           </div>
         )
       }
+
+      {/* CSS Styles */}
+      <style>{`
+        .ncr-table-container {
+          max-height: calc(100vh - 300px);
+        }
+      `}</style>
     </div >
   );
 };

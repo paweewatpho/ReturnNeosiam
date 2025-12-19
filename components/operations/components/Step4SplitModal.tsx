@@ -50,7 +50,7 @@ export const Step4SplitModal: React.FC<Step4SplitModalProps> = ({ isOpen, onClos
                     <h3 className="font-bold text-slate-800 flex items-center gap-2">
                         <GitFork className="w-5 h-5 text-blue-600" /> แยกรายการ (Split Item)
                     </h3>
-                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-200 transition-colors">
+                    <button aria-label="ปิด (Close)" title="ปิด (Close)" onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-200 transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -76,6 +76,8 @@ export const Step4SplitModal: React.FC<Step4SplitModalProps> = ({ isOpen, onClos
                         <div className="mt-3 pt-3 border-t border-blue-200">
                             <label className="block text-xs font-bold text-blue-800 mb-1">การตัดสินใจสำหรับรายการหลัก (Main Disposition)</label>
                             <select
+                                aria-label="การตัดสินใจสำหรับรายการหลัก"
+                                title="การตัดสินใจสำหรับรายการหลัก"
                                 value={mainDisposition || ''}
                                 onChange={e => setMainDisposition(e.target.value as DispositionAction)}
                                 className="w-full p-2 border border-blue-300 rounded text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none text-blue-900"
@@ -92,6 +94,8 @@ export const Step4SplitModal: React.FC<Step4SplitModalProps> = ({ isOpen, onClos
                         <label className="flex items-center gap-2 cursor-pointer">
                             <input
                                 type="checkbox"
+                                aria-label="แตกหน่วยย่อย"
+                                title="แตกหน่วยย่อย"
                                 checked={isBreakdown}
                                 onChange={e => setIsBreakdown(e.target.checked)}
                                 className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
@@ -105,6 +109,8 @@ export const Step4SplitModal: React.FC<Step4SplitModalProps> = ({ isOpen, onClos
                                     <label className="block text-xs text-slate-500 mb-1">อัตราส่วน (ต่อ 1 หน่วยหลัก)</label>
                                     <input
                                         type="number"
+                                        aria-label="อัตราส่วน"
+                                        title="อัตราส่วน"
                                         min="1"
                                         value={conversionRate}
                                         onChange={e => setConversionRate(parseInt(e.target.value) || 1)}
@@ -116,6 +122,8 @@ export const Step4SplitModal: React.FC<Step4SplitModalProps> = ({ isOpen, onClos
                                     <label className="block text-xs text-slate-500 mb-1">หน่วยย่อยใหม่</label>
                                     <input
                                         type="text"
+                                        aria-label="หน่วยย่อยใหม่"
+                                        title="หน่วยย่อยใหม่"
                                         value={newUnitName}
                                         onChange={e => setNewUnitName(e.target.value)}
                                         className="w-full p-2 border border-slate-300 rounded text-sm"
@@ -134,6 +142,8 @@ export const Step4SplitModal: React.FC<Step4SplitModalProps> = ({ isOpen, onClos
                             </label>
                             <input
                                 type="number"
+                                aria-label="จำนวนที่ต้องการแยก"
+                                title="จำนวนที่ต้องการแยก"
                                 min="1"
                                 max={totalAvailable - 1} // Must leave at least 1
                                 value={splitQty === 0 ? '' : splitQty}
@@ -151,6 +161,8 @@ export const Step4SplitModal: React.FC<Step4SplitModalProps> = ({ isOpen, onClos
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1">การตัดสินใจสำหรับรายการที่แยก (New Disposition)</label>
                             <select
+                                aria-label="การตัดสินใจสำหรับรายการที่แยก"
+                                title="การตัดสินใจสำหรับรายการที่แยก"
                                 value={newDisposition}
                                 onChange={e => setNewDisposition(e.target.value as DispositionAction | 'SAME')}
                                 className="w-full p-3 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
@@ -166,11 +178,13 @@ export const Step4SplitModal: React.FC<Step4SplitModalProps> = ({ isOpen, onClos
 
                     {/* Actions */}
                     <div className="flex gap-3 pt-4">
-                        <button type="button" onClick={onClose} className="flex-1 py-3 px-4 rounded-lg border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors">
+                        <button type="button" aria-label="ยกเลิก" title="ยกเลิก" onClick={onClose} className="flex-1 py-3 px-4 rounded-lg border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors">
                             ยกเลิก
                         </button>
                         <button
                             type="submit"
+                            aria-label="ยืนยันการแยก"
+                            title="ยืนยันการแยก"
                             disabled={splitQty <= 0 || splitQty >= totalAvailable}
                             className="flex-1 py-3 px-4 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >

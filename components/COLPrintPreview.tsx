@@ -32,6 +32,8 @@ export const COLPrintPreview: React.FC<COLPrintPreviewProps> = ({ item, onClose 
                     <button
                         onClick={onClose}
                         className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors"
+                        aria-label="ปิด"
+                        title="ปิด"
                     >
                         <X className="w-6 h-6" />
                     </button>
@@ -41,12 +43,7 @@ export const COLPrintPreview: React.FC<COLPrintPreviewProps> = ({ item, onClose 
             {/* A4 Paper Container - Visual Feedback */}
             <div className="my-8 print:m-0 print:w-full">
                 <div
-                    className="bg-white shadow-2xl mx-auto print:shadow-none print:mx-0 relative flex flex-col print-content-root"
-                    style={{
-                        width: '210mm',
-                        minHeight: '297mm',
-                        padding: '10mm 15mm' // Adjusted padding for A4 margins
-                    }}
+                    className="bg-white shadow-2xl mx-auto print:shadow-none print:mx-0 relative flex flex-col print-content-root a4-paper-container"
                 >
                     {/* Header */}
                     <div className="flex border-2 border-black mb-4">
@@ -171,6 +168,12 @@ export const COLPrintPreview: React.FC<COLPrintPreviewProps> = ({ item, onClose 
         
         .print-content-root {
           font-family: 'Sarabun', 'TH Sarabun New', sans-serif;
+        }
+
+        .a4-paper-container {
+          width: 210mm;
+          min-height: 297mm;
+          padding: 10mm 15mm;
         }
 
         @media print {

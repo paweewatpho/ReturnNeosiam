@@ -26,12 +26,22 @@ const COLTimelineModal: React.FC<COLTimelineModalProps> = ({ isOpen, onClose, it
     const getStatusIndex = (status: string) => {
         switch (status) {
             case 'Requested': return 0;
-            case 'COL_JobAccepted': return 1;
-            case 'COL_BranchReceived': return 2;
-            case 'COL_Consolidated': return 3;
-            case 'COL_InTransit': return 4;
-            case 'COL_HubReceived': return 5;
-            case 'COL_Documented': return 6;
+            case 'COL_JobAccepted':
+            case 'JobAccepted': return 1;
+            case 'COL_BranchReceived':
+            case 'BranchReceived': return 2;
+            case 'COL_Consolidated':
+            case 'Consolidated': return 3;
+            case 'COL_InTransit':
+            case 'InTransit':
+            case 'InTransitToHub': return 4;
+            case 'COL_HubReceived':
+            case 'HubReceived':
+            case 'ReceivedAtHub': return 5;
+            case 'COL_Documented':
+            case 'DocsCompleted':
+            case 'ReturnToSupplier':
+            case 'DirectReturn': return 6;
             case 'Completed': return 7;
             default: return 0;
         }
@@ -39,12 +49,15 @@ const COLTimelineModal: React.FC<COLTimelineModalProps> = ({ isOpen, onClose, it
 
     const currentIndex = getStatusIndex(item.status);
 
+    // Fallback date for legacy data
+    const fallbackDate = item.date || item.dateRequested || new Date().toISOString().split('T')[0];
+
     const steps = [
         {
             id: 1,
             label: 'สร้างใบงาน (Request)',
             status: item.status === 'Requested' ? 'รอรับงาน' : 'เสร็จสิ้น',
-            date: item.date,
+            date: item.date || item.dateRequested || fallbackDate,
             icon: FileText,
             colorKey: 'blue',
             description: 'สร้างใบสั่งงานรับสินค้ากลับ'
@@ -52,8 +65,8 @@ const COLTimelineModal: React.FC<COLTimelineModalProps> = ({ isOpen, onClose, it
         {
             id: 2,
             label: 'รับงาน (Job Accept)',
-            status: item.status === 'COL_JobAccepted' ? 'กำลังดำเนินการ' : (currentIndex > 1 ? 'เสร็จสิ้น' : 'รอระหว่าง'),
-            date: currentIndex >= 1 ? item.date : undefined,
+            status: item.status === 'COL_JobAccepted' ? 'กำลังดำเนินการ' : (currentIndex > 1 ? 'เสร็จสิ้น' : 'รอดำเนินการ'),
+            date: currentIndex >= 1 ? (item.dateJobAccepted || fallbackDate) : undefined,
             icon: Truck,
             colorKey: 'orange',
             description: 'รถเข้ารับงาน/กำหนดรถรับสินค้า'
@@ -61,8 +74,8 @@ const COLTimelineModal: React.FC<COLTimelineModalProps> = ({ isOpen, onClose, it
         {
             id: 3,
             label: 'รับเข้าสาขา (Rx)',
-            status: item.status === 'COL_BranchReceived' ? 'สินค้าถึงสาขา' : (currentIndex > 2 ? 'เสร็จสิ้น' : 'รอระหว่าง'),
-            date: currentIndex >= 2 ? item.date : undefined,
+            status: item.status === 'COL_BranchReceived' ? 'สินค้าถึงสาขา' : (currentIndex > 2 ? 'เสร็จสิ้น' : 'รอดำเนินการ'),
+            date: currentIndex >= 2 ? (item.dateBranchReceived || item.dateReceived || fallbackDate) : undefined,
             icon: Store,
             colorKey: 'indigo',
             description: 'สินค้าถึงสาขาต้นทาง/พักสินค้า'
@@ -70,8 +83,8 @@ const COLTimelineModal: React.FC<COLTimelineModalProps> = ({ isOpen, onClose, it
         {
             id: 4,
             label: 'รวมสินค้า (Consol)',
-            status: item.status === 'COL_Consolidated' ? 'รอขนส่ง' : (currentIndex > 3 ? 'เสร็จสิ้น' : 'รอระหว่าง'),
-            date: currentIndex >= 3 ? item.date : undefined,
+            status: item.status === 'COL_Consolidated' ? 'รอขนส่ง' : (currentIndex > 3 ? 'เสร็จสิ้น' : 'รอดำเนินการ'),
+            date: currentIndex >= 3 ? (item.dateConsolidated || fallbackDate) : undefined,
             icon: Box,
             colorKey: 'yellow',
             description: 'รวมสินค้าขึ้นรถขนส่งไปยัง Hub'
@@ -79,8 +92,8 @@ const COLTimelineModal: React.FC<COLTimelineModalProps> = ({ isOpen, onClose, it
         {
             id: 5,
             label: 'ขนส่ง (In Transit)',
-            status: item.status === 'COL_InTransit' ? 'กำลังขนส่ง' : (currentIndex > 4 ? 'เสร็จสิ้น' : 'รอระหว่าง'),
-            date: currentIndex >= 4 ? item.date : undefined,
+            status: item.status === 'COL_InTransit' ? 'กำลังขนส่ง' : (currentIndex > 4 ? 'เสร็จสิ้น' : 'รอดำเนินการ'),
+            date: currentIndex >= 4 ? (item.dateInTransit || fallbackDate) : undefined,
             icon: Truck,
             colorKey: 'purple',
             description: 'สินค้าอยู่ระหว่างทางไป Hub'
@@ -88,8 +101,8 @@ const COLTimelineModal: React.FC<COLTimelineModalProps> = ({ isOpen, onClose, it
         {
             id: 6,
             label: 'ถึง Hub (Received)',
-            status: item.status === 'COL_HubReceived' ? 'สินค้าถึง Hub' : (currentIndex > 5 ? 'เสร็จสิ้น' : 'รอระหว่าง'),
-            date: currentIndex >= 5 ? item.date : undefined,
+            status: item.status === 'COL_HubReceived' ? 'สินค้าถึง Hub' : (currentIndex > 5 ? 'เสร็จสิ้น' : 'รอดำเนินการ'),
+            date: currentIndex >= 5 ? (item.dateHubReceived || fallbackDate) : undefined,
             icon: MapPin,
             colorKey: 'green',
             description: 'สินค้าถึงศูนย์กระจายสินค้า'
@@ -97,8 +110,8 @@ const COLTimelineModal: React.FC<COLTimelineModalProps> = ({ isOpen, onClose, it
         {
             id: 7,
             label: 'คลัง/เอกสาร',
-            status: item.status === 'COL_Documented' ? 'รอปิดงาน' : (currentIndex > 6 ? 'ผ่านการตรวจสอบ' : 'รอระหว่าง'),
-            date: currentIndex >= 6 ? item.date : undefined,
+            status: item.status === 'COL_Documented' ? 'รอปิดงาน' : (currentIndex > 6 ? 'ผ่านการตรวจสอบ' : 'รอดำเนินการ'),
+            date: currentIndex >= 6 ? (item.dateDocumented || fallbackDate) : undefined,
             icon: FileText,
             colorKey: 'blue',
             description: 'ตรวจสอบเอกสาร/คลังรับเข้า'
@@ -106,8 +119,8 @@ const COLTimelineModal: React.FC<COLTimelineModalProps> = ({ isOpen, onClose, it
         {
             id: 8,
             label: 'ปิดงาน (Done)',
-            status: item.status === 'Completed' ? 'สำเร็จ' : 'รอระหว่าง',
-            date: currentIndex >= 7 ? item.date : undefined,
+            status: item.status === 'Completed' ? 'สำเร็จ' : 'รอดำเนินการ',
+            date: currentIndex >= 7 ? (item.dateCompleted || fallbackDate) : undefined,
             icon: CircleCheck,
             colorKey: 'green',
             description: 'กระบวนการเสร็จสิ้นสมบูรณ์'
@@ -155,6 +168,8 @@ const COLTimelineModal: React.FC<COLTimelineModalProps> = ({ isOpen, onClose, it
                     </div>
                     <button
                         onClick={onClose}
+                        aria-label="Close"
+                        title="ปิด"
                         className="p-2 hover:bg-slate-200 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
                     >
                         <X className="w-6 h-6" />

@@ -6,7 +6,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    login: (role?: UserRole) => Promise<void>;
+    login: (user: User) => Promise<void>;
     logout: () => Promise<void>;
 }
 
@@ -17,39 +17,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // ไม่เก็บ session ใน localStorage
+        // เมื่อ refresh หน้า user จะเป็น null และต้อง login ใหม่
+        setLoading(false);
+
+        // Firebase Auth listener (for future Firebase integration)
         const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
             if (firebaseUser) {
-                // In a real app, map this to a user profile in DB to get ROLE
-                const role: UserRole = 'ADMIN'; // Defaulting to ADMIN for now
-                setUser({
+                // If Firebase user exists, map to ADMIN
+                const role: UserRole = 'ADMIN';
+                const mappedUser: User = {
                     uid: firebaseUser.uid,
                     email: firebaseUser.email || '',
                     displayName: firebaseUser.displayName || 'User',
                     role: role,
                     photoURL: firebaseUser.photoURL || undefined
-                });
-            } else {
-                // If not logged in via Firebase, check local mock session?
-                // For now, just set null.
-                // setUser(null); 
-                // Don't auto-logout if we are using manual mock login for testing 
-                // unless we want strict Firebase adherence.
+                };
+                setUser(mappedUser);
             }
-            setLoading(false);
         });
 
         return () => unsubscribe();
     }, []);
 
-    const login = async (role: UserRole = 'ADMIN') => {
-        // MOCK LOGIN for Development / Transition
-        const mockUser: User = {
-            uid: 'mock-user-' + Date.now(),
-            email: 'admin@neosiam.com',
-            displayName: 'Admin User',
-            role: role
-        };
-        setUser(mockUser);
+    const login = async (userData: User) => {
+        // Save user to state only (NOT in localStorage)
+        // เมื่อ refresh user จะหายไป
+        setUser(userData);
     };
 
     const logout = async () => {

@@ -119,13 +119,15 @@ export const Step5Logistics: React.FC<Step5LogisticsProps> = ({ onConfirm }) => 
                     if (routeType === 'Hub') {
                         await updateReturnRecord(id, {
                             status: 'COL_InTransit',
+                            dateInTransit: new Date().toISOString().split('T')[0],
                             notes: `[Logistics] ${driverDetails}`
                         });
                     } else {
                         // Direct Return
                         await updateReturnRecord(id, {
-                            status: 'DirectReturn', // User suggested DirectReturn for direct path
+                            status: 'DirectReturn',
                             disposition: 'RTV',
+                            dateInTransit: new Date().toISOString().split('T')[0],
                             destinationCustomer: finalDestination,
                             notes: `[Direct Logistics] ${driverDetails}`
                         });
@@ -172,6 +174,8 @@ export const Step5Logistics: React.FC<Step5LogisticsProps> = ({ onConfirm }) => 
                             <label className="block text-sm font-bold text-slate-600 mb-1">ทะเบียนรถ</label>
                             <input
                                 type="text"
+                                aria-label="ทะเบียนรถ"
+                                title="ทะเบียนรถ"
                                 value={transportInfo.plateNumber}
                                 onChange={e => setTransportInfo({ ...transportInfo, plateNumber: e.target.value })}
                                 className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 bg-slate-50"
@@ -182,6 +186,8 @@ export const Step5Logistics: React.FC<Step5LogisticsProps> = ({ onConfirm }) => 
                             <label className="block text-sm font-bold text-slate-600 mb-1">พนักงานขับรถ</label>
                             <input
                                 type="text"
+                                aria-label="ชื่อพนักงานขับรถ"
+                                title="ชื่อพนักงานขับรถ"
                                 value={transportInfo.driverName}
                                 onChange={e => setTransportInfo({ ...transportInfo, driverName: e.target.value })}
                                 className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 bg-slate-50"
@@ -192,16 +198,16 @@ export const Step5Logistics: React.FC<Step5LogisticsProps> = ({ onConfirm }) => 
                             <label className="block text-sm font-bold text-slate-600 mb-1">บริษัทขนส่ง</label>
                             <div className="space-y-2">
                                 <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="radio" name="transportType" checked={transportInfo.transportCompany === 'รถบริษัท'} onChange={() => setTransportInfo({ ...transportInfo, transportCompany: 'รถบริษัท' })} className="text-blue-600 focus:ring-blue-500" />
+                                    <input type="radio" aria-label="รถบริษัท" title="รถบริษัท" name="transportType" checked={transportInfo.transportCompany === 'รถบริษัท'} onChange={() => setTransportInfo({ ...transportInfo, transportCompany: 'รถบริษัท' })} className="text-blue-600 focus:ring-blue-500" />
                                     <span className="text-sm">รถบริษัท</span>
                                 </label>
                                 <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="radio" name="transportType" checked={transportInfo.transportCompany !== 'รถบริษัท'} onChange={() => setTransportInfo({ ...transportInfo, transportCompany: '' })} className="text-blue-600 focus:ring-blue-500" />
+                                    <input type="radio" aria-label="รถขนส่งร่วม (3PL)" title="รถขนส่งร่วม (3PL)" name="transportType" checked={transportInfo.transportCompany !== 'รถบริษัท'} onChange={() => setTransportInfo({ ...transportInfo, transportCompany: '' })} className="text-blue-600 focus:ring-blue-500" />
                                     <span className="text-sm">รถขนส่งร่วม (3PL)</span>
                                 </label>
                             </div>
                             {transportInfo.transportCompany !== 'รถบริษัท' && (
-                                <input type="text" value={transportInfo.transportCompany === 'รถบริษัท' ? '' : transportInfo.transportCompany} onChange={e => setTransportInfo({ ...transportInfo, transportCompany: e.target.value })} className="w-full mt-2 p-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 bg-slate-50" placeholder="ระบุชื่อบริษัทขนส่ง..." />
+                                <input type="text" aria-label="ระบุชื่อบริษัทขนส่ง" title="ระบุชื่อบริษัทขนส่ง" value={transportInfo.transportCompany === 'รถบริษัท' ? '' : transportInfo.transportCompany} onChange={e => setTransportInfo({ ...transportInfo, transportCompany: e.target.value })} className="w-full mt-2 p-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 bg-slate-50" placeholder="ระบุชื่อบริษัทขนส่ง..." />
                             )}
                         </div>
                     </div>
@@ -210,14 +216,14 @@ export const Step5Logistics: React.FC<Step5LogisticsProps> = ({ onConfirm }) => 
                         <h4 className="font-bold text-slate-700 mb-3 block">ปลายทาง (Destination)</h4>
                         <div className="space-y-3">
                             <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${routeType === 'Hub' ? 'bg-orange-50 border-orange-500 shadow-sm' : 'border-slate-200 hover:bg-slate-50'}`}>
-                                <input type="radio" name="route" checked={routeType === 'Hub'} onChange={() => setRouteType('Hub')} className="mt-1" />
+                                <input type="radio" aria-label="Hub นครสวรรค์" title="Hub นครสวรรค์" name="route" checked={routeType === 'Hub'} onChange={() => setRouteType('Hub')} className="mt-1" />
                                 <div>
                                     <div className="font-bold text-slate-800">Hub นครสวรรค์</div>
                                     <div className="text-xs text-slate-500">ส่งเข้า Hub หลัก</div>
                                 </div>
                             </label>
                             <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${routeType === 'Direct' ? 'bg-green-50 border-green-500 shadow-sm' : 'border-slate-200 hover:bg-slate-50'}`}>
-                                <input type="radio" name="route" checked={routeType === 'Direct'} onChange={() => setRouteType('Direct')} className="mt-1" />
+                                <input type="radio" aria-label="ส่งตรง (Direct Return)" title="ส่งตรง (Direct Return)" name="route" checked={routeType === 'Direct'} onChange={() => setRouteType('Direct')} className="mt-1" />
                                 <div>
                                     <div className="font-bold text-slate-800">ส่งตรง (Direct Return)</div>
                                     <div className="text-xs text-slate-500">ส่งคืนผู้ผลิตโดยตรง</div>
@@ -228,16 +234,16 @@ export const Step5Logistics: React.FC<Step5LogisticsProps> = ({ onConfirm }) => 
                                 <div className="ml-8 p-3 bg-green-50/50 rounded-lg border border-green-100 space-y-2">
                                     <div className="text-xs font-bold text-green-800 mb-1">ระบุปลายทาง:</div>
                                     <label className="flex items-center gap-2 cursor-pointer text-sm">
-                                        <input type="radio" name="directDest" value="สาย 3" checked={directDestination === 'สาย 3'} onChange={e => setDirectDestination(e.target.value)} /> สาย 3
+                                        <input type="radio" aria-label="สาย 3" title="สาย 3" name="directDest" value="สาย 3" checked={directDestination === 'สาย 3'} onChange={e => setDirectDestination(e.target.value)} /> สาย 3
                                     </label>
                                     <label className="flex items-center gap-2 cursor-pointer text-sm">
-                                        <input type="radio" name="directDest" value="ซีโน" checked={directDestination === 'ซีโน'} onChange={e => setDirectDestination(e.target.value)} /> ซีโน
+                                        <input type="radio" aria-label="ซีโน" title="ซีโน" name="directDest" value="ซีโน" checked={directDestination === 'ซีโน'} onChange={e => setDirectDestination(e.target.value)} /> ซีโน
                                     </label>
                                     <label className="flex items-center gap-2 cursor-pointer text-sm">
-                                        <input type="radio" name="directDest" value="Other" checked={directDestination === 'Other'} onChange={e => setDirectDestination(e.target.value)} /> อื่นๆ
+                                        <input type="radio" aria-label="อื่นๆ" title="อื่นๆ" name="directDest" value="Other" checked={directDestination === 'Other'} onChange={e => setDirectDestination(e.target.value)} /> อื่นๆ
                                     </label>
                                     {directDestination === 'Other' && (
-                                        <input type="text" value={customDestination} onChange={e => setCustomDestination(e.target.value)} placeholder="ระบุปลายทาง..." className="w-full mt-1 p-1.5 text-xs border border-green-300 rounded" />
+                                        <input type="text" aria-label="ระบุปลายทาง" title="ระบุปลายทาง" value={customDestination} onChange={e => setCustomDestination(e.target.value)} placeholder="ระบุปลายทาง..." className="w-full mt-1 p-1.5 text-xs border border-green-300 rounded" />
                                     )}
                                 </div>
                             )}
@@ -246,6 +252,8 @@ export const Step5Logistics: React.FC<Step5LogisticsProps> = ({ onConfirm }) => 
 
                     <button
                         onClick={confirmSelection}
+                        aria-label={routeType === 'Hub' ? "ส่งของ (Ship to Hub)" : "ส่งของ (Direct Ship)"}
+                        title={routeType === 'Hub' ? "ส่งของ (Ship to Hub)" : "ส่งของ (Direct Ship)"}
                         className={`w-full mt-6 py-3 rounded-lg font-bold text-white shadow-md flex items-center justify-center gap-2 transition-all ${routeType === 'Hub' ? 'bg-orange-600 hover:bg-orange-700' : 'bg-green-600 hover:bg-green-700'}`}
                     >
                         {routeType === 'Hub' ? <>ส่งของ (Ship to Hub) <Truck className="w-4 h-4" /></> : <>ส่งของ (Direct Ship) <Printer className="w-4 h-4" /></>}
@@ -260,10 +268,10 @@ export const Step5Logistics: React.FC<Step5LogisticsProps> = ({ onConfirm }) => 
                             <div className="text-sm text-slate-500">เลือก {selectedIds.size} รายการ</div>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button onClick={handleSelectAll} className="text-xs px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-50 text-slate-600 font-medium">
+                            <button onClick={handleSelectAll} aria-label={isAllFilteredSelected ? "ยกเลิกเลือกทั้งหมด" : "เลือกทั้งหมด"} title={isAllFilteredSelected ? "ยกเลิกเลือกทั้งหมด" : "เลือกทั้งหมด"} className="text-xs px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-50 text-slate-600 font-medium">
                                 {isAllFilteredSelected ? 'ยกเลิกเลือกทั้งหมด' : 'เลือกทั้งหมด'}
                             </button>
-                            <select value={selectedBranch} onChange={e => setSelectedBranch(e.target.value)} className="text-xs p-1.5 border rounded-lg bg-white outline-none">
+                            <select aria-label="กรองสาขา" title="กรองสาขา" value={selectedBranch} onChange={e => setSelectedBranch(e.target.value)} className="text-xs p-1.5 border rounded-lg bg-white outline-none">
                                 <option value="All">ทุกสาขา</option>
                                 {uniqueBranches.map(b => <option key={b} value={b}>{b}</option>)}
                             </select>

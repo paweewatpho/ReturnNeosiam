@@ -261,12 +261,16 @@ const Inventory: React.FC = () => {
             value={filters.startDate}
             onChange={e => setFilters({ ...filters, startDate: e.target.value })}
             className="bg-slate-50 border border-slate-200 rounded-lg text-xs p-1 outline-none focus:ring-1 focus:ring-blue-500 w-28"
+            aria-label="วันที่เริ่มต้น"
+            title="วันที่เริ่มต้น"
           />
           <input
             type="date"
             value={filters.endDate}
             onChange={e => setFilters({ ...filters, endDate: e.target.value })}
             className="bg-slate-50 border border-slate-200 rounded-lg text-xs p-1 outline-none focus:ring-1 focus:ring-blue-500 w-28"
+            aria-label="วันที่สิ้นสุด"
+            title="วันที่สิ้นสุด"
           />
         </div>
         <div className="flex gap-1">
@@ -274,6 +278,8 @@ const Inventory: React.FC = () => {
             value={filters.movementType}
             onChange={e => setFilters({ ...filters, movementType: e.target.value })}
             className="bg-slate-50 border border-slate-200 rounded-lg text-xs p-1 outline-none focus:ring-1 focus:ring-blue-500"
+            aria-label="ประเภทการเคลื่อนไหว"
+            title="ประเภทการเคลื่อนไหว"
           >
             <option value="All">IN/OUT ทั้งหมด</option>
             <option value="IN">รับเข้า (IN)</option>
@@ -358,6 +364,8 @@ const Inventory: React.FC = () => {
               value={itemsPerPage}
               onChange={(e) => setItemsPerPage(Number(e.target.value))}
               className="bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500 font-bold"
+              aria-label="จำนวนรายการต่อหน้า"
+              title="จำนวนรายการต่อหน้า"
             >
               <option value={20}>20</option>
               <option value={50}>50</option>

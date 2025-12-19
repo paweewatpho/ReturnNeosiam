@@ -81,6 +81,8 @@ const NCRTimelineModal: React.FC<NCRTimelineModalProps> = ({ isOpen, onClose, re
                     </div>
                     <button
                         onClick={onClose}
+                        aria-label="Close"
+                        title="ปิด"
                         className="p-2 hover:bg-slate-200 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
                     >
                         <X className="w-6 h-6" />

@@ -98,6 +98,8 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                             </label>
                             <div className="relative">
                                 <select
+                                    aria-label="เลือกสาขา"
+                                    title="เลือกสาขา"
                                     required
                                     value={formData.branch || ''}
                                     onChange={e => updateField('branch', e.target.value)}
@@ -117,6 +119,8 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                 <label className="block text-sm font-bold text-slate-700 mb-1">เลข Invoice</label>
                                 <input
                                     type="text"
+                                    aria-label="เลข Invoice"
+                                    title="เลข Invoice"
                                     value={formData.invoiceNo || ''}
                                     onChange={e => updateField('invoiceNo', e.target.value)}
                                     placeholder="INV-xxxx"
@@ -129,6 +133,8 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                 </label>
                                 <input
                                     type="date"
+                                    aria-label="วันที่ใบคุมรถ"
+                                    title="วันที่ใบคุมรถ"
                                     required
                                     value={formData.controlDate || formData.date || ''}
                                     onChange={e => {
@@ -146,6 +152,8 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                 <label className="block text-sm font-bold text-slate-700 mb-1">เลขที่เอกสาร (เลข R)</label>
                                 <input
                                     type="text"
+                                    aria-label="เลขที่เอกสาร"
+                                    title="เลขที่เอกสาร"
                                     value={formData.documentNo || formData.refNo || ''}
                                     onChange={e => {
                                         updateField('documentNo', e.target.value);
@@ -159,6 +167,8 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                 <label className="block text-sm font-bold text-slate-700 mb-1">เลขที่ใบคุม (TM NO)</label>
                                 <input
                                     type="text"
+                                    aria-label="เลขที่ใบคุม (TM NO)"
+                                    title="เลขที่ใบคุม (TM NO)"
                                     value={formData.tmNo || ''}
                                     onChange={e => updateField('tmNo', e.target.value)}
                                     placeholder="TM-xxxx"
@@ -173,6 +183,8 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                 <label className="block text-sm font-bold text-slate-700 mb-1">รหัสลูกค้า</label>
                                 <input
                                     type="text"
+                                    aria-label="รหัสลูกค้า"
+                                    title="รหัสลูกค้า"
                                     value={formData.customerCode || ''}
                                     onChange={e => updateField('customerCode', e.target.value)}
                                     placeholder="CUS-xxxx"
@@ -185,6 +197,8 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                 </label>
                                 <input
                                     type="text"
+                                    aria-label="ลูกค้าต้นทาง"
+                                    title="ลูกค้าต้นทาง"
                                     required
                                     value={formData.customerName || ''}
                                     onChange={e => updateField('customerName', e.target.value)}
@@ -206,6 +220,8 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                 </label>
                                 <input
                                     type="text"
+                                    aria-label="ลูกค้าปลายทาง"
+                                    title="ลูกค้าปลายทาง"
                                     value={formData.destinationCustomer || ''}
                                     onChange={e => updateField('destinationCustomer', e.target.value)}
                                     placeholder="ระบุลูกค้าปลายทาง..."
@@ -220,6 +236,8 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                 <label className="block text-sm font-bold text-slate-700 mb-1">จังหวัด (Province)</label>
                                 <input
                                     type="text"
+                                    aria-label="จังหวัด"
+                                    title="จังหวัด"
                                     value={formData.province || ''}
                                     onChange={e => updateField('province', e.target.value)}
                                     placeholder="ระบุจังหวัด..."
@@ -233,11 +251,13 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                             <label className="block text-sm font-bold text-slate-700 mb-1">ที่อยู่ (Address)</label>
                             <textarea
                                 rows={2}
+                                aria-label="ที่อยู่ลูกค้า"
+                                title="ที่อยู่ลูกค้า"
                                 value={formData.customerAddress || ''}
                                 onChange={e => updateField('customerAddress', e.target.value)}
                                 placeholder="ที่อยู่ลูกค้า..."
                                 className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-                            />
+                            ></textarea>
                         </div>
 
                         {/* 6.5 Quantity & Unit */}
@@ -246,6 +266,8 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                 <label className="block text-sm font-bold text-slate-700 mb-1">จำนวน (Quantity)</label>
                                 <input
                                     type="number"
+                                    aria-label="จำนวน"
+                                    title="จำนวน"
                                     min="1"
                                     value={formData.quantity || ''}
                                     onChange={e => updateField('quantity', parseFloat(e.target.value))}
@@ -257,6 +279,8 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                 <label className="block text-sm font-bold text-slate-700 mb-1">หน่วย (Unit)</label>
                                 <input
                                     type="text"
+                                    aria-label="หน่วย"
+                                    title="หน่วย"
                                     value={formData.unit || ''}
                                     onChange={e => updateField('unit', e.target.value)}
                                     placeholder="เช่น กล่อง, พาเลท, ชิ้น..."
@@ -270,92 +294,84 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                             <label className="block text-sm font-bold text-slate-700 mb-1">หมายเหตุ (Notes)</label>
                             <textarea
                                 rows={3}
+                                aria-label="หมายเหตุ"
+                                title="หมายเหตุ"
                                 value={formData.notes || ''}
                                 onChange={e => updateField('notes', e.target.value)}
                                 placeholder="ระบุรายละเอียดสินค้า หรือหมายเหตุอื่นๆ..."
                                 className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                            />
+                            ></textarea>
                         </div>
-                        <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-1">เบอร์โทรศัพท์ (ติดต่อ)</label>
-                            <input
-                                type="text"
-                                value={formData.contactPhone || ''}
-                                onChange={e => updateField('contactPhone', e.target.value)}
-                                placeholder="0xx-xxx-xxxx"
-                                className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                            />
+
+                        <div className="flex justify-end pt-4">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    // 1. Validate Mandatory Fields
+                                    const missingFields = [];
+                                    if (!formData.branch) missingFields.push('สาขา (Branch)');
+                                    if (!formData.controlDate && !formData.date) missingFields.push('วันที่ใบคุมรถ (Control Date)');
+                                    if (!formData.customerName) missingFields.push('ลูกค้าต้นทาง (Source Customer)');
+
+                                    if (missingFields.length > 0) {
+                                        Swal.fire({
+                                            icon: 'warning',
+                                            title: 'กรุณากรอกข้อมูลให้ครบถ้วน',
+                                            text: `ขาดข้อมูล: ${missingFields.join(', ')}`,
+                                            confirmButtonColor: '#f59e0b'
+                                        });
+                                        return;
+                                    }
+
+                                    // 2. Check for Duplicates
+                                    // Duplicate Definition: Same Invoice No AND Same Branch AND Same Document No (if exists)
+                                    const isDuplicate = existingItems.some(item => {
+                                        const sameBranch = item.branch === formData.branch;
+                                        const sameInvoice = formData.invoiceNo && item.invoiceNo === formData.invoiceNo;
+                                        const sameDocNo = formData.documentNo && (item.documentNo === formData.documentNo || item.refNo === formData.documentNo);
+
+                                        // If Invoice is present, it must be unique per branch? Or globally?
+                                        // Let's assume Invoice + Branch combination should be unique if Invoice is provided.
+                                        if (formData.invoiceNo && sameBranch && sameInvoice) return true;
+
+                                        // If Doc No is present
+                                        if (formData.documentNo && sameBranch && sameDocNo) return true;
+
+                                        return false;
+                                    });
+
+                                    if (isDuplicate) {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'พบข้อมูลซ้ำ (Duplicate)',
+                                            text: `มีรายการที่ใช้เลข Invoice: ${formData.invoiceNo} หรือ Doc No: ${formData.documentNo} ในสาขานี้แล้ว`,
+                                            footer: 'กรุณาตรวจสอบเลขเอกสารอีกครั้ง',
+                                            confirmButtonColor: '#ef4444'
+                                        });
+                                        return;
+                                    }
+
+                                    // 3. Allow Submission
+                                    if (requestItems.length === 0) {
+                                        const dummyItem = {
+                                            ...formData,
+                                            productName: 'General Request',
+                                            quantity: formData.quantity || 1,
+                                            unit: formData.unit || 'Lot'
+                                        };
+                                        handleRequestSubmit([dummyItem]);
+                                    } else {
+                                        handleRequestSubmit();
+                                    }
+                                }}
+                                className="px-8 py-4 bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all flex items-center gap-2"
+                            >
+                                <Save className="w-5 h-5" /> บันทึกใบงานรับกลับ (Create Request)
+                            </button>
                         </div>
                     </div>
 
-                    {/* Submit Action */}
-                    <div className="flex justify-end pt-8 mt-4 border-t border-slate-100">
-                        <button
-                            onClick={() => {
-                                // 1. Validate Mandatory Fields
-                                const missingFields = [];
-                                if (!formData.branch) missingFields.push('สาขา (Branch)');
-                                if (!formData.controlDate && !formData.date) missingFields.push('วันที่ใบคุมรถ (Control Date)');
-                                if (!formData.customerName) missingFields.push('ลูกค้าต้นทาง (Source Customer)');
-
-                                if (missingFields.length > 0) {
-                                    Swal.fire({
-                                        icon: 'warning',
-                                        title: 'กรุณากรอกข้อมูลให้ครบถ้วน',
-                                        text: `ขาดข้อมูล: ${missingFields.join(', ')}`,
-                                        confirmButtonColor: '#f59e0b'
-                                    });
-                                    return;
-                                }
-
-                                // 2. Check for Duplicates
-                                // Duplicate Definition: Same Invoice No AND Same Branch AND Same Document No (if exists)
-                                const isDuplicate = existingItems.some(item => {
-                                    const sameBranch = item.branch === formData.branch;
-                                    const sameInvoice = formData.invoiceNo && item.invoiceNo === formData.invoiceNo;
-                                    const sameDocNo = formData.documentNo && (item.documentNo === formData.documentNo || item.refNo === formData.documentNo);
-
-                                    // If Invoice is present, it must be unique per branch? Or globally?
-                                    // Let's assume Invoice + Branch combination should be unique if Invoice is provided.
-                                    if (formData.invoiceNo && sameBranch && sameInvoice) return true;
-
-                                    // If Doc No is present
-                                    if (formData.documentNo && sameBranch && sameDocNo) return true;
-
-                                    return false;
-                                });
-
-                                if (isDuplicate) {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'พบข้อมูลซ้ำ (Duplicate)',
-                                        text: `มีรายการที่ใช้เลข Invoice: ${formData.invoiceNo} หรือ Doc No: ${formData.documentNo} ในสาขานี้แล้ว`,
-                                        footer: 'กรุณาตรวจสอบเลขเอกสารอีกครั้ง',
-                                        confirmButtonColor: '#ef4444'
-                                    });
-                                    return;
-                                }
-
-                                // 3. Allow Submission
-                                if (requestItems.length === 0) {
-                                    const dummyItem = {
-                                        ...formData,
-                                        productName: 'General Request',
-                                        quantity: formData.quantity || 1,
-                                        unit: formData.unit || 'Lot'
-                                    };
-                                    handleRequestSubmit([dummyItem]);
-                                } else {
-                                    handleRequestSubmit();
-                                }
-                            }}
-                            className="px-8 py-4 bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all flex items-center gap-2"
-                        >
-                            <Save className="w-5 h-5" /> บันทึกใบงานรับกลับ (Create Request)
-                        </button>
-                    </div>
                 </div>
-
             </div>
         </div>
     );

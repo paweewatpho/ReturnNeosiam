@@ -1,9 +1,11 @@
 
 import React from 'react';
-import { LayoutDashboard, Settings, LogOut, PackageOpen, ScanBarcode, AlertOctagon, FileBarChart, Wifi, LayoutGrid, BarChart, Truck } from 'lucide-react';
+import { LayoutDashboard, Settings, LogOut, PackageOpen, ScanBarcode, AlertOctagon, FileBarChart, Wifi, LayoutGrid, BarChart, Truck, User as UserIcon } from 'lucide-react';
 import { AppView } from '../types';
 import { ref, set } from 'firebase/database';
 import { db } from '../firebase';
+import { useAuth } from '../AuthContext';
+import { getRoleDisplayName, getRoleColor, canAccessView } from '../utils/permissions';
 
 interface SidebarProps {
   currentView: AppView;
@@ -11,6 +13,8 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView }) => {
+  const { user, logout } = useAuth();
+
   const menuItems = [
     { id: AppView.DASHBOARD, label: 'ภาพรวม (Dashboard)', icon: LayoutDashboard },
     { id: AppView.OPERATIONS, label: 'ปฏิบัติการ (Operations)', icon: ScanBarcode },
@@ -20,6 +24,9 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView }) => {
     { id: AppView.COLLECTION, label: 'งานรับสินค้า (Collection Tasks)', icon: Truck },
     { id: AppView.COL_REPORT, label: 'รายงาน COL', icon: BarChart },
   ];
+
+  // กรอง menu items ตามสิทธิ์ของ user
+  const visibleMenuItems = menuItems.filter(item => canAccessView(user?.role, item.id));
 
   const handleTestConnection = async () => {
     try {
@@ -32,6 +39,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView }) => {
       alert("✅ เชื่อมต่อ Realtime Database สำเร็จ! (Connection Successful)\nข้อมูลถูกบันทึกไปยัง path: /connection_test");
     } catch (error: any) {
       alert(`❌ เชื่อมต่อล้มเหลว (Failed): ${error.message}\nกรุณาตรวจสอบ Config หรือ Security Rules`);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (window.confirm('ต้องการออกจากระบบหรือไม่?')) {
+      await logout();
     }
   };
 
@@ -49,8 +62,27 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView }) => {
         </div>
       </div>
 
-      <nav className="flex-1 px-3 py-6 space-y-1">
-        {menuItems.map((item) => {
+      {/* User Info */}
+      {user && (
+        <div className="px-4 py-3 border-b border-slate-800 bg-slate-800/50">
+          <div className="flex items-center gap-3">
+            <img
+              src={user.photoURL || 'https://ui-avatars.com/api/?name=User'}
+              alt={user.displayName}
+              className="w-10 h-10 rounded-full border-2 border-slate-600"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white truncate">{user.displayName}</p>
+              <p className={`text-xs px-2 py-0.5 rounded-full inline-block ${getRoleColor(user.role)}`}>
+                {getRoleDisplayName(user.role)}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
+        {visibleMenuItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentView === item.id;
           return (
@@ -79,11 +111,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView }) => {
           <Wifi className="w-4 h-4" />
           ทดสอบเชื่อมต่อ DB
         </button>
-        <button className="flex items-center gap-3 text-slate-400 hover:text-white px-4 py-2 w-full text-sm transition-colors">
-          <Settings className="w-4 h-4" />
-          ตั้งค่าระบบ
-        </button>
-        <button className="flex items-center gap-3 text-red-400 hover:text-red-300 px-4 py-2 w-full text-sm transition-colors">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 text-red-400 hover:text-red-300 hover:bg-slate-800 px-4 py-2 w-full text-sm transition-colors rounded"
+        >
           <LogOut className="w-4 h-4" />
           ออกจากระบบ
         </button>

@@ -28,7 +28,7 @@ export const ProblemDetailsSection: React.FC<ProblemDetailsSectionProps> = ({
             <div className="p-4 bg-white grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="border-r border-slate-200 pr-4">
                     <div className="flex flex-col items-center justify-center text-slate-400 min-h-[200px] border-2 border-dashed border-slate-300 rounded-lg hover:bg-slate-50 transition-colors relative">
-                        <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+                        <input type="file" aria-label="อัพโหลดรูปภาพ" title="อัพโหลดรูปภาพ" multiple accept="image/*" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
                         <ImageIcon className="w-12 h-12 mb-2 opacity-50" />
                         <span className="text-sm font-bold">คลิกเพื่ออัพโหลดรูปภาพ</span>
                         <span className="text-xs text-slate-400 mt-1">หรือลากไฟล์มาวางที่นี่</span>
@@ -38,7 +38,7 @@ export const ProblemDetailsSection: React.FC<ProblemDetailsSectionProps> = ({
                             {formData.images.map((img, idx) => (
                                 <div key={idx} className="relative group aspect-square bg-slate-100 rounded overflow-hidden border border-slate-200">
                                     <img src={img} alt="Preview" className="w-full h-full object-cover" />
-                                    <button onClick={() => handleRemoveImage(idx)} type="button" className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={() => handleRemoveImage(idx)} aria-label="ลบรูปภาพ" title="ลบรูปภาพ" type="button" className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <Trash2 className="w-3 h-3" />
                                     </button>
                                 </div>
@@ -80,7 +80,7 @@ export const ProblemDetailsSection: React.FC<ProblemDetailsSectionProps> = ({
                                     <div className="ml-6 p-3 bg-slate-50 border border-slate-200 rounded grid grid-cols-1 md:grid-cols-2 gap-3 animate-fade-in">
                                         <div>
                                             <label className="text-xs font-bold text-slate-500 mb-1 block">เลือกสาขา/หน่วยงาน</label>
-                                            <select className="w-full border rounded p-1.5 text-sm" value={formData.problemAnalysisSub || ''} onChange={e => updateField('problemAnalysisSub', e.target.value)}>
+                                            <select aria-label="เลือกสาขา" title="เลือกสาขา" className="w-full border rounded p-1.5 text-sm" value={formData.problemAnalysisSub || ''} onChange={e => updateField('problemAnalysisSub', e.target.value)}>
                                                 <option value="">-- เลือกสาขา --</option>
                                                 {BRANCH_LIST.map(b => <option key={b} value={b}>{b}</option>)}
                                             </select>
@@ -92,7 +92,7 @@ export const ProblemDetailsSection: React.FC<ProblemDetailsSectionProps> = ({
                                                     <label key={c} className="flex items-center gap-1 cursor-pointer"><input type="radio" name="whCause" checked={formData.problemAnalysisCause === c} onChange={() => updateField('problemAnalysisCause', c)} />{c}</label>
                                                 ))}
                                             </div>
-                                            {formData.problemAnalysisCause === 'อื่นๆ' && <input type="text" className="border-b border-slate-400 outline-none text-sm w-full mt-1" placeholder="ระบุ..." value={formData.problemAnalysisDetail || ''} onChange={e => updateField('problemAnalysisDetail', e.target.value)} />}
+                                            {formData.problemAnalysisCause === 'อื่นๆ' && <input type="text" aria-label="ระบุสาเหตุอื่นๆ" title="ระบุสาเหตุอื่นๆ" className="border-b border-slate-400 outline-none text-sm w-full mt-1" placeholder="ระบุ..." value={formData.problemAnalysisDetail || ''} onChange={e => updateField('problemAnalysisDetail', e.target.value)} />}
                                         </div>
                                     </div>
                                 )}
@@ -112,7 +112,7 @@ export const ProblemDetailsSection: React.FC<ProblemDetailsSectionProps> = ({
                                             <label className="flex items-center gap-1 cursor-pointer"><input type="radio" name="transType" checked={formData.problemAnalysisSub === 'JointTransport'} onChange={() => updateField('problemAnalysisSub', 'JointTransport')} /> รถขนส่งร่วม</label>
                                             <label className="flex items-center gap-1 cursor-pointer"><input type="radio" name="transType" checked={formData.problemAnalysisSub === 'Other'} onChange={() => updateField('problemAnalysisSub', 'Other')} /> อื่นๆ</label>
                                         </div>
-                                        {formData.problemAnalysisSub === 'Other' && <input type="text" className="border-b border-slate-400 outline-none text-sm w-full" placeholder="ระบุรายละเอียด..." value={formData.problemAnalysisDetail || ''} onChange={e => updateField('problemAnalysisDetail', e.target.value)} />}
+                                        {formData.problemAnalysisSub === 'Other' && <input type="text" aria-label="ระบุรายละเอียดขนส่งอื่นๆ" title="ระบุรายละเอียดขนส่งอื่นๆ" className="border-b border-slate-400 outline-none text-sm w-full" placeholder="ระบุรายละเอียด..." value={formData.problemAnalysisDetail || ''} onChange={e => updateField('problemAnalysisDetail', e.target.value)} />}
                                     </div>
                                 )}
                             </div>
@@ -125,7 +125,7 @@ export const ProblemDetailsSection: React.FC<ProblemDetailsSectionProps> = ({
                                         อื่นๆ (Other)
                                     </label>
                                     {formData.problemAnalysis === 'Other' && (
-                                        <input type="text" className="border-b border-dotted border-slate-400 bg-transparent outline-none flex-1 text-slate-700 ml-2" placeholder="ระบุ..." value={formData.problemAnalysisDetail || ''} onChange={e => updateField('problemAnalysisDetail', e.target.value)} />
+                                        <input type="text" aria-label="ระบุปัญหาอื่นๆ" title="ระบุปัญหาอื่นๆ" className="border-b border-dotted border-slate-400 bg-transparent outline-none flex-1 text-slate-700 ml-2" placeholder="ระบุ..." value={formData.problemAnalysisDetail || ''} onChange={e => updateField('problemAnalysisDetail', e.target.value)} />
                                     )}
                                 </div>
                             </div>
@@ -185,14 +185,14 @@ export const ProblemDetailsSection: React.FC<ProblemDetailsSectionProps> = ({
                             <input type="checkbox" checked={formData.problemNotOrdered} onChange={() => handleCheckboxToggle('problemNotOrdered')} /> ไม่ได้สั่งสินค้า
                         </label>
                         <div className="flex items-center gap-2 p-1 col-span-2">
-                            <input type="checkbox" checked={formData.problemOther} onChange={() => handleCheckboxToggle('problemOther')} />
+                            <input type="checkbox" aria-label="อื่นๆ" title="อื่นๆ" checked={formData.problemOther} onChange={() => handleCheckboxToggle('problemOther')} />
                             <span>อื่นๆ</span>
-                            <input type="text" className="border-b border-dotted border-slate-400 bg-transparent outline-none flex-1 text-slate-700" value={formData.problemOtherText || ''} onChange={e => updateField('problemOtherText', e.target.value)} />
+                            <input type="text" aria-label="ระบุปัญหาอื่นๆ" title="ระบุปัญหาอื่นๆ" className="border-b border-dotted border-slate-400 bg-transparent outline-none flex-1 text-slate-700" value={formData.problemOtherText || ''} onChange={e => updateField('problemOtherText', e.target.value)} />
                         </div>
                     </div>
                     <div>
                         <label className="font-bold underline text-sm text-slate-800">รายละเอียด:</label>
-                        <textarea value={formData.problemDetail || ''} onChange={e => updateField('problemDetail', e.target.value)} className="w-full mt-1 p-2 bg-slate-50 border rounded text-sm min-h-[80px]" placeholder="รายละเอียดเพิ่มเติม..."></textarea>
+                        <textarea aria-label="รายละเอียดปัญหา" title="รายละเอียดปัญหา" value={formData.problemDetail || ''} onChange={e => updateField('problemDetail', e.target.value)} className="w-full mt-1 p-2 bg-slate-50 border rounded text-sm min-h-[80px]" placeholder="รายละเอียดเพิ่มเติม..."></textarea>
                     </div>
                 </div>
             </div>

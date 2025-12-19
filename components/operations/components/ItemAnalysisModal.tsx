@@ -185,7 +185,7 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
                         <h3 className="text-lg font-bold text-slate-800">รายละเอียดสินค้า & การวิเคราะห์</h3>
                         <p className="text-xs text-slate-500">{item.productCode} - {item.productName}</p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
+                    <button onClick={onClose} aria-label="Close" title="ปิด" className="p-2 hover:bg-slate-200 rounded-full transition-colors">
                         <X className="w-5 h-5 text-slate-500" />
                     </button>
                 </div>
@@ -219,7 +219,7 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
                                 <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div className="border-r border-slate-100 pr-4">
                                         <div className="flex flex-col items-center justify-center text-slate-400 min-h-[150px] border-2 border-dashed border-slate-300 rounded-lg hover:bg-slate-50 transition-colors relative">
-                                            <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                            <input type="file" aria-label="อัพโหลดรูปภาพ" title="อัพโหลดรูปภาพ" multiple accept="image/*" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
                                             <ImageIcon className="w-8 h-8 mb-2 opacity-50" />
                                             <span className="text-xs font-bold">อัพโหลดรูปภาพ</span>
                                         </div>
@@ -228,7 +228,7 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
                                                 {formData.images.map((img, idx) => (
                                                     <div key={idx} className="relative group aspect-square bg-slate-100 rounded overflow-hidden border border-slate-200">
                                                         <img src={img} alt="Preview" className="w-full h-full object-cover" />
-                                                        <button onClick={() => handleRemoveImage(idx)} type="button" className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button onClick={() => handleRemoveImage(idx)} aria-label="ลบรูปภาพ" title="ลบรูปภาพ" type="button" className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                                             <Trash2 className="w-3 h-3" />
                                                         </button>
                                                     </div>
@@ -256,11 +256,11 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
                                             <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemPOExpired} onChange={() => handleProblemSelection('problemPOExpired')} /> PO. หมดอายุ</label>
                                             <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemNoBarcode} onChange={() => handleProblemSelection('problemNoBarcode')} /> บาร์โค๊ตไม่ขึ้น</label>
                                             <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={formData.problemNotOrdered} onChange={() => handleProblemSelection('problemNotOrdered')} /> ไม่ได้สั่งสินค้า</label>
-                                            <div className="flex items-center gap-2 p-1 col-span-2"><input type="checkbox" checked={formData.problemOther} onChange={() => handleProblemSelection('problemOther')} /> <span>อื่นๆ</span><input type="text" className="border-b border-dotted border-slate-400 bg-transparent outline-none flex-1 text-slate-700" value={formData.problemOtherText || ''} onChange={e => setFormData({ ...formData, problemOtherText: e.target.value })} /></div>
+                                            <div className="flex items-center gap-2 p-1 col-span-2"><input type="checkbox" aria-label="ปัญหาอื่นๆ" title="ปัญหาอื่นๆ" checked={formData.problemOther} onChange={() => handleProblemSelection('problemOther')} /> <span>อื่นๆ</span><input type="text" aria-label="ระบุปัญหาอื่นๆ" title="ระบุปัญหาอื่นๆ" className="border-b border-dotted border-slate-400 bg-transparent outline-none flex-1 text-slate-700" value={formData.problemOtherText || ''} onChange={e => setFormData({ ...formData, problemOtherText: e.target.value })} /></div>
                                         </div>
                                         <div>
                                             <label className="font-bold underline text-sm text-slate-800">รายละเอียด:</label>
-                                            <textarea value={formData.problemDetail || ''} onChange={e => setFormData({ ...formData, problemDetail: e.target.value })} className="w-full mt-1 p-2 bg-slate-50 border rounded text-sm min-h-[80px]" placeholder="รายละเอียดเพิ่มเติม..."></textarea>
+                                            <textarea aria-label="รายละเอียดปัญหา" title="รายละเอียดปัญหา" value={formData.problemDetail || ''} onChange={e => setFormData({ ...formData, problemDetail: e.target.value })} className="w-full mt-1 p-2 bg-slate-50 border rounded text-sm min-h-[80px]" placeholder="รายละเอียดเพิ่มเติม..."></textarea>
                                         </div>
                                     </div>
                                 </div>
@@ -307,7 +307,7 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                 <div>
                                                     <label className="block font-bold mb-1">สาขา/หน่วยงาน</label>
-                                                    <select value={formData.problemAnalysisSub || ''} onChange={e => setFormData({ ...formData, problemAnalysisSub: e.target.value })} className="w-full p-2 border rounded">
+                                                    <select aria-label="เลือกสาขา" title="เลือกสาขา" value={formData.problemAnalysisSub || ''} onChange={e => setFormData({ ...formData, problemAnalysisSub: e.target.value })} className="w-full p-2 border rounded">
                                                         <option value="">-- เลือก --</option>
                                                         {BRANCH_LIST.map(b => <option key={b} value={b}>{b}</option>)}
                                                     </select>
@@ -335,7 +335,7 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
                                     )}
                                     {/* Other Sub-Options */}
                                     {formData.problemAnalysis === 'Other' && (
-                                        <input type="text" value={formData.problemAnalysisDetail || ''} onChange={e => setFormData({ ...formData, problemAnalysisDetail: e.target.value })} className="w-full p-2 border rounded text-sm" placeholder="ระบุรายละเอียด..." />
+                                        <input type="text" aria-label="รายละเอียดเพิ่มเติม" title="รายละเอียดเพิ่มเติม" value={formData.problemAnalysisDetail || ''} onChange={e => setFormData({ ...formData, problemAnalysisDetail: e.target.value })} className="w-full p-2 border rounded text-sm" placeholder="ระบุรายละเอียด..." />
                                     )}
                                 </div>
                             </div>
@@ -363,7 +363,7 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
                                             </label>
                                         </div>
                                         {preliminaryRoute === 'Other' && (
-                                            <input type="text" value={preliminaryOtherRoute} onChange={(e) => setPreliminaryOtherRoute(e.target.value)} className="w-full mt-2 p-2 border rounded text-sm focus:ring-2 focus:ring-indigo-500" placeholder="ระบุเส้นทาง..." />
+                                            <input type="text" aria-label="ระบุเส้นทางอื่นๆ" title="ระบุเส้นทางอื่นๆ" value={preliminaryOtherRoute} onChange={(e) => setPreliminaryOtherRoute(e.target.value)} className="w-full mt-2 p-2 border rounded text-sm focus:ring-2 focus:ring-indigo-500" placeholder="ระบุเส้นทาง..." />
                                         )}
                                     </div>
                                 </div>
@@ -381,50 +381,50 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
                                 <div className="p-4 bg-white space-y-3 text-sm">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-b border-slate-100 pb-3">
                                         <div className="flex items-center gap-3">
-                                            <input type="checkbox" checked={formData.actionReject} onChange={() => handleActionSelection('actionReject')} className="w-4 h-4" />
+                                            <input type="checkbox" aria-label="ส่งคืน (Reject)" title="ส่งคืน (Reject)" checked={formData.actionReject} onChange={() => handleActionSelection('actionReject')} className="w-4 h-4" />
                                             <span className="font-bold w-32">ส่งคืน (Reject)</span>
-                                            <div className="flex items-center gap-2"><span className="text-xs text-slate-500">จำนวน:</span><input type="number" value={formData.actionRejectQty} onChange={e => setFormData({ ...formData, actionRejectQty: Number(e.target.value) })} className="w-20 border rounded px-2 py-1" /></div>
+                                            <div className="flex items-center gap-2"><span className="text-xs text-slate-500">จำนวน:</span><input type="number" aria-label="จำนวนส่งคืน" title="จำนวนส่งคืน" value={formData.actionRejectQty} onChange={e => setFormData({ ...formData, actionRejectQty: Number(e.target.value) })} className="w-20 border rounded px-2 py-1" /></div>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            <input type="checkbox" checked={formData.actionRejectSort} onChange={() => handleActionSelection('actionRejectSort')} className="w-4 h-4" />
+                                            <input type="checkbox" aria-label="คัดแยกของเสีย" title="คัดแยกของเสีย" checked={formData.actionRejectSort} onChange={() => handleActionSelection('actionRejectSort')} className="w-4 h-4" />
                                             <span className="font-bold w-40">คัดแยกของเสียเพื่อส่งคืน</span>
-                                            <div className="flex items-center gap-2"><span className="text-xs text-slate-500">จำนวน:</span><input type="number" value={formData.actionRejectSortQty} onChange={e => setFormData({ ...formData, actionRejectSortQty: Number(e.target.value) })} className="w-20 border rounded px-2 py-1" /></div>
+                                            <div className="flex items-center gap-2"><span className="text-xs text-slate-500">จำนวน:</span><input type="number" aria-label="จำนวนคัดแยก" title="จำนวนคัดแยก" value={formData.actionRejectSortQty} onChange={e => setFormData({ ...formData, actionRejectSortQty: Number(e.target.value) })} className="w-20 border rounded px-2 py-1" /></div>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 gap-4 border-b border-slate-100 pb-3">
                                         <div className="flex items-start gap-3">
-                                            <input type="checkbox" checked={formData.actionRework} onChange={() => handleActionSelection('actionRework')} className="w-4 h-4 mt-1" />
+                                            <input type="checkbox" aria-label="แก้ไข (Rework)" title="แก้ไข (Rework)" checked={formData.actionRework} onChange={() => handleActionSelection('actionRework')} className="w-4 h-4 mt-1" />
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-4 mb-2">
                                                     <span className="font-bold w-32">แก้ไข (Rework)</span>
-                                                    <div className="flex items-center gap-2"><span className="text-xs text-slate-500">จำนวน:</span><input type="number" value={formData.actionReworkQty} onChange={e => setFormData({ ...formData, actionReworkQty: Number(e.target.value) })} className="w-20 border rounded px-2 py-1" /></div>
+                                                    <div className="flex items-center gap-2"><span className="text-xs text-slate-500">จำนวน:</span><input type="number" aria-label="จำนวนแก้ไข" title="จำนวนแก้ไข" value={formData.actionReworkQty} onChange={e => setFormData({ ...formData, actionReworkQty: Number(e.target.value) })} className="w-20 border rounded px-2 py-1" /></div>
                                                 </div>
-                                                <div className="flex items-center gap-2"><span className="text-xs font-bold text-slate-600">วิธีการแก้ไข:</span><input type="text" value={formData.actionReworkMethod} onChange={e => setFormData({ ...formData, actionReworkMethod: e.target.value })} className="flex-1 border-b border-dotted border-slate-400 outline-none px-1" /></div>
+                                                <div className="flex items-center gap-2"><span className="text-xs font-bold text-slate-600">วิธีการแก้ไข:</span><input type="text" aria-label="วิธีการแก้ไข" title="วิธีการแก้ไข" value={formData.actionReworkMethod} onChange={e => setFormData({ ...formData, actionReworkMethod: e.target.value })} className="flex-1 border-b border-dotted border-slate-400 outline-none px-1" /></div>
                                             </div>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 gap-4 border-b border-slate-100 pb-3">
                                         <div className="flex items-start gap-3">
-                                            <input type="checkbox" checked={formData.actionSpecialAcceptance} onChange={() => handleActionSelection('actionSpecialAcceptance')} className="w-4 h-4 mt-1" />
+                                            <input type="checkbox" aria-label="ยอมรับกรณีพิเศษ" title="ยอมรับกรณีพิเศษ" checked={formData.actionSpecialAcceptance} onChange={() => handleActionSelection('actionSpecialAcceptance')} className="w-4 h-4 mt-1" />
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-4 mb-2">
                                                     <span className="font-bold w-32">ยอมรับกรณีพิเศษ</span>
-                                                    <div className="flex items-center gap-2"><span className="text-xs text-slate-500">จำนวน:</span><input type="number" value={formData.actionSpecialAcceptanceQty} onChange={e => setFormData({ ...formData, actionSpecialAcceptanceQty: Number(e.target.value) })} className="w-20 border rounded px-2 py-1" /></div>
+                                                    <div className="flex items-center gap-2"><span className="text-xs text-slate-500">จำนวน:</span><input type="number" aria-label="จำนวนยอมรับพิเศษ" title="จำนวนยอมรับพิเศษ" value={formData.actionSpecialAcceptanceQty} onChange={e => setFormData({ ...formData, actionSpecialAcceptanceQty: Number(e.target.value) })} className="w-20 border rounded px-2 py-1" /></div>
                                                 </div>
-                                                <div className="flex items-center gap-2"><span className="text-xs font-bold text-slate-600">เหตุผลในการยอมรับ:</span><input type="text" value={formData.actionSpecialAcceptanceReason} onChange={e => setFormData({ ...formData, actionSpecialAcceptanceReason: e.target.value })} className="flex-1 border-b border-dotted border-slate-400 outline-none px-1" /></div>
+                                                <div className="flex items-center gap-2"><span className="text-xs font-bold text-slate-600">เหตุผลในการยอมรับ:</span><input type="text" aria-label="เหตุผลในการยอมรับ" title="เหตุผลในการยอมรับ" value={formData.actionSpecialAcceptanceReason} onChange={e => setFormData({ ...formData, actionSpecialAcceptanceReason: e.target.value })} className="flex-1 border-b border-dotted border-slate-400 outline-none px-1" /></div>
                                             </div>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="flex items-center gap-3">
-                                            <input type="checkbox" checked={formData.actionScrap} onChange={() => handleActionSelection('actionScrap')} className="w-4 h-4" />
+                                            <input type="checkbox" aria-label="ทำลาย (Scrap)" title="ทำลาย (Scrap)" checked={formData.actionScrap} onChange={() => handleActionSelection('actionScrap')} className="w-4 h-4" />
                                             <span className="font-bold w-32">ทำลาย (Scrap)</span>
-                                            <div className="flex items-center gap-2"><span className="text-xs text-slate-500">จำนวน:</span><input type="number" value={formData.actionScrapQty} onChange={e => setFormData({ ...formData, actionScrapQty: Number(e.target.value) })} className="w-20 border rounded px-2 py-1" /></div>
+                                            <div className="flex items-center gap-2"><span className="text-xs text-slate-500">จำนวน:</span><input type="number" aria-label="จำนวนทำลาย" title="จำนวนทำลาย" value={formData.actionScrapQty} onChange={e => setFormData({ ...formData, actionScrapQty: Number(e.target.value) })} className="w-20 border rounded px-2 py-1" /></div>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            <input type="checkbox" checked={formData.actionScrapReplace} onChange={() => handleActionSelection('actionScrapReplace')} className="w-4 h-4" />
+                                            <input type="checkbox" aria-label="เปลี่ยนสินค้าใหม่" title="เปลี่ยนสินค้าใหม่" checked={formData.actionScrapReplace} onChange={() => handleActionSelection('actionScrapReplace')} className="w-4 h-4" />
                                             <span className="font-bold w-32">เปลี่ยนสินค้าใหม่</span>
-                                            <div className="flex items-center gap-2"><span className="text-xs text-slate-500">จำนวน:</span><input type="number" value={formData.actionScrapReplaceQty} onChange={e => setFormData({ ...formData, actionScrapReplaceQty: Number(e.target.value) })} className="w-20 border rounded px-2 py-1" /></div>
+                                            <div className="flex items-center gap-2"><span className="text-xs text-slate-500">จำนวน:</span><input type="number" aria-label="จำนวนเปลี่ยนใหม่" title="จำนวนเปลี่ยนใหม่" value={formData.actionScrapReplaceQty} onChange={e => setFormData({ ...formData, actionScrapReplaceQty: Number(e.target.value) })} className="w-20 border rounded px-2 py-1" /></div>
                                         </div>
                                     </div>
                                 </div>
@@ -446,11 +446,11 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                                         <div>
                                             <label className="font-bold text-slate-700 block mb-1">รายละเอียดสาเหตุ:</label>
-                                            <textarea value={formData.causeDetail || ''} onChange={e => setFormData({ ...formData, causeDetail: e.target.value })} className="w-full p-2 bg-slate-50 border rounded min-h-[60px]" placeholder="ระบุสาเหตุ..."></textarea>
+                                            <textarea aria-label="รายละเอียดสาเหตุ" title="รายละเอียดสาเหตุ" value={formData.causeDetail || ''} onChange={e => setFormData({ ...formData, causeDetail: e.target.value })} className="w-full p-2 bg-slate-50 border rounded min-h-[60px]" placeholder="ระบุสาเหตุ..."></textarea>
                                         </div>
                                         <div>
                                             <label className="font-bold text-slate-700 block mb-1">แนวทางป้องกัน:</label>
-                                            <textarea value={formData.preventionDetail || ''} onChange={e => setFormData({ ...formData, preventionDetail: e.target.value })} className="w-full p-2 bg-slate-50 border rounded min-h-[60px]" placeholder="ระบุแนวทางป้องกัน..."></textarea>
+                                            <textarea aria-label="แนวทางป้องกัน" title="แนวทางป้องกัน" value={formData.preventionDetail || ''} onChange={e => setFormData({ ...formData, preventionDetail: e.target.value })} className="w-full p-2 bg-slate-50 border rounded min-h-[60px]" placeholder="ระบุแนวทางป้องกัน..."></textarea>
                                         </div>
                                     </div>
                                 </div>
@@ -481,6 +481,8 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
                                             <div>
                                                 <label className="block text-sm font-bold text-slate-700 mb-1">สาเหตุความเสียหาย (Problem Source)</label>
                                                 <select
+                                                    aria-label="สาเหตุความเสียหาย"
+                                                    title="สาเหตุความเสียหาย"
                                                     value={formData.problemSource || ''}
                                                     onChange={e => setFormData({ ...formData, problemSource: e.target.value })}
                                                     className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -496,6 +498,8 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
                                                 <label className="block text-sm font-bold text-slate-700 mb-1">ค่าใช้จ่าย (บาท)</label>
                                                 <input
                                                     type="number"
+                                                    aria-label="จำนวนเงินค่าใช้จ่าย"
+                                                    title="จำนวนเงินค่าใช้จ่าย"
                                                     step="0.01"
                                                     value={formData.costAmount || ''}
                                                     onChange={e => setFormData({ ...formData, costAmount: Number(e.target.value) })}
@@ -508,6 +512,8 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
                                                 <label className="block text-sm font-bold text-slate-700 mb-1">ผู้รับผิดชอบ (Responsible)</label>
                                                 <input
                                                     type="text"
+                                                    aria-label="ผู้รับผิดชอบ"
+                                                    title="ผู้รับผิดชอบ"
                                                     value={formData.costResponsible || ''}
                                                     onChange={e => setFormData({ ...formData, costResponsible: e.target.value })}
                                                     className="w-full p-2 border border-slate-300 rounded-lg bg-white text-slate-800 font-bold"

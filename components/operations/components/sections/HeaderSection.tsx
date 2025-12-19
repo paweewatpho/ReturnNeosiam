@@ -23,6 +23,8 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
                     <label className="block text-sm font-bold text-slate-700 mb-1">ถึงหน่วยงาน (To Dept)</label>
                     <input
                         type="text"
+                        aria-label="ถึงหน่วยงาน"
+                        title="ถึงหน่วยงาน"
                         value={formData.toDept || 'แผนกควบคุมคุณภาพ'}
                         onChange={e => updateField('toDept', e.target.value)}
                         className="w-full p-2.5 bg-white border border-slate-300 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-700 shadow-sm"
@@ -34,6 +36,8 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
                     <div className="relative">
                         <input
                             type="date"
+                            aria-label="วันที่แจ้งคืน"
+                            title="วันที่แจ้งคืน"
                             required
                             value={formData.date}
                             onChange={e => updateField('date', e.target.value)}
@@ -46,6 +50,8 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
                     <label className="block text-sm font-bold text-slate-700 mb-1">สำเนา (Copy To)</label>
                     <input
                         type="text"
+                        aria-label="สำเนาถึง"
+                        title="สำเนาถึง"
                         value={formData.copyTo || ''}
                         onChange={e => updateField('copyTo', e.target.value)}
                         className="w-full p-2.5 bg-white border border-slate-300 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-700 shadow-sm"
@@ -61,6 +67,8 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
                         <div className="flex gap-2 animate-fade-in relative">
                             <input
                                 type="text"
+                                aria-label="ระบุสาขาเอง"
+                                title="ระบุสาขาเอง"
                                 required
                                 value={formData.branch}
                                 onChange={e => updateField('branch', e.target.value)}
@@ -74,6 +82,8 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
                     ) : (
                         <div className="relative">
                             <select
+                                aria-label="เลือกสาขา"
+                                title="เลือกสาขา"
                                 required
                                 value={formData.branch}
                                 onChange={e => {
@@ -94,6 +104,8 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
                     <label className="block text-sm font-bold text-slate-700 mb-1">เลขที่ใบสั่งซื้อ/ผลิต (PO No.)</label>
                     <input
                         type="text"
+                        aria-label="เลขที่ใบสั่งซื้อ"
+                        title="เลขที่ใบสั่งซื้อ"
                         value={formData.poNo || ''}
                         onChange={e => updateField('poNo', e.target.value)}
                         className="w-full p-2.5 bg-white border border-slate-300 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-700 shadow-sm"

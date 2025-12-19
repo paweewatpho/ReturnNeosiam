@@ -295,6 +295,8 @@ const COLReport: React.FC<COLReportProps> = () => {
               value={filters.startDate}
               onChange={e => setFilters({ ...filters, startDate: e.target.value })}
               className="bg-transparent text-xs p-1 outline-none w-28 text-slate-600 cursor-pointer"
+              aria-label="วันที่เริ่มต้น"
+              title="วันที่เริ่มต้น"
             />
             <span className="text-slate-400">-</span>
             <input
@@ -302,6 +304,8 @@ const COLReport: React.FC<COLReportProps> = () => {
               value={filters.endDate}
               onChange={e => setFilters({ ...filters, endDate: e.target.value })}
               className="bg-transparent text-xs p-1 outline-none w-28 text-slate-600 cursor-pointer"
+              aria-label="วันที่สิ้นสุด"
+              title="วันที่สิ้นสุด"
             />
           </div>
 
@@ -310,6 +314,8 @@ const COLReport: React.FC<COLReportProps> = () => {
             value={filters.status}
             onChange={e => setFilters({ ...filters, status: e.target.value })}
             className="bg-slate-50 border border-slate-200 rounded-lg text-xs p-1.5 outline-none focus:ring-1 focus:ring-blue-500 max-w-[150px]"
+            aria-label="กรองสถานะ"
+            title="กรองสถานะ"
           >
             <option value="All">ทุกสถานะ (All Status)</option>
             <option value="Requested">Requested (รอรับงาน)</option>
@@ -343,7 +349,7 @@ const COLReport: React.FC<COLReportProps> = () => {
 
       {/* Table Content */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col print:hidden">
-        <div className="overflow-auto flex-1 relative" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+        <div className="overflow-auto flex-1 relative table-scroll-container">
           <table className="w-full text-left border-collapse min-w-[1200px]">
             <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10 shadow-sm text-xs uppercase text-slate-500 font-bold">
               <tr>
@@ -498,6 +504,8 @@ const COLReport: React.FC<COLReportProps> = () => {
               value={itemsPerPage}
               onChange={(e) => setItemsPerPage(Number(e.target.value))}
               className="bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500 font-bold"
+              aria-label="จำนวนรายการต่อหน้า"
+              title="จำนวนรายการต่อหน้า"
             >
               <option value={20}>20</option>
               <option value={50}>50</option>
@@ -541,6 +549,8 @@ const COLReport: React.FC<COLReportProps> = () => {
               <button
                 onClick={() => setIsEditModalOpen(false)}
                 className="text-slate-400 hover:text-white transition-colors"
+                aria-label="ปิด"
+                title="ปิด"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -549,8 +559,9 @@ const COLReport: React.FC<COLReportProps> = () => {
             <div className="p-6 overflow-y-auto max-h-[70vh]">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="col-span-1">
-                  <label className="block text-sm font-bold text-slate-700 mb-1">วันที่ (Date)</label>
+                  <label htmlFor="edit-date" className="block text-sm font-bold text-slate-700 mb-1">วันที่ (Date)</label>
                   <input
+                    id="edit-date"
                     type="date"
                     value={editItem.date}
                     onChange={e => setEditItem({ ...editItem, date: e.target.value })}
@@ -558,8 +569,9 @@ const COLReport: React.FC<COLReportProps> = () => {
                   />
                 </div>
                 <div className="col-span-1">
-                  <label className="block text-sm font-bold text-slate-700 mb-1">สาขา (Branch)</label>
+                  <label htmlFor="edit-branch" className="block text-sm font-bold text-slate-700 mb-1">สาขา (Branch)</label>
                   <input
+                    id="edit-branch"
                     type="text"
                     value={editItem.branch}
                     onChange={e => setEditItem({ ...editItem, branch: e.target.value })}
@@ -568,8 +580,9 @@ const COLReport: React.FC<COLReportProps> = () => {
                 </div>
 
                 <div className="col-span-1">
-                  <label className="block text-sm font-bold text-slate-700 mb-1">Invoice No</label>
+                  <label htmlFor="edit-invoice" className="block text-sm font-bold text-slate-700 mb-1">Invoice No</label>
                   <input
+                    id="edit-invoice"
                     type="text"
                     value={editItem.invoiceNo || ''}
                     onChange={e => setEditItem({ ...editItem, invoiceNo: e.target.value })}
@@ -577,8 +590,9 @@ const COLReport: React.FC<COLReportProps> = () => {
                   />
                 </div>
                 <div className="col-span-1">
-                  <label className="block text-sm font-bold text-slate-700 mb-1">Doc No (R)</label>
+                  <label htmlFor="edit-docno" className="block text-sm font-bold text-slate-700 mb-1">Doc No (R)</label>
                   <input
+                    id="edit-docno"
                     type="text"
                     value={editItem.documentNo || ''}
                     onChange={e => setEditItem({ ...editItem, documentNo: e.target.value })}
@@ -587,8 +601,9 @@ const COLReport: React.FC<COLReportProps> = () => {
                 </div>
 
                 <div className="col-span-1">
-                  <label className="block text-sm font-bold text-slate-700 mb-1">TM No</label>
+                  <label htmlFor="edit-tmno" className="block text-sm font-bold text-slate-700 mb-1">TM No</label>
                   <input
+                    id="edit-tmno"
                     type="text"
                     value={editItem.tmNo || ''}
                     onChange={e => setEditItem({ ...editItem, tmNo: e.target.value })}
@@ -596,8 +611,9 @@ const COLReport: React.FC<COLReportProps> = () => {
                   />
                 </div>
                 <div className="col-span-1">
-                  <label className="block text-sm font-bold text-slate-700 mb-1">Control Date</label>
+                  <label htmlFor="edit-controldate" className="block text-sm font-bold text-slate-700 mb-1">Control Date</label>
                   <input
+                    id="edit-controldate"
                     type="date"
                     value={editItem.controlDate || ''}
                     onChange={e => setEditItem({ ...editItem, controlDate: e.target.value })}
@@ -611,8 +627,9 @@ const COLReport: React.FC<COLReportProps> = () => {
                 </div>
 
                 <div className="col-span-1">
-                  <label className="block text-sm font-bold text-slate-700 mb-1">รหัสสินค้า (Product Code)</label>
+                  <label htmlFor="edit-productcode" className="block text-sm font-bold text-slate-700 mb-1">รหัสสินค้า (Product Code)</label>
                   <input
+                    id="edit-productcode"
                     type="text"
                     value={editItem.productCode}
                     onChange={e => setEditItem({ ...editItem, productCode: e.target.value })}
@@ -620,8 +637,9 @@ const COLReport: React.FC<COLReportProps> = () => {
                   />
                 </div>
                 <div className="col-span-1">
-                  <label className="block text-sm font-bold text-slate-700 mb-1">ชื่อสินค้า (Product Name)</label>
+                  <label htmlFor="edit-productname" className="block text-sm font-bold text-slate-700 mb-1">ชื่อสินค้า (Product Name)</label>
                   <input
+                    id="edit-productname"
                     type="text"
                     value={editItem.productName}
                     onChange={e => setEditItem({ ...editItem, productName: e.target.value })}
@@ -630,8 +648,9 @@ const COLReport: React.FC<COLReportProps> = () => {
                 </div>
 
                 <div className="col-span-1">
-                  <label className="block text-sm font-bold text-slate-700 mb-1">จำนวน (Qty)</label>
+                  <label htmlFor="edit-quantity" className="block text-sm font-bold text-slate-700 mb-1">จำนวน (Qty)</label>
                   <input
+                    id="edit-quantity"
                     type="number"
                     value={editItem.quantity}
                     onChange={e => setEditItem({ ...editItem, quantity: Number(e.target.value) })}
@@ -639,8 +658,9 @@ const COLReport: React.FC<COLReportProps> = () => {
                   />
                 </div>
                 <div className="col-span-1">
-                  <label className="block text-sm font-bold text-slate-700 mb-1">หน่วย (Unit)</label>
+                  <label htmlFor="edit-unit" className="block text-sm font-bold text-slate-700 mb-1">หน่วย (Unit)</label>
                   <input
+                    id="edit-unit"
                     type="text"
                     value={editItem.unit}
                     onChange={e => setEditItem({ ...editItem, unit: e.target.value })}
@@ -649,8 +669,9 @@ const COLReport: React.FC<COLReportProps> = () => {
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-sm font-bold text-slate-700 mb-1">หมายเหตุ (Notes)</label>
+                  <label htmlFor="edit-notes" className="block text-sm font-bold text-slate-700 mb-1">หมายเหตุ (Notes)</label>
                   <textarea
+                    id="edit-notes"
                     rows={2}
                     value={editItem.notes || ''}
                     onChange={e => setEditItem({ ...editItem, notes: e.target.value })}
@@ -659,8 +680,9 @@ const COLReport: React.FC<COLReportProps> = () => {
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-sm font-bold text-slate-700 mb-1">สถานะ (Status)</label>
+                  <label htmlFor="edit-status" className="block text-sm font-bold text-slate-700 mb-1">สถานะ (Status)</label>
                   <select
+                    id="edit-status"
                     value={editItem.status}
                     onChange={(e) => setEditItem({ ...editItem, status: e.target.value as ReturnStatus })}
                     className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white"
@@ -712,6 +734,13 @@ const COLReport: React.FC<COLReportProps> = () => {
           onClose={() => setShowPrintModal(false)}
         />
       )}
+
+      {/* CSS Styles */}
+      <style>{`
+        .table-scroll-container {
+          max-height: calc(100vh - 220px);
+        }
+      `}</style>
     </div>
   );
 };

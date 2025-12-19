@@ -132,6 +132,8 @@ export const Step6HubReceive: React.FC = () => {
                 {filteredItems.length > 0 && (
                     <button
                         onClick={handleHubReceiveAll}
+                        aria-label={`รับทั้งหมด (${filteredItems.length})`}
+                        title={`รับทั้งหมด (${filteredItems.length})`}
                         className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all"
                     >
                         รับทั้งหมด ({filteredItems.length})
@@ -147,6 +149,8 @@ export const Step6HubReceive: React.FC = () => {
                         <label className="block text-xs font-medium text-slate-500 mb-1">สาขาต้นทาง</label>
                         <select
                             className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            aria-label="สาขาต้นทาง"
+                            title="สาขาต้นทาง"
                             value={filterBranch}
                             onChange={(e) => setFilterBranch(e.target.value)}
                         >
@@ -161,6 +165,8 @@ export const Step6HubReceive: React.FC = () => {
                         <input
                             type="text"
                             className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            aria-label="ชื่อลูกค้า"
+                            title="ชื่อลูกค้า"
                             placeholder="ค้นหาชื่อลูกค้า..."
                             value={filterCustomer}
                             onChange={(e) => setFilterCustomer(e.target.value)}
@@ -171,6 +177,8 @@ export const Step6HubReceive: React.FC = () => {
                         <input
                             type="text"
                             className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            aria-label="สถานที่ส่ง (ปลายทาง)"
+                            title="สถานที่ส่ง (ปลายทาง)"
                             placeholder="ค้นหาสถานที่ส่ง..."
                             value={filterDestination}
                             onChange={(e) => setFilterDestination(e.target.value)}
@@ -213,7 +221,7 @@ export const Step6HubReceive: React.FC = () => {
                                     <span className="font-bold text-lg text-blue-600">{item.quantity}</span> <span className="text-xs text-slate-500">{item.unit}</span>
                                 </div>
 
-                                <button onClick={() => handleHubReceive(item.id)} disabled={isSubmitting} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-wait">
+                                <button onClick={() => handleHubReceive(item.id)} aria-label="รับเข้า Hub" title="รับเข้า Hub" disabled={isSubmitting} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-wait">
                                     {isSubmitting ? (
                                         <>⏳ กำลังรับ...</>
                                     ) : (

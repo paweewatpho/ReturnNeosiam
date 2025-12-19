@@ -132,7 +132,20 @@ const CollectionSystem: React.FC<CollectionSystemProps> = ({ onNavigate }) => {
                         ))}
                     </nav>
 
-                    <div className="p-4 border-t border-slate-800">
+                    <div className="p-4 border-t border-slate-800 space-y-2">
+                        {/* Back to Dashboard Button */}
+                        {onNavigate && (
+                            <button
+                                onClick={() => onNavigate(AppView.DASHBOARD)}
+                                className="w-full bg-slate-800 hover:bg-slate-700 text-white rounded-lg p-3 transition-all flex items-center justify-center gap-2 font-medium text-sm"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                </svg>
+                                กลับหน้าหลัก
+                            </button>
+                        )}
+
                         <div className="bg-slate-800 rounded-lg p-3">
                             <div className="text-xs text-slate-400 mb-1">สถานะระบบ</div>
                             <div className="flex items-center gap-2 text-green-400 text-sm font-bold">
@@ -146,12 +159,26 @@ const CollectionSystem: React.FC<CollectionSystemProps> = ({ onNavigate }) => {
                 {/* Main Content */}
                 <div className="flex-1 flex flex-col h-full overflow-hidden relative">
                     <header className="bg-white border-b border-slate-200 h-16 flex items-center px-6 justify-between shadow-sm z-10">
-                        <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            {currentStep === 1 && <><FileText className="w-5 h-5 text-blue-600" /> สร้างใบสั่งงานรับกลับ (Create Return Request)</>}
-                            {currentStep === 2 && <><CheckCircle2 className="w-5 h-5 text-blue-600" /> รับงานเข้าสาขา (Job Acceptance)</>}
-                            {currentStep === 3 && <><Truck className="w-5 h-5 text-blue-600" /> รับสินค้าจริง (Physical Receive)</>}
-                            {currentStep === 4 && <><Boxes className="w-5 h-5 text-blue-600" /> รวมสินค้า (Consolidation)</>}
-                        </h2>
+                        <div className="flex items-center gap-4">
+                            {/* Back Button for Step 2, 3, 4 */}
+                            {currentStep > 1 && (
+                                <button
+                                    onClick={() => setCurrentStep((currentStep - 1) as any)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-all font-medium text-sm"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                    ย้อนกลับ
+                                </button>
+                            )}
+                            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                {currentStep === 1 && <><FileText className="w-5 h-5 text-blue-600" /> สร้างใบสั่งงานรับกลับ (Create Return Request)</>}
+                                {currentStep === 2 && <><CheckCircle2 className="w-5 h-5 text-blue-600" /> รับงานเข้าสาขา (Job Acceptance)</>}
+                                {currentStep === 3 && <><Truck className="w-5 h-5 text-blue-600" /> รับสินค้าจริง (Physical Receive)</>}
+                                {currentStep === 4 && <><Boxes className="w-5 h-5 text-blue-600" /> รวมสินค้า (Consolidation)</>}
+                            </h2>
+                        </div>
                         <div className="flex items-center gap-4">
                             <div className="text-right">
                                 <div className="text-sm font-bold text-slate-800">Data Entry Officer</div>
@@ -221,7 +248,14 @@ const CollectionSystem: React.FC<CollectionSystemProps> = ({ onNavigate }) => {
                                 <h3 className="font-bold text-white flex items-center gap-2">
                                     <Lock className="w-4 h-4 text-amber-400" /> ยืนยันสิทธิ์ (Authentication)
                                 </h3>
-                                <button onClick={() => setShowAuthModal(false)} className="text-slate-400 hover:text-white transition"><X className="w-5 h-5" /></button>
+                                <button
+                                    onClick={() => setShowAuthModal(false)}
+                                    className="text-slate-400 hover:text-white transition"
+                                    aria-label="ปิด"
+                                    title="ปิด"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
                             </div>
                             <div className="p-6">
                                 <input

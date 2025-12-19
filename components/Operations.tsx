@@ -136,6 +136,8 @@ export const Operations: React.FC<OperationsProps> = ({ initialData, onClearInit
           )}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label="Toggle Sidebar"
+            title="Toggle Sidebar"
             className="p-2 hover:bg-white rounded-lg transition-colors text-slate-400 hover:text-blue-600 hover:shadow-sm"
           >
             <Menu className="w-5 h-5" />

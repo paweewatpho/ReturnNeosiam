@@ -27,7 +27,7 @@ export const SelectionModal: React.FC<SelectionModalProps> = ({
                     <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
                         <Printer className="w-5 h-5 text-blue-600" /> เลือกรายการสินค้าเพื่อออกเอกสาร
                     </h3>
-                    <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full"><X className="w-5 h-5 text-slate-400" /></button>
+                    <button onClick={onClose} aria-label="Close" title="ปิด" className="p-2 hover:bg-slate-100 rounded-full"><X className="w-5 h-5 text-slate-400" /></button>
                 </div>
                 <div className="p-4 overflow-y-auto flex-1">
                     <div className="mb-4 flex justify-between items-center bg-blue-50 p-3 rounded-lg border border-blue-100">
@@ -39,7 +39,7 @@ export const SelectionModal: React.FC<SelectionModalProps> = ({
                         {selectionItems.map(item => (
                             <div key={item.id} className={`flex items-start gap-3 p-3 rounded-lg border hover:bg-slate-50 transition-all ${selectedItemIds.has(item.id) ? 'border-blue-500 bg-blue-50/30' : 'border-slate-200'}`}>
                                 <div className="pt-1">
-                                    <input type="checkbox" checked={selectedItemIds.has(item.id)} onChange={() => toggleSelection(item.id)} className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" />
+                                    <input type="checkbox" aria-label={`เลือก ${item.productName}`} title={`เลือก ${item.productName}`} checked={selectedItemIds.has(item.id)} onChange={() => toggleSelection(item.id)} className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" />
                                 </div>
                                 <div className="flex-1 cursor-pointer" onClick={() => toggleSelection(item.id)}>
                                     <div className="flex justify-between">

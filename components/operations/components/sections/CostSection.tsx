@@ -18,6 +18,8 @@ export const CostSection: React.FC<CostSectionProps> = ({ formData, updateField 
                 <label className="flex items-center gap-2 mb-4 cursor-pointer">
                     <input
                         type="checkbox"
+                        aria-label="มีค่าใช้จ่าย"
+                        title="มีค่าใช้จ่าย"
                         checked={formData.hasCost || false}
                         onChange={e => updateField('hasCost', e.target.checked)}
                         className="w-5 h-5 text-red-600 rounded focus:ring-red-500 border-slate-300"
@@ -30,6 +32,8 @@ export const CostSection: React.FC<CostSectionProps> = ({ formData, updateField 
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1">สาเหตุความเสียหาย (Problem Source)</label>
                             <select
+                                aria-label="สาเหตุความเสียหาย"
+                                title="สาเหตุความเสียหาย"
                                 value={formData.problemSource || ''}
                                 onChange={e => updateField('problemSource', e.target.value)}
                                 className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -45,6 +49,8 @@ export const CostSection: React.FC<CostSectionProps> = ({ formData, updateField 
                             <label className="block text-sm font-bold text-slate-700 mb-1">ค่าใช้จ่าย (บาท)</label>
                             <input
                                 type="number"
+                                aria-label="จำนวนเงินค่าใช้จ่าย"
+                                title="จำนวนเงินค่าใช้จ่าย"
                                 step="0.01"
                                 value={formData.costAmount || ''}
                                 onChange={e => updateField('costAmount', Number(e.target.value))}
@@ -57,6 +63,8 @@ export const CostSection: React.FC<CostSectionProps> = ({ formData, updateField 
                             <label className="block text-sm font-bold text-slate-700 mb-1">ผู้รับผิดชอบ (Responsible)</label>
                             <input
                                 type="text"
+                                aria-label="ผู้รับผิดชอบ"
+                                title="ผู้รับผิดชอบ"
                                 value={formData.costResponsible || ''}
                                 onChange={e => updateField('costResponsible', e.target.value)}
                                 className="w-full p-2 border border-slate-300 rounded-lg bg-white text-slate-800 font-bold"

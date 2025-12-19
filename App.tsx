@@ -8,17 +8,24 @@ import NCRReport from './components/NCRReport';
 import COLReport from './components/COLReport';
 import Inventory from './components/Inventory';
 import CollectionSystem from './components/CollectionSystem';
+import LoginPage from './components/LoginPage';
 
 import { AppView, ReturnRecord } from './types';
 import { Bell } from 'lucide-react';
 import { DataProvider } from './DataContext';
 import { AuthProvider, useAuth } from './AuthContext';
+import { getRoleDisplayName } from './utils/permissions';
 
 const MainApp: React.FC = () => {
   const { user, login } = useAuth();
   const [currentView, setCurrentView] = useState<AppView>(AppView.DASHBOARD);
   const [transferData, setTransferData] = useState<Partial<ReturnRecord> | null>(null);
   const [operationsInitialStep, setOperationsInitialStep] = useState<number | undefined>(undefined);
+
+  // แสดง LoginPage ถ้ายังไม่ได้ Login
+  if (!user) {
+    return <LoginPage onLoginSuccess={login} />;
+  }
 
   const handleNCRTransfer = (data: Partial<ReturnRecord>) => {
     setTransferData(data);
@@ -80,19 +87,23 @@ const MainApp: React.FC = () => {
           </h2>
 
           <div className="flex items-center gap-4">
-            <button className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
+            <button
+              className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors"
+              aria-label="การแจ้งเตือน"
+              title="การแจ้งเตือน"
+            >
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
             </button>
             <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-              <div className="text-right hidden md:block cursor-pointer" onClick={() => !user && login('ADMIN')} title={!user ? "Click to Mock Login" : "User Logged In"}>
-                <p className="text-sm font-bold text-slate-800">{user ? (user.displayName || 'User') : 'Guest (Click to Login)'}</p>
-                <p className="text-xs text-slate-500">{user ? (user.role || 'No Role') : 'Access Restricted'}</p>
+              <div className="text-right hidden md:block">
+                <p className="text-sm font-bold text-slate-800">{user.displayName}</p>
+                <p className="text-xs text-slate-500">{getRoleDisplayName(user.role)}</p>
               </div>
               <img
-                src="https://img2.pic.in.th/pic/logo-neo.png"
-                alt="User Logo"
-                className="w-9 h-9 rounded-full object-contain bg-white p-1 border border-slate-200"
+                src={user.photoURL || 'https://img2.pic.in.th/pic/logo-neo.png'}
+                alt="User Avatar"
+                className="w-9 h-9 rounded-full object-cover bg-white p-1 border border-slate-200"
               />
             </div>
           </div>

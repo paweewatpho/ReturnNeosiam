@@ -236,7 +236,7 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
                         <span className="text-sm font-bold text-slate-600">สาขา:</span>
-                        <select value={selectedBranch} onChange={e => setSelectedBranch(e.target.value)} className="bg-transparent text-sm font-medium outline-none text-slate-800">
+                        <select aria-label="กรองสาขา" title="กรองสาขา" value={selectedBranch} onChange={e => setSelectedBranch(e.target.value)} className="bg-transparent text-sm font-medium outline-none text-slate-800">
                             <option value="All">ทุกสาขา</option>
                             {uniqueBranches.map(b => <option key={b} value={b}>{b}</option>)}
                         </select>
@@ -247,11 +247,13 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                 </div>
 
                 <div className="flex gap-3">
-                    <button onClick={handleSelectAll} className="px-4 py-2 text-sm bg-white border border-slate-300 rounded-lg hover:bg-slate-50 text-slate-600 font-bold transition-colors">
+                    <button aria-label={isAllFilteredSelected ? "ยกเลิกเลือกทั้งหมด" : "เลือกทั้งหมด"} title={isAllFilteredSelected ? "ยกเลิกเลือกทั้งหมด" : "เลือกทั้งหมด"} onClick={handleSelectAll} className="px-4 py-2 text-sm bg-white border border-slate-300 rounded-lg hover:bg-slate-50 text-slate-600 font-bold transition-colors">
                         {isAllFilteredSelected ? 'ยกเลิกเลือกทั้งหมด' : 'เลือกทั้งหมด'}
                     </button>
                     <button
                         onClick={handleOpenModal}
+                        aria-label={`ดำเนินการ ${selectedIds.size} รายการ`}
+                        title={`ดำเนินการ ${selectedIds.size} รายการ`}
                         disabled={selectedIds.size === 0}
                         className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold text-sm hover:bg-indigo-700 shadow-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
@@ -425,7 +427,7 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                                 </h2>
                                 <p className="text-sm text-slate-500 mt-0.5">กรุณาระบุข้อมูลยานพาหนะและปลายทางสำหรับ {selectedIds.size} รายการที่เลือก</p>
                             </div>
-                            <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                            <button onClick={() => setIsModalOpen(false)} aria-label="ปิด" title="ปิด" className="p-2 hover:bg-slate-100 rounded-full transition-colors">
                                 <X className="w-6 h-6 text-slate-400" />
                             </button>
                         </div>
@@ -438,12 +440,14 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                     <label className={`cursor-pointer rounded-xl border p-4 transition-all ${transportMode === 'Company' ? 'bg-indigo-50 border-indigo-500 ring-1 ring-indigo-200' : 'border-slate-200 hover:border-slate-300'}`}>
                                         <div className="flex items-center gap-2 font-bold text-slate-700 mb-2">
-                                            <input type="radio" name="transportType" checked={transportMode === 'Company'} onChange={() => { setTransportMode('Company'); setTransportInfo({ driverName: '', plateNumber: '', transportCompany: 'รถบริษัท' }); }} className="text-indigo-600 focus:ring-indigo-500" />
+                                            <input type="radio" aria-label="รถบริษัท" title="รถบริษัท" name="transportType" checked={transportMode === 'Company'} onChange={() => { setTransportMode('Company'); setTransportInfo({ driverName: '', plateNumber: '', transportCompany: 'รถบริษัท' }); }} className="text-indigo-600 focus:ring-indigo-500" />
                                             รถบริษัท
                                         </div>
                                         <div className="space-y-2 mt-2">
                                             <input
                                                 type="text"
+                                                aria-label="ชื่อพนักงานขับรถ"
+                                                title="ชื่อพนักงานขับรถ"
                                                 placeholder="ชื่อพนักงานขับรถ"
                                                 value={transportMode === 'Company' ? transportInfo.driverName : ''}
                                                 onChange={(e) => setTransportInfo({ ...transportInfo, driverName: e.target.value })}
@@ -452,6 +456,8 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                                             />
                                             <input
                                                 type="text"
+                                                aria-label="ทะเบียนรถ"
+                                                title="ทะเบียนรถ"
                                                 placeholder="ทะเบียนรถ"
                                                 value={transportMode === 'Company' ? transportInfo.plateNumber : ''}
                                                 onChange={(e) => setTransportInfo({ ...transportInfo, plateNumber: e.target.value })}
@@ -463,12 +469,14 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
 
                                     <label className={`cursor-pointer rounded-xl border p-4 transition-all ${transportMode === '3PL' ? 'bg-indigo-50 border-indigo-500 ring-1 ring-indigo-200' : 'border-slate-200 hover:border-slate-300'}`}>
                                         <div className="flex items-center gap-2 font-bold text-slate-700 mb-2">
-                                            <input type="radio" name="transportType" checked={transportMode === '3PL'} onChange={() => { setTransportMode('3PL'); setTransportInfo({ driverName: '', plateNumber: '', transportCompany: '' }); }} className="text-indigo-600 focus:ring-indigo-500" />
+                                            <input type="radio" aria-label="รถขนส่งร่วม (3PL)" title="รถขนส่งร่วม (3PL)" name="transportType" checked={transportMode === '3PL'} onChange={() => { setTransportMode('3PL'); setTransportInfo({ driverName: '', plateNumber: '', transportCompany: '' }); }} className="text-indigo-600 focus:ring-indigo-500" />
                                             รถขนส่งร่วม (3PL)
                                         </div>
                                         <div className="space-y-2 mt-2">
                                             <input
                                                 type="text"
+                                                aria-label="ระบุบริษัทขนส่ง"
+                                                title="ระบุบริษัทขนส่ง"
                                                 placeholder="ระบุบริษัทขนส่ง..."
                                                 value={transportMode === '3PL' ? transportInfo.transportCompany : ''}
                                                 onChange={(e) => setTransportInfo({ ...transportInfo, transportCompany: e.target.value })}
@@ -477,6 +485,8 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                                             />
                                             <input
                                                 type="text"
+                                                aria-label="ชื่อพนักงานขับรถ"
+                                                title="ชื่อพนักงานขับรถ"
                                                 placeholder="ชื่อพนักงานขับรถ"
                                                 value={transportMode === '3PL' ? transportInfo.driverName : ''}
                                                 onChange={(e) => setTransportInfo({ ...transportInfo, driverName: e.target.value })}
@@ -485,6 +495,8 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                                             />
                                             <input
                                                 type="text"
+                                                aria-label="ทะเบียนรถ"
+                                                title="ทะเบียนรถ"
                                                 placeholder="ทะเบียนรถ"
                                                 value={transportMode === '3PL' ? transportInfo.plateNumber : ''}
                                                 onChange={(e) => setTransportInfo({ ...transportInfo, plateNumber: e.target.value })}
@@ -496,11 +508,13 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
 
                                     <label className={`cursor-pointer rounded-xl border p-4 transition-all ${transportMode === 'Other' ? 'bg-indigo-50 border-indigo-500 ring-1 ring-indigo-200' : 'border-slate-200 hover:border-slate-300'}`}>
                                         <div className="flex items-center gap-2 font-bold text-slate-700 mb-2">
-                                            <input type="radio" name="transportType" checked={transportMode === 'Other'} onChange={() => { setTransportMode('Other'); setTransportInfo({ driverName: '', plateNumber: '', transportCompany: '' }); }} className="text-indigo-600 focus:ring-indigo-500" />
+                                            <input type="radio" aria-label="อื่นๆ" title="อื่นๆ" name="transportType" checked={transportMode === 'Other'} onChange={() => { setTransportMode('Other'); setTransportInfo({ driverName: '', plateNumber: '', transportCompany: '' }); }} className="text-indigo-600 focus:ring-indigo-500" />
                                             อื่นๆ
                                         </div>
                                         <input
                                             type="text"
+                                            aria-label="ระบุรายละเอียดการขนส่ง"
+                                            title="ระบุรายละเอียดการขนส่ง"
                                             placeholder="ระบุรายละเอียด..."
                                             value={transportMode === 'Other' ? transportInfo.transportCompany : ''}
                                             onChange={(e) => setTransportInfo({ ...transportInfo, transportCompany: e.target.value })}
@@ -519,7 +533,7 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <label className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${routeType === 'Hub' ? 'bg-indigo-50 border-indigo-500 shadow-sm ring-1 ring-indigo-200' : 'border-slate-200 hover:bg-slate-50'}`}>
                                         <div className="pt-1">
-                                            <input type="radio" name="route" checked={routeType === 'Hub'} onChange={() => setRouteType('Hub')} className="w-4 h-4 text-indigo-600" />
+                                            <input type="radio" aria-label="ส่งเข้า Hub นครสวรรค์" title="ส่งเข้า Hub นครสวรรค์" name="route" checked={routeType === 'Hub'} onChange={() => setRouteType('Hub')} className="w-4 h-4 text-indigo-600" />
                                         </div>
                                         <div>
                                             <div className="font-bold text-slate-800 text-base">Hub นครสวรรค์</div>
@@ -530,7 +544,7 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                                     <div className="flex flex-col gap-3">
                                         <label className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${routeType === 'Direct' ? 'bg-green-50 border-green-500 shadow-sm ring-1 ring-green-200' : 'border-slate-200 hover:bg-slate-50'}`}>
                                             <div className="pt-1">
-                                                <input type="radio" name="route" checked={routeType === 'Direct'} onChange={() => setRouteType('Direct')} className="w-4 h-4 text-green-600" />
+                                                <input type="radio" aria-label="ส่งตรง (Direct Return)" title="ส่งตรง (Direct Return)" name="route" checked={routeType === 'Direct'} onChange={() => setRouteType('Direct')} className="w-4 h-4 text-green-600" />
                                             </div>
                                             <div>
                                                 <div className="font-bold text-slate-800 text-base">ส่งตรง (Direct Return)</div>
@@ -544,13 +558,13 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                                                 <div className="space-y-2">
                                                     {['สาย 3', 'ซีโน', 'นีโอคอเปอเรท'].map(dest => (
                                                         <label key={dest} className="flex items-center gap-2 cursor-pointer text-sm hover:bg-green-100/50 p-1 rounded">
-                                                            <input type="radio" name="directDest" value={dest} checked={directDestination === dest} onChange={e => setDirectDestination(e.target.value)} className="text-green-600" /> {dest}
+                                                            <input type="radio" aria-label={dest} title={dest} name="directDest" value={dest} checked={directDestination === dest} onChange={e => setDirectDestination(e.target.value)} className="text-green-600" /> {dest}
                                                         </label>
                                                     ))}
                                                     <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-green-100/50 p-1 rounded">
-                                                        <input type="radio" name="directDest" value="Other" checked={directDestination === 'Other'} onChange={e => setDirectDestination(e.target.value)} className="text-green-600" /> อื่นๆ
+                                                        <input type="radio" aria-label="ปลายทางอื่น" title="ปลายทางอื่น" name="directDest" value="Other" checked={directDestination === 'Other'} onChange={e => setDirectDestination(e.target.value)} className="text-green-600" /> อื่นๆ
                                                         {directDestination === 'Other' && (
-                                                            <input type="text" value={customDestination} onChange={e => setCustomDestination(e.target.value)} placeholder="ระบุปลายทาง..." className="flex-1 ml-2 p-1.5 text-xs border border-green-300 rounded focus:ring-1 focus:ring-green-500 outline-none bg-white" autoFocus />
+                                                            <input type="text" aria-label="ระบุปลายทาง" title="ระบุปลายทาง" value={customDestination} onChange={e => setCustomDestination(e.target.value)} placeholder="ระบุปลายทาง..." className="flex-1 ml-2 p-1.5 text-xs border border-green-300 rounded focus:ring-1 focus:ring-green-500 outline-none bg-white" autoFocus />
                                                         )}
                                                     </label>
                                                 </div>
@@ -595,7 +609,7 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                                     <Share2 className="w-6 h-6 text-indigo-600" />
                                     เพิ่มการตัดสินใจเบื้องต้น
                                 </h3>
-                                <button onClick={() => setIsDecisionModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                                <button onClick={() => setIsDecisionModalOpen(false)} aria-label="ปิด" title="ปิด" className="text-slate-400 hover:text-slate-600">
                                     <X className="w-6 h-6" />
                                 </button>
                             </div>
@@ -618,6 +632,8 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                                                 <label key={route} className={`px-3 py-1 rounded border cursor-pointer transition-all ${tempRoute === route ? 'bg-indigo-50 border-indigo-500 text-indigo-700 font-bold' : 'bg-slate-50 hover:bg-indigo-50/50'}`}>
                                                     <input
                                                         type="radio"
+                                                        aria-label={route}
+                                                        title={route}
                                                         name="tempRoute"
                                                         value={route}
                                                         checked={tempRoute === route}
@@ -630,6 +646,8 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                                             <label className={`px-3 py-1 rounded border cursor-pointer transition-all ${tempRoute === 'Other' || (tempRoute && !RETURN_ROUTES.includes(tempRoute)) ? 'bg-indigo-50 border-indigo-500 text-indigo-700 font-bold' : 'bg-slate-50 hover:bg-indigo-50/50'}`}>
                                                 <input
                                                     type="radio"
+                                                    aria-label="เส้นทางอื่นๆ"
+                                                    title="เส้นทางอื่นๆ"
                                                     name="tempRoute"
                                                     value="Other"
                                                     checked={tempRoute === 'Other' || (tempRoute && !RETURN_ROUTES.includes(tempRoute))}
@@ -642,6 +660,8 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                                         {(tempRoute === 'Other' || (tempRoute && !RETURN_ROUTES.includes(tempRoute))) && (
                                             <input
                                                 type="text"
+                                                aria-label="ระบุเส้นทาง"
+                                                title="ระบุเส้นทาง"
                                                 value={tempRoute === 'Other' ? '' : tempRoute}
                                                 onChange={(e) => setTempRoute(e.target.value)}
                                                 className="w-full mt-2 p-2 border rounded text-sm focus:ring-2 focus:ring-indigo-500"

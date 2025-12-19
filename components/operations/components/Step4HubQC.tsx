@@ -304,7 +304,7 @@ export const Step4HubQC: React.FC = () => {
                                             ))}
                                         </div>
                                         {customInputType === 'Good' && (
-                                            <input type="text" placeholder="ระบุสภาพสินค้า..." className="w-full mt-2 p-2 border rounded-lg text-sm focus:ring-1 focus:ring-green-500 outline-none" value={Object.keys(conditionLabels).includes(qcSelectedItem.condition || '') ? '' : qcSelectedItem.condition} onChange={e => setQcSelectedItem({ ...qcSelectedItem, condition: e.target.value })} autoFocus />
+                                            <input type="text" aria-label="ระบุสภาพสินค้า" title="ระบุสภาพสินค้า" placeholder="ระบุสภาพสินค้า..." className="w-full mt-2 p-2 border rounded-lg text-sm focus:ring-1 focus:ring-green-500 outline-none" value={Object.keys(conditionLabels).includes(qcSelectedItem.condition || '') ? '' : qcSelectedItem.condition} onChange={e => setQcSelectedItem({ ...qcSelectedItem, condition: e.target.value })} autoFocus />
                                         )}
                                     </div>
                                     <div className="space-y-2">
@@ -317,7 +317,7 @@ export const Step4HubQC: React.FC = () => {
                                             ))}
                                         </div>
                                         {customInputType === 'Bad' && (
-                                            <input type="text" placeholder="ระบุความเสียหาย..." className="w-full mt-2 p-2 border rounded-lg text-sm focus:ring-1 focus:ring-red-500 outline-none" value={Object.keys(conditionLabels).includes(qcSelectedItem.condition || '') ? '' : qcSelectedItem.condition} onChange={e => setQcSelectedItem({ ...qcSelectedItem, condition: e.target.value })} autoFocus />
+                                            <input type="text" aria-label="ระบุความเสียหาย" title="ระบุความเสียหาย" placeholder="ระบุความเสียหาย..." className="w-full mt-2 p-2 border rounded-lg text-sm focus:ring-1 focus:ring-red-500 outline-none" value={Object.keys(conditionLabels).includes(qcSelectedItem.condition || '') ? '' : qcSelectedItem.condition} onChange={e => setQcSelectedItem({ ...qcSelectedItem, condition: e.target.value })} autoFocus />
                                         )}
                                     </div>
                                 </div>
@@ -342,38 +342,38 @@ export const Step4HubQC: React.FC = () => {
                                         <div className="flex flex-wrap gap-3">
                                             {RETURN_ROUTES.map(r => (
                                                 <label key={r} className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded border border-amber-200 text-sm text-slate-700 hover:border-amber-400">
-                                                    <input type="radio" name="route" value={r} checked={dispositionDetails.route === r} onChange={e => { handleDispositionDetailChange('route', e.target.value); setIsCustomRoute(false); }} className="text-amber-500 focus:ring-amber-500" />
+                                                    <input type="radio" aria-label={r} title={r} name="route" value={r} checked={dispositionDetails.route === r} onChange={e => { handleDispositionDetailChange('route', e.target.value); setIsCustomRoute(false); }} className="text-amber-500 focus:ring-amber-500" />
                                                     {r}
                                                 </label>
                                             ))}
                                             <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded border border-amber-200 text-sm text-slate-700 hover:border-amber-400">
-                                                <input type="radio" name="route" checked={isCustomRoute} onChange={() => { setIsCustomRoute(true); handleDispositionDetailChange('route', ''); }} className="text-amber-500 focus:ring-amber-500" />
+                                                <input type="radio" aria-label="เส้นทางอื่นๆ" title="เส้นทางอื่นๆ" name="route" checked={isCustomRoute} onChange={() => { setIsCustomRoute(true); handleDispositionDetailChange('route', ''); }} className="text-amber-500 focus:ring-amber-500" />
                                                 อื่นๆ
                                             </label>
                                         </div>
                                         {isCustomRoute && (
-                                            <input type="text" placeholder="ระบุเส้นทาง..." className="w-full mt-2 p-2 border rounded-lg text-sm focus:ring-1 focus:ring-amber-500 outline-none" value={dispositionDetails.route} onChange={e => handleDispositionDetailChange('route', e.target.value)} autoFocus />
+                                            <input type="text" aria-label="ระบุเส้นทาง" title="ระบุเส้นทาง" placeholder="ระบุเส้นทาง..." className="w-full mt-2 p-2 border rounded-lg text-sm focus:ring-1 focus:ring-amber-500 outline-none" value={dispositionDetails.route} onChange={e => handleDispositionDetailChange('route', e.target.value)} autoFocus />
                                         )}
                                     </div>
                                 )}
                                 {selectedDisposition === 'Restock' && (
                                     <div className="bg-green-50 p-4 rounded-lg border border-green-100 animate-fade-in grid grid-cols-2 gap-4">
-                                        <div><label className="block text-xs font-bold text-green-800 mb-1">ชื่อผู้ซื้อ (Buyer Name)</label><input type="text" className="w-full p-2 border border-green-200 rounded text-sm focus:ring-1 focus:ring-green-500 outline-none" value={dispositionDetails.sellerName} onChange={e => handleDispositionDetailChange('sellerName', e.target.value)} /></div>
-                                        <div><label className="block text-xs font-bold text-green-800 mb-1">เบอร์โทรติดต่อ</label><input type="text" className="w-full p-2 border border-green-200 rounded text-sm focus:ring-1 focus:ring-green-500 outline-none" value={dispositionDetails.contactPhone} onChange={e => handleDispositionDetailChange('contactPhone', e.target.value)} /></div>
+                                        <div><label className="block text-xs font-bold text-green-800 mb-1">ชื่อผู้ซื้อ (Buyer Name)</label><input type="text" aria-label="ชื่อผู้ซื้อ" title="ชื่อผู้ซื้อ" className="w-full p-2 border border-green-200 rounded text-sm focus:ring-1 focus:ring-green-500 outline-none" value={dispositionDetails.sellerName} onChange={e => handleDispositionDetailChange('sellerName', e.target.value)} /></div>
+                                        <div><label className="block text-xs font-bold text-green-800 mb-1">เบอร์โทรติดต่อ</label><input type="text" aria-label="เบอร์โทรติดต่อ" title="เบอร์โทรติดต่อ" className="w-full p-2 border border-green-200 rounded text-sm focus:ring-1 focus:ring-green-500 outline-none" value={dispositionDetails.contactPhone} onChange={e => handleDispositionDetailChange('contactPhone', e.target.value)} /></div>
                                     </div>
                                 )}
                                 {selectedDisposition === 'InternalUse' && (
                                     <div className="bg-purple-50 p-4 rounded-lg border border-purple-100 animate-fade-in">
                                         <label className="block text-xs font-bold text-purple-800 mb-1">หน่วยงาน/ผู้นำไปใช้ (Department/User)</label>
-                                        <input type="text" className="w-full p-2 border border-purple-200 rounded text-sm focus:ring-1 focus:ring-purple-500 outline-none" placeholder="เช่น แผนกบัญชี, คุณสมชาย" value={dispositionDetails.internalUseDetail} onChange={e => handleDispositionDetailChange('internalUseDetail', e.target.value)} />
+                                        <input type="text" aria-label="ระบุหน่วยงาน/ผู้นำไปใช้" title="ระบุหน่วยงาน/ผู้นำไปใช้" className="w-full p-2 border border-purple-200 rounded text-sm focus:ring-1 focus:ring-purple-500 outline-none" placeholder="เช่น แผนกบัญชี, คุณสมชาย" value={dispositionDetails.internalUseDetail} onChange={e => handleDispositionDetailChange('internalUseDetail', e.target.value)} />
                                     </div>
                                 )}
                                 {selectedDisposition === 'Claim' && (
                                     <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 animate-fade-in space-y-3">
-                                        <div><label className="block text-xs font-bold text-blue-800 mb-1">ชื่อบริษัทประกัน (Insurance Company)</label><input type="text" className="w-full p-2 border border-blue-200 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none" value={dispositionDetails.claimCompany} onChange={e => handleDispositionDetailChange('claimCompany', e.target.value)} /></div>
+                                        <div><label className="block text-xs font-bold text-blue-800 mb-1">ชื่อบริษัทประกัน (Insurance Company)</label><input type="text" aria-label="ชื่อบริษัทประกัน" title="ชื่อบริษัทประกัน" className="w-full p-2 border border-blue-200 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none" value={dispositionDetails.claimCompany} onChange={e => handleDispositionDetailChange('claimCompany', e.target.value)} /></div>
                                         <div className="grid grid-cols-2 gap-3">
-                                            <div><label className="block text-xs font-bold text-blue-800 mb-1">ผู้ประสานงาน</label><input type="text" className="w-full p-2 border border-blue-200 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none" value={dispositionDetails.claimCoordinator} onChange={e => handleDispositionDetailChange('claimCoordinator', e.target.value)} /></div>
-                                            <div><label className="block text-xs font-bold text-blue-800 mb-1">เบอร์โทร</label><input type="text" className="w-full p-2 border border-blue-200 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none" value={dispositionDetails.claimPhone} onChange={e => handleDispositionDetailChange('claimPhone', e.target.value)} /></div>
+                                            <div><label className="block text-xs font-bold text-blue-800 mb-1">ผู้ประสานงาน</label><input type="text" aria-label="ผู้ประสานงาน" title="ผู้ประสานงาน" className="w-full p-2 border border-blue-200 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none" value={dispositionDetails.claimCoordinator} onChange={e => handleDispositionDetailChange('claimCoordinator', e.target.value)} /></div>
+                                            <div><label className="block text-xs font-bold text-blue-800 mb-1">เบอร์โทร</label><input type="text" aria-label="เบอร์โทร" title="เบอร์โทร" className="w-full p-2 border border-blue-200 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none" value={dispositionDetails.claimPhone} onChange={e => handleDispositionDetailChange('claimPhone', e.target.value)} /></div>
                                         </div>
                                     </div>
                                 )}
@@ -408,6 +408,8 @@ export const Step4HubQC: React.FC = () => {
                                                             <label className="text-xs text-slate-500 block mb-1">จำนวนชิ้นย่อยใน 1 แพ็ค/ลัง (Qty per Pack)</label>
                                                             <input
                                                                 type="number"
+                                                                aria-label="จำนวนชิ้นย่อยใน 1 แพ็ค"
+                                                                title="จำนวนชิ้นย่อยใน 1 แพ็ค"
                                                                 min="1"
                                                                 value={conversionRate}
                                                                 onChange={e => setConversionRate(parseInt(e.target.value) || 1)}
@@ -419,6 +421,8 @@ export const Step4HubQC: React.FC = () => {
                                                             <label className="text-xs text-slate-500 block mb-1">ชื่อหน่วยย่อย (New Unit Name)</label>
                                                             <input
                                                                 type="text"
+                                                                aria-label="ชื่อหน่วยย่อย"
+                                                                title="ชื่อหน่วยย่อย"
                                                                 placeholder="เช่น ขวด, ชิ้น, อัน"
                                                                 value={newUnitName}
                                                                 onChange={e => setNewUnitName(e.target.value)}
@@ -461,7 +465,7 @@ export const Step4HubQC: React.FC = () => {
                                                             <div className="space-y-3 mt-3 pt-3 border-t border-slate-100">
                                                                 <div>
                                                                     <label className="text-xs text-slate-500 block mb-1">สภาพสินค้า (Condition)</label>
-                                                                    <select value={qcSelectedItem.condition || ''} onChange={e => handleConditionSelect(e.target.value as ItemCondition)} className="w-full p-2 border border-slate-300 rounded text-sm text-slate-700">
+                                                                    <select aria-label="สภาพสินค้า" title="สภาพสินค้า" value={qcSelectedItem.condition || ''} onChange={e => handleConditionSelect(e.target.value as ItemCondition)} className="w-full p-2 border border-slate-300 rounded text-sm text-slate-700">
                                                                         <option value="">-- เลือกสภาพ --</option>
                                                                         {Object.entries(conditionLabels).map(([key, label]) => (
                                                                             <option key={key} value={key}>{label}</option>
@@ -471,7 +475,7 @@ export const Step4HubQC: React.FC = () => {
                                                                 </div>
                                                                 <div>
                                                                     <label className="text-xs text-slate-500 block mb-1">ตัดสินใจ (Disposition)</label>
-                                                                    <select value={selectedDisposition || ''} onChange={e => setSelectedDisposition(e.target.value as DispositionAction)} className="w-full p-2 border border-slate-300 rounded text-sm text-slate-700">
+                                                                    <select aria-label="เลือกการตัดสินใจ" title="เลือกการตัดสินใจ" value={selectedDisposition || ''} onChange={e => setSelectedDisposition(e.target.value as DispositionAction)} className="w-full p-2 border border-slate-300 rounded text-sm text-slate-700">
                                                                         <option value="">-- เลือกการตัดสินใจ --</option>
                                                                         {Object.entries(dispositionLabels).map(([key, label]) => (
                                                                             <option key={key} value={key}>{label}</option>
@@ -488,11 +492,11 @@ export const Step4HubQC: React.FC = () => {
                                                             <div className="space-y-3">
                                                                 <div>
                                                                     <label className="text-xs text-slate-500 block mb-1">จำนวนที่แยกมา ({isBreakdownUnit ? newUnitName || 'Unit' : qcSelectedItem.unit})</label>
-                                                                    <input type="number" min="1" max={totalQ - 1} value={splitQty} onChange={e => setSplitQty(parseInt(e.target.value) || 0)} className="w-full p-2 border border-slate-300 rounded text-sm font-bold text-blue-600" />
+                                                                    <input type="number" aria-label="จำนวนที่แยกมา" title="จำนวนที่แยกมา" min="1" max={totalQ - 1} value={splitQty} onChange={e => setSplitQty(parseInt(e.target.value) || 0)} className="w-full p-2 border border-slate-300 rounded text-sm font-bold text-blue-600" />
                                                                 </div>
                                                                 <div>
                                                                     <label className="text-xs text-slate-500 block mb-1">สภาพสินค้า (Condition)</label>
-                                                                    <select value={splitCondition} onChange={e => setSplitCondition(e.target.value as ItemCondition)} className="w-full p-2 border border-slate-300 rounded text-sm">
+                                                                    <select aria-label="สภาพสินค้า" title="สภาพสินค้า" value={splitCondition} onChange={e => setSplitCondition(e.target.value as ItemCondition)} className="w-full p-2 border border-slate-300 rounded text-sm">
                                                                         {Object.entries(conditionLabels).map(([key, label]) => (
                                                                             <option key={key} value={key}>{label}</option>
                                                                         ))}
@@ -507,7 +511,7 @@ export const Step4HubQC: React.FC = () => {
                                                             {/* Split Disposition Selector */}
                                                             <div className="pt-2 border-t border-blue-100 mt-2">
                                                                 <label className="text-xs text-slate-500 block mb-1">ตัดสินใจทันที (Immediate Disposition)</label>
-                                                                <select value={splitDisposition || ''} onChange={e => setSplitDisposition(e.target.value ? e.target.value as DispositionAction : null)} className="w-full p-2 border border-slate-300 rounded text-sm text-slate-700 bg-white">
+                                                                <select aria-label="ตัดสินใจทันที" title="ตัดสินใจทันที" value={splitDisposition || ''} onChange={e => setSplitDisposition(e.target.value ? e.target.value as DispositionAction : null)} className="w-full p-2 border border-slate-300 rounded text-sm text-slate-700 bg-white">
                                                                     <option value="">-- ส่งกลับเข้าคิว QC (Default) --</option>
                                                                     {Object.entries(dispositionLabels).map(([key, label]) => (
                                                                         <option key={key} value={key}>{label}</option>
@@ -528,7 +532,7 @@ export const Step4HubQC: React.FC = () => {
 
                             <div className="mt-4 flex justify-end pt-6 border-t border-slate-200">
                                 {showSplitMode ? (
-                                    <button onClick={handleSplitSubmit} disabled={isSubmitting || splitQty <= 0 || splitQty >= (isBreakdownUnit ? (qcSelectedItem.quantity * conversionRate) : qcSelectedItem.quantity) || !selectedDisposition} className="px-8 py-3 rounded-lg bg-orange-600 text-white font-bold hover:bg-orange-700 shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-wait">
+                                    <button onClick={handleSplitSubmit} aria-label="ยืนยันการแยกรายการ" title="ยืนยันการแยกรายการ" disabled={isSubmitting || splitQty <= 0 || splitQty >= (isBreakdownUnit ? (qcSelectedItem.quantity * conversionRate) : qcSelectedItem.quantity) || !selectedDisposition} className="px-8 py-3 rounded-lg bg-orange-600 text-white font-bold hover:bg-orange-700 shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-wait">
                                         {isSubmitting ? (
                                             <>⏳ กำลังประมวลผล...</>
                                         ) : (
@@ -537,10 +541,10 @@ export const Step4HubQC: React.FC = () => {
                                     </button>
                                 ) : (
                                     <>
-                                        <button onClick={handleUndoQC} disabled={isSubmitting} className="px-6 py-3 rounded-lg bg-white border border-slate-300 text-slate-600 font-bold hover:bg-red-50 hover:text-red-600 hover:border-red-200 shadow-sm flex items-center gap-2 mr-auto disabled:opacity-50" title="ส่งกลับไปขั้นตอนรับสินค้า (Step 3)">
+                                        <button onClick={handleUndoQC} aria-label="ส่งกลับไปขั้นตอนรับสินค้า" title="ส่งกลับไปขั้นตอนรับสินค้า (Step 3)" disabled={isSubmitting} className="px-6 py-3 rounded-lg bg-white border border-slate-300 text-slate-600 font-bold hover:bg-red-50 hover:text-red-600 hover:border-red-200 shadow-sm flex items-center gap-2 mr-auto disabled:opacity-50">
                                             <Undo className="w-5 h-5" /> ส่งกลับ Step 3
                                         </button>
-                                        <button onClick={handleQCSubmit} disabled={isSubmitting || !selectedDisposition || !qcSelectedItem?.condition || qcSelectedItem.condition === 'Unknown'} className="px-8 py-3 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-wait">
+                                        <button onClick={handleQCSubmit} aria-label="ยืนยันผลการตรวจสอบ" title="ยืนยันผลการตรวจสอบ (Confirm QC)" disabled={isSubmitting || !selectedDisposition || !qcSelectedItem?.condition || qcSelectedItem.condition === 'Unknown'} className="px-8 py-3 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-wait">
                                             {isSubmitting ? (
                                                 <>⏳ กำลังบันทึก...</>
                                             ) : (
