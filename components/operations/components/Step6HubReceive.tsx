@@ -198,7 +198,7 @@ export const Step6HubReceive: React.FC = () => {
         <div className="h-full overflow-auto p-4 md:p-6">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
                 <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <Truck className="w-5 h-5 text-amber-500" /> 6. รับสินค้าเข้า Hub (Received at Hub)
+                    <Truck className="w-5 h-5 text-amber-500" /> รับสินค้าเข้า Hub (Received at Hub)
                 </h3>
                 {filteredItems.length > 0 && (
                     <button
