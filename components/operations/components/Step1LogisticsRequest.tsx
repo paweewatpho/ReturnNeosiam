@@ -3,7 +3,7 @@ import { FileText, Save, PlusCircle, FileSpreadsheet } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { ReturnRecord } from '../../../types';
 import { BRANCH_LIST } from '../../../constants';
-import { ExcelImportModal } from './ExcelImportModal';
+import { importExcelWithSwal } from './ExcelImportModal';
 // Logistics Request Form
 // Optimized for Inbound Collection System
 // Features: Branch Selection, Header Info, Simplified Item Entry
@@ -74,23 +74,26 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
         handleAddItem(null, { ...formData, quantity: finalQty, unit: formData.unit || 'ชิ้น' });
     };
 
-    const [showExcelModal, setShowExcelModal] = useState(false);
-
-    const handleBatchImport = (importedItems: Partial<ReturnRecord>[]) => {
-        // This function receives validated items from Excel Modal
-        // We pass them to parent handler (handleRequestSubmit logic handles array)
-        // Check handleRequestSubmit signature: (manualItems?: Partial<ReturnRecord>[]) => void
-        handleRequestSubmit(importedItems);
+    const handleImportClick = async () => {
+        try {
+            const importedItems = await importExcelWithSwal(existingItems);
+            if (importedItems && importedItems.length > 0) {
+                // Submit items to the system
+                handleRequestSubmit(importedItems);
+            }
+        } catch (error) {
+            console.error("Import/Submit Error:", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                text: 'ไม่สามารถบันทึกข้อมูลจากการ Import ได้ กรุณาลองใหม่อีกครั้ง'
+            });
+        }
     };
 
     return (
         <div className="h-full overflow-auto p-6 bg-slate-50">
-            {showExcelModal && (
-                <ExcelImportModal
-                    onClose={() => setShowExcelModal(false)}
-                    onConfirm={handleBatchImport}
-                />
-            )}
+
             <div className="max-w-4xl mx-auto space-y-6">
 
                 {/* Header Card */}
@@ -107,7 +110,7 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                             </div>
                         </div>
                         <button
-                            onClick={() => setShowExcelModal(true)}
+                            onClick={handleImportClick}
                             className="flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 font-bold transition-colors text-sm"
                         >
                             <FileSpreadsheet className="w-4 h-4" /> Import Excel

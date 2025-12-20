@@ -456,7 +456,7 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="flex-1 min-h-[200px]">
             {problemAnalysisData.length > 0 ? (
-              <div className="w-full h-full min-h-[300px]">
+              <div className="w-full h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={problemAnalysisData} layout="vertical" margin={{ left: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
@@ -482,7 +482,7 @@ const Dashboard: React.FC = () => {
             </h3>
             <p className="text-xs text-slate-500">สัดส่วนการจัดการสินค้า</p>
           </div>
-          <div className="flex-1 min-h-[300px] relative">
+          <div className="w-full h-[300px] relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={dispositionData} innerRadius={50} outerRadius={70} paddingAngle={2} dataKey="value">
@@ -506,7 +506,7 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="flex-1 min-h-[200px]">
             {financials.costResponsibleData.length > 0 ? (
-              <div className="w-full h-full min-h-[300px]">
+              <div className="w-full h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={financials.costResponsibleData} layout="vertical" margin={{ left: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />

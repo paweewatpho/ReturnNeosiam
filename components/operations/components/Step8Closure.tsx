@@ -1,23 +1,70 @@
-import React from 'react';
-import { FileText, MapPin, CheckCircle, RotateCcw } from 'lucide-react';
+import React, { useState } from 'react';
+import { FileText, MapPin, CheckCircle, RotateCcw, PlusSquare, MinusSquare } from 'lucide-react';
 import { useData } from '../../../DataContext';
 import { DispositionBadge } from './DispositionBadge';
+import { ReturnRecord } from '../../../types';
 import Swal from 'sweetalert2';
+
+type FilterMode = 'ALL' | 'NCR' | 'COL';
 
 export const Step8Closure: React.FC = () => {
     const { items, updateReturnRecord } = useData();
-    const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // UI State
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+    const [filterMode, setFilterMode] = useState<FilterMode>('ALL');
 
     // Filter Items: Status 'DocsCompleted', 'COL_Documented', 'NCR_Documented', 'DirectReturn', 'ReturnToSupplier'
+    // AND apply NCR/COL Filter
     const documentedItems = React.useMemo(() => {
-        return items.filter(item =>
-            item.status === 'DocsCompleted' ||
-            item.status === 'COL_Documented' ||
-            item.status === 'NCR_Documented' ||
-            item.status === 'DirectReturn' ||
-            item.status === 'ReturnToSupplier'
-        );
-    }, [items]);
+        return items.filter(item => {
+            // 1. Basic Status Check
+            const isReadyForClosure = (
+                item.status === 'DocsCompleted' ||
+                item.status === 'COL_Documented' ||
+                item.status === 'NCR_Documented' ||
+                item.status === 'DirectReturn' ||
+                item.status === 'ReturnToSupplier'
+            );
+
+            if (!isReadyForClosure) return false;
+
+            // 2. Filter Mode Check
+            const isNCR = item.documentType === 'NCR' || !!item.ncrNumber || (item.id && item.id.startsWith('NCR'));
+
+            if (filterMode === 'NCR') return isNCR;
+            if (filterMode === 'COL') return !isNCR; // Assume if not NCR, it's COL/Standard
+            return true; // ALL
+        });
+    }, [items, filterMode]);
+
+    // Grouping Logic
+    const groupedItems = React.useMemo(() => {
+        const groups: Record<string, ReturnRecord[]> = {};
+
+        documentedItems.forEach(item => {
+            // Priority: DocNo -> COL -> NCR -> ID
+            const normalize = (str?: string) => str ? str.trim().replace(/\s+/g, '').toLowerCase() : '';
+
+            const doc = normalize(item.documentNo);
+            const col = normalize(item.collectionOrderId);
+            const ncr = normalize(item.ncrNumber);
+
+            // Determine Group Key
+            const key = doc || col || ncr || item.id;
+
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(item);
+        });
+
+        // Convert to array and sort by latest date of representative
+        return Object.entries(groups).map(([key, groupItems]) => ({
+            key,
+            items: groupItems,
+            rep: groupItems[0]
+        })).sort((a, b) => (b.rep.dateRequested || '').localeCompare(a.rep.dateRequested || ''));
+    }, [documentedItems]);
 
     // Completed Items
     const completedItems = React.useMemo(() => {
@@ -87,25 +134,18 @@ export const Step8Closure: React.FC = () => {
         setIsSubmitting(true);
         try {
             // 2. Determine Previous Status
-            // Logic: Send back to Step 5 (Docs)
-            // If NCR -> 'QCPassed'
-            // If Collection -> 'ReceivedAtHub' (or 'COL_HubReceived')
-
             let targetStatus = 'ReceivedAtHub'; // Default Safe
             const isNCR = item.documentType === 'NCR' || item.ncrNumber || (item.id && item.id.startsWith('NCR'));
 
             if (isNCR) {
                 targetStatus = 'QCPassed';
             } else {
-                // Collection flow
                 targetStatus = 'ReceivedAtHub';
             }
 
             // 3. Execute Update
             await updateReturnRecord(item.id, {
                 status: targetStatus as any,
-                // Clear docs/completion info if needed, but keeping history is usually fine.
-                // Maybe clear specific flags if logic requires, but simple status revert is usually enough for the UI.
             });
 
             const Toast = Swal.mixin({
@@ -125,6 +165,98 @@ export const Step8Closure: React.FC = () => {
         }
     };
 
+    const toggleExpand = (key: string) => {
+        setExpandedGroups(prev => {
+            const next = new Set(prev);
+            if (next.has(key)) next.delete(key);
+            else next.add(key);
+            return next;
+        });
+    };
+
+    // Helper to render a single row
+    const renderRow = (item: ReturnRecord, isSubItem: boolean = false, hasChildren: boolean = false, isExpanded: boolean = false, groupKey: string = '') => {
+        const isNCR = item.documentType === 'NCR' || !!item.ncrNumber || (item.id && item.id.startsWith('NCR'));
+
+        return (
+            <tr key={item.id} className={`transition-colors border-b last:border-0 align-top text-xs text-slate-700 
+                ${isNCR ? 'bg-amber-50/50 hover:bg-amber-100/50' : 'bg-teal-50/50 hover:bg-teal-100/50'}
+                ${isSubItem ? 'bg-opacity-30' : ''}
+            `}>
+                <td className={`px-3 py-2 border-r text-center align-top ${isSubItem ? 'pl-8 bg-slate-50/50' : ''}`}>
+                    <div className="flex items-center justify-center gap-1">
+                        <button
+                            onClick={() => handleCompleteJob(item.id)}
+                            disabled={isSubmitting}
+                            aria-label="ปิดงาน (Complete)"
+                            className="bg-green-600 hover:bg-green-700 text-white px-2 py-1.5 rounded text-xs font-bold shadow-sm flex items-center gap-1 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-wait"
+                            title="ปิดงาน (Complete)"
+                        >
+                            {isSubmitting ? '...' : <><CheckCircle className="w-3 h-3" /> ปิดงาน</>}
+                        </button>
+                        <button
+                            onClick={() => handleUndo(item)}
+                            disabled={isSubmitting}
+                            aria-label="ย้อนกลับ (Undo to Docs)"
+                            className="bg-amber-100 hover:bg-amber-200 text-amber-700 px-2 py-1.5 rounded text-xs font-bold shadow-sm flex items-center gap-1 transition-all active:scale-95 border border-amber-300 disabled:opacity-50 disabled:cursor-wait"
+                            title="ย้อนกลับ (Undo to Docs)"
+                        >
+                            <RotateCcw className="w-3 h-3" />
+                        </button>
+                    </div>
+                </td>
+                <td className="px-3 py-2 border-r align-top">
+                    <span className="font-bold flex items-center gap-1"><MapPin className="w-3 h-3 text-slate-400" /> {item.branch}</span>
+                </td>
+                <td className="px-3 py-2 border-r align-top">
+                    <div className="flex items-start gap-2">
+                        {/* Expand Button Logic */}
+                        {!isSubItem && hasChildren && (
+                            <button
+                                onClick={() => toggleExpand(groupKey)}
+                                className="mt-0.5 text-blue-600 hover:text-blue-800 transition-colors"
+                                title={isExpanded ? "ซ่อนรายการย่อย" : "แสดงรายการย่อย"}
+                            >
+                                {isExpanded ? <MinusSquare className="w-4 h-4" /> : <PlusSquare className="w-4 h-4" />}
+                            </button>
+                        )}
+
+                        <div className="flex-1">
+                            <div className="font-bold text-slate-800 flex items-center gap-2">
+                                {item.productCode}
+                                {hasChildren && !isSubItem && (
+                                    <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 rounded-full">
+                                        +{groupedItems.find(g => g.key === groupKey)?.items.length! - 1} รายการ
+                                    </span>
+                                )}
+                            </div>
+                            <div className="line-clamp-2" title={item.productName}>{item.productName}</div>
+                        </div>
+                    </div>
+                </td>
+                <td className="px-3 py-2 border-r text-center font-bold text-slate-700">
+                    {item.quantity} {item.unit}
+                </td>
+                <td className="px-3 py-2 border-r text-slate-600">{item.dateRequested}</td>
+                <td className="px-3 py-2 border-r text-slate-700">{item.ncrNumber || '-'}</td>
+                <td className="px-3 py-2 border-r text-indigo-700 font-bold">{item.collectionOrderId || '-'}</td>
+                <td className="px-3 py-2 border-r text-slate-700">{item.neoRefNo || '-'}</td>
+                <td className="px-3 py-2 border-r font-mono text-blue-700 font-bold">
+                    {isNCR ? '-' : (item.documentNo || item.refNo || '-')}
+                </td>
+                <td className="px-3 py-2 border-r font-mono text-slate-700">{item.tmNo || '-'}</td>
+                <td className="px-3 py-2 border-r font-mono text-slate-700">{item.invoiceNo || '-'}</td>
+                <td className="px-3 py-2 border-r text-slate-700">{item.customerName}</td>
+                <td className="px-3 py-2 border-r text-slate-700">{item.founder || '-'}</td>
+                <td className="px-3 py-2 align-top">
+                    <span className="px-2 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 block text-center">
+                        {item.destinationCustomer || item.dispositionRoute || '-'}
+                    </span>
+                </td>
+            </tr>
+        );
+    };
+
     return (
         <div className="h-full flex flex-col p-6 animate-fade-in overflow-hidden">
             <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -134,7 +266,25 @@ export const Step8Closure: React.FC = () => {
             {/* Pending Items Table */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col mb-6 max-h-[60%]">
                 <div className="p-4 bg-purple-50 border-b border-purple-100 flex justify-between items-center">
-                    <span className="font-bold text-purple-800">รายการที่ต้องดำเนินการ ({documentedItems.length})</span>
+                    <div className="flex items-center gap-3">
+                        <span className="font-bold text-purple-800">รายการที่ต้องดำเนินการ ({documentedItems.length})</span>
+
+                        {/* Filter Toggle */}
+                        <div className="flex bg-white rounded-lg p-1 border border-purple-200 shadow-sm">
+                            {(['ALL', 'NCR', 'COL'] as const).map((mode) => (
+                                <button
+                                    key={mode}
+                                    onClick={() => setFilterMode(mode)}
+                                    className={`px-3 py-1 rounded text-xs font-bold transition-all ${filterMode === mode
+                                        ? 'bg-purple-100 text-purple-700 shadow-sm'
+                                        : 'text-slate-500 hover:bg-slate-50'
+                                        }`}
+                                >
+                                    {mode === 'ALL' ? 'ทั้งหมด' : mode}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
 
                 <div className="overflow-auto flex-1">
@@ -158,64 +308,25 @@ export const Step8Closure: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {documentedItems.length === 0 ? (
+                            {groupedItems.length === 0 ? (
                                 <tr>
-                                    <td colSpan={11} className="p-8 text-center text-slate-400">ไม่มีรายการที่รอปิดงาน</td>
+                                    <td colSpan={14} className="p-8 text-center text-slate-400">ไม่มีรายการที่รอปิดงาน</td>
                                 </tr>
                             ) : (
-                                documentedItems.map(item => {
-                                    const isNCR = item.documentType === 'NCR' || !!item.ncrNumber || (item.id && item.id.startsWith('NCR'));
+                                groupedItems.map(group => {
+                                    const hasMultiple = group.items.length > 1;
+                                    const isExpanded = expandedGroups.has(group.key);
+
                                     return (
-                                        <tr key={item.id} className={`transition-colors border-b last:border-0 align-top text-xs text-slate-700 ${isNCR ? 'bg-amber-50/50 hover:bg-amber-100/50' : 'bg-teal-50/50 hover:bg-teal-100/50'}`}>
-                                            <td className="px-3 py-2 border-r text-center align-top">
-                                                <div className="flex items-center justify-center gap-1">
-                                                    <button
-                                                        onClick={() => handleCompleteJob(item.id)}
-                                                        disabled={isSubmitting}
-                                                        aria-label="ปิดงาน (Complete)"
-                                                        className="bg-green-600 hover:bg-green-700 text-white px-2 py-1.5 rounded text-xs font-bold shadow-sm flex items-center gap-1 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-wait"
-                                                        title="ปิดงาน (Complete)"
-                                                    >
-                                                        {isSubmitting ? '...' : <><CheckCircle className="w-3 h-3" /> ปิดงาน</>}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleUndo(item)}
-                                                        disabled={isSubmitting}
-                                                        aria-label="ย้อนกลับ (Undo to Docs)"
-                                                        className="bg-amber-100 hover:bg-amber-200 text-amber-700 px-2 py-1.5 rounded text-xs font-bold shadow-sm flex items-center gap-1 transition-all active:scale-95 border border-amber-300 disabled:opacity-50 disabled:cursor-wait"
-                                                        title="ย้อนกลับ (Undo to Docs)"
-                                                    >
-                                                        <RotateCcw className="w-3 h-3" />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                            <td className="px-3 py-2 border-r align-top">
-                                                <span className="font-bold flex items-center gap-1"><MapPin className="w-3 h-3 text-slate-400" /> {item.branch}</span>
-                                            </td>
-                                            <td className="px-3 py-2 border-r align-top">
-                                                <div className="font-bold text-slate-800">{item.productCode}</div>
-                                                <div className="line-clamp-2" title={item.productName}>{item.productName}</div>
-                                            </td>
-                                            <td className="px-3 py-2 border-r text-center font-bold text-slate-700">
-                                                {item.quantity} {item.unit}
-                                            </td>
-                                            <td className="px-3 py-2 border-r text-slate-600">{item.dateRequested}</td>
-                                            <td className="px-3 py-2 border-r text-slate-700">{item.ncrNumber || '-'}</td>
-                                            <td className="px-3 py-2 border-r text-indigo-700 font-bold">{item.collectionOrderId || '-'}</td>
-                                            <td className="px-3 py-2 border-r text-slate-700">{item.neoRefNo || '-'}</td>
-                                            <td className="px-3 py-2 border-r font-mono text-blue-700 font-bold">
-                                                {isNCR ? '-' : (item.documentNo || item.refNo || '-')}
-                                            </td>
-                                            <td className="px-3 py-2 border-r font-mono text-slate-700">{item.transportManifestNo || '-'}</td>
-                                            <td className="px-3 py-2 border-r font-mono text-slate-700">{item.invoiceNo || '-'}</td>
-                                            <td className="px-3 py-2 border-r text-slate-700">{item.customerName}</td>
-                                            <td className="px-3 py-2 border-r text-slate-700">{item.founder || '-'}</td>
-                                            <td className="px-3 py-2 align-top">
-                                                <span className="px-2 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 block text-center">
-                                                    {item.destinationCustomer || item.dispositionRoute || '-'}
-                                                </span>
-                                            </td>
-                                        </tr>
+                                        <React.Fragment key={group.key}>
+                                            {/* Main Row */}
+                                            {renderRow(group.rep, false, hasMultiple, isExpanded, group.key)}
+
+                                            {/* Sub Rows */}
+                                            {hasMultiple && isExpanded && group.items.slice(1).map(subItem =>
+                                                renderRow(subItem, true)
+                                            )}
+                                        </React.Fragment>
                                     );
                                 })
                             )}
@@ -267,7 +378,7 @@ export const Step8Closure: React.FC = () => {
                                     <td className="px-3 py-2 border-r font-mono text-blue-600 font-bold">
                                         {(item.documentType === 'NCR' || !!item.ncrNumber || (item.id && item.id.startsWith('NCR'))) ? '-' : (item.documentNo || item.refNo || '-')}
                                     </td>
-                                    <td className="px-3 py-2 border-r font-mono text-slate-600">{item.transportManifestNo || '-'}</td>
+                                    <td className="px-3 py-2 border-r font-mono text-slate-600">{item.tmNo || '-'}</td>
                                     <td className="px-3 py-2 border-r font-mono text-slate-600">{item.invoiceNo || '-'}</td>
                                     <td className="px-3 py-2 border-r text-slate-600">{item.customerName}</td>
                                     <td className="px-3 py-2"><DispositionBadge disposition={item.disposition} /></td>

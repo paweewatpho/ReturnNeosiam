@@ -257,6 +257,7 @@ export interface ReturnRecord {
   pricePerUnit?: number; // ราคา/หน่วย
   priceBill?: number; // ราคาหน้าบิลรวม
   priceSell?: number; // ราคาขาย
+  discountPercent?: number; // ส่วนลด (%)
   expiryDate?: string; // วันหมดอายุ (mm/dd/yyyy)
 
   status: ReturnStatus;

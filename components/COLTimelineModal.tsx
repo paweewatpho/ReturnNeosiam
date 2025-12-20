@@ -23,36 +23,55 @@ const COLTimelineModal: React.FC<COLTimelineModalProps> = ({ isOpen, onClose, it
     };
 
     // Determine current step index based on status
-    const getStatusIndex = (status: string) => {
+    // Determine current step index based on status AND data presence (Smart Detection)
+    const getStatusIndex = (item: ReturnRecord) => {
+        let index = 0;
+        const status = (item.status || '') as string;
+
+        // 1. Base Status Check
         switch (status) {
-            case 'Requested':
-            case 'Draft': return 0;
-            case 'COL_JobAccepted':
-            case 'JobAccepted':
-            case 'NCR_JobAccepted': return 1;
-            case 'COL_BranchReceived':
-            case 'BranchReceived':
-            case 'NCR_BranchReceived': return 2;
-            case 'COL_Consolidated':
-            case 'Consolidated': return 3;
-            case 'COL_InTransit':
-            case 'InTransit':
-            case 'InTransitToHub':
-            case 'NCR_InTransit': return 4;
-            case 'COL_HubReceived':
-            case 'HubReceived':
-            case 'ReceivedAtHub':
-            case 'NCR_HubReceived': return 5;
+            case 'Completed': index = 7; break;
             case 'COL_Documented':
             case 'DocsCompleted':
             case 'ReturnToSupplier':
-            case 'DirectReturn': return 6;
-            case 'Completed': return 7;
-            default: return 0;
+            case 'DirectReturn': index = 6; break;
+            case 'COL_HubReceived':
+            case 'HubReceived':
+            case 'ReceivedAtHub':
+            case 'NCR_HubReceived': index = 5; break;
+            case 'COL_InTransit':
+            case 'InTransit':
+            case 'InTransitToHub':
+            case 'NCR_InTransit': index = 4; break;
+            case 'COL_Consolidated':
+            case 'Consolidated': index = 3; break;
+            case 'COL_BranchReceived':
+            case 'BranchReceived':
+            case 'NCR_BranchReceived': index = 2; break;
+            case 'COL_JobAccepted': // JobAccepted
+            case 'JobAccepted':
+            case 'NCR_JobAccepted': index = 1; break;
+            default: index = 0; break;
         }
+
+        // 2. Data Heuristics (Boost index if data indicates progress despite status)
+        // This fixes "Lagging Status" issues where data exists but status wasn't updated
+        if (item.dateCompleted) index = Math.max(index, 7);
+        else if (item.dateDocumented) index = Math.max(index, 6);
+        else if (item.dateHubReceived) index = Math.max(index, 5);
+        else if (item.dateInTransit) index = Math.max(index, 4);
+        else if (item.dateConsolidated) index = Math.max(index, 3);
+        else if (item.dateBranchReceived || item.dateReceived) index = Math.max(index, 2);
+        else if (item.dateJobAccepted) index = Math.max(index, 1);
+
+        // 3. Special Indicators
+        // If COL ID exists, it implies the item has been processed/consolidated at least
+        if (item.collectionOrderId) index = Math.max(index, 3); // Assume Consolidation level
+
+        return index;
     };
 
-    const currentIndex = getStatusIndex(item.status);
+    const currentIndex = getStatusIndex(item);
 
     // Fallback date for legacy data
     const fallbackDate = item.date || item.dateRequested || new Date().toISOString().split('T')[0];

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Swal from 'sweetalert2';
-import { Truck, MapPin, Printer, ArrowRight, Package, Box, Calendar, Layers, X, Info, Share2 } from 'lucide-react';
+import { Truck, MapPin, Printer, ArrowRight, Package, Box, Calendar, Layers, X, Info, Share2, PlusSquare, MinusSquare } from 'lucide-react';
 import { useData } from '../../../DataContext';
 import { ReturnRecord, TransportInfo } from '../../../types';
 import { RETURN_ROUTES } from '../../../constants';
@@ -58,6 +58,51 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
     const filteredItems = useMemo(() => pendingItems.filter(item =>
         selectedBranch === 'All' || item.branch === selectedBranch
     ), [pendingItems, selectedBranch]);
+
+    // Grouping Logic
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+    const groupedItems = useMemo(() => {
+        const groups: Record<string, ReturnRecord[]> = {};
+        filteredItems.forEach(item => {
+            // Logic must match displayId logic to be consistent visually
+            const isCOLItem = !!item.collectionOrderId || item.status === 'COL_Consolidated' || (item.id && item.id.startsWith('COL'));
+            // Use trimmed display ID as key
+            const key = isCOLItem
+                ? (item.collectionOrderId || `COL-${item.id}`)
+                : (item.ncrNumber || item.id);
+
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(item);
+        });
+        return Object.entries(groups).map(([key, gItems]) => ({
+            key,
+            items: gItems,
+            rep: gItems[0]
+        }));
+    }, [filteredItems]);
+
+    const handleToggleExpand = (groupKey: string) => {
+        setExpandedGroups(prev => {
+            const next = new Set(prev);
+            if (next.has(groupKey)) next.delete(groupKey);
+            else next.add(groupKey);
+            return next;
+        });
+    };
+
+    const handleToggleGroup = (gItems: ReturnRecord[]) => {
+        const ids = gItems.map(i => i.id);
+        const allSelected = ids.every(id => selectedIds.has(id));
+        const newSet = new Set(selectedIds);
+
+        if (allSelected) {
+            ids.forEach(id => newSet.delete(id));
+        } else {
+            ids.forEach(id => newSet.add(id));
+        }
+        setSelectedIds(newSet);
+    };
 
     const handleToggle = (id: string) => {
         const newSet = new Set(selectedIds);
@@ -264,7 +309,7 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
 
             {/* Items Grid */}
             <div className="flex-1 overflow-y-auto pb-20">
-                {filteredItems.length === 0 ? (
+                {groupedItems.length === 0 ? (
                     <div className="h-64 flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
                         <Package className="w-16 h-16 mb-4 text-slate-300" />
                         <p className="font-medium text-lg">ไม่พบรายการสินค้าที่รอจัดส่ง</p>
@@ -272,8 +317,10 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                        {filteredItems.map(item => {
-                            const isSelected = selectedIds.has(item.id);
+                        {groupedItems.map((group) => {
+                            const { key: groupKey, items: gItems, rep: item } = group;
+                            const isSelected = gItems.every(i => selectedIds.has(i.id));
+                            const isExpanded = expandedGroups.has(groupKey);
 
                             // Explicit Logic for Display
                             // 1. COL Items: Have collectionOrderId OR are in COL_Consolidated status OR id starts with COL
@@ -289,8 +336,8 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
 
                             return (
                                 <div
-                                    key={item.id}
-                                    onClick={() => handleToggle(item.id)}
+                                    key={groupKey}
+                                    onClick={() => handleToggleGroup(gItems)}
                                     className={`group relative p-4 rounded-xl border transition-all cursor-pointer shadow-sm hover:shadow-md 
                                         ${isSelected ? 'bg-indigo-50 border-indigo-400 ring-2 ring-indigo-200' : 'bg-white border-slate-200 hover:border-indigo-300'}
                                     `}
@@ -340,10 +387,45 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                                             <span className="text-slate-700">{item.dateRequested || item.date}</span>
                                         </div>
 
+                                        {/* Expand Toggle for Products */}
+                                        {gItems.length > 1 && (
+                                            <div onClick={(e) => e.stopPropagation()} className="mt-2">
+                                                <button
+                                                    onClick={() => handleToggleExpand(groupKey)}
+                                                    className={`flex items-center justify-center gap-1 w-full py-1.5 rounded text-[11px] font-bold border transition-all
+                                                        ${isExpanded ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-slate-100'}`}
+                                                >
+                                                    {isExpanded ? <MinusSquare className="w-3 h-3" /> : <PlusSquare className="w-3 h-3" />}
+                                                    {isExpanded ? 'ย่อรายการ' : `ดูอีก ${gItems.length - 1} รายการ (+)`}
+                                                </button>
+
+                                                {isExpanded && (
+                                                    <div className="flex flex-col gap-2 pt-2 border-t border-slate-100 mt-1 animate-slide-down">
+                                                        {gItems.slice(1).map((subItem) => (
+                                                            <div key={subItem.id} className="pl-2 border-l-2 border-indigo-200 text-xs">
+                                                                <div className="font-bold text-slate-700 truncate" title={subItem.productName}>{subItem.productName}</div>
+                                                                <div className="text-slate-500 flex justify-between">
+                                                                    <span>Qty: <b>{subItem.quantity} {subItem.unit}</b></span>
+                                                                    <span>{subItem.branch}</span>
+                                                                </div>
+
+                                                                {/* Individual Actions if needed, but decision is group-wide usually? Or not? 
+                                                                    If decision is per ITEM, we need buttons here. 
+                                                                    Let's assume preliminary decision applies to item. 
+                                                                    But grouping means we treat them as batch?
+                                                                    Visuals show standard cards. 
+                                                                */}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
                                         {/* Additional Info for COL Items */}
                                         {isCOLItem && (
                                             <>
-                                                <div className="flex items-center justify-between text-xs">
+                                                <div className="flex items-center justify-between text-xs mt-1">
                                                     <span className="text-slate-500">เลข R:</span>
                                                     <span className="font-mono text-slate-700">{item.documentNo || '-'}</span>
                                                 </div>
@@ -357,7 +439,17 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                                         )}
                                     </div>
 
-                                    {/* Preliminary Decision Badge */}
+                                    {/* Preliminary Decision Badge - Using Representative's decision if grouped? 
+                                        Issues: If items in group have DIFFERENT decisions? 
+                                        Usually grouped items share context. 
+                                        Let's display decision of Representative. 
+                                        Ideally, user processes them individually or batch.
+                                        If batch processing via checkboxes, no issue.
+                                        If 'Add Decision' button, it applies to Item ID.
+                                        We should probably allow adding decision for EACH item if unmatched?
+                                        For now, lets keep it simple to Rep. 
+                                        Or maybe Apply to All in group?
+                                    */}
                                     {item.preliminaryDecision && (
                                         <div className="mt-3 pt-2 border-t border-slate-100">
                                             <div className="flex flex-col gap-2">
@@ -387,12 +479,20 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                                         </div>
                                     )}
 
-                                    {/* Add Decision Button for items without preliminary decision */}
+                                    {/* Add Decision Button for items without preliminary decision - Applies to REP item only currently? 
+                                        If we want to apply to ALL, handleAddDecision needs to handle multiple IDs.
+                                        The current handleAddDecision takes one ID.
+                                        Let's keep it to Rep Item for now to avoid breaking logic, 
+                                        but ideally it should be 'Batch Decision for Group'.
+                                    */}
                                     {!item.preliminaryDecision && (
                                         <div className="mt-3 pt-2 border-t border-dashed border-amber-200 bg-amber-50/30">
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
+                                                    // Loop to update all? No, current func is single.
+                                                    // Pass single ID. 
+                                                    // Improving this might be needed later, but "Expand" was the request.
                                                     handleAddDecision(item.id);
                                                 }}
                                                 className="w-full py-2 px-3 text-xs font-bold text-amber-700 hover:text-amber-800 hover:bg-amber-100 rounded transition-colors flex items-center justify-center gap-1.5"

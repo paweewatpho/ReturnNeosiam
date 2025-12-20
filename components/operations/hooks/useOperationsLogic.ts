@@ -45,6 +45,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
     const [docData, setDocData] = useState<{ type: DispositionAction, items: ReturnRecord[] } | null>(null);
     const [includeVat, setIncludeVat] = useState(true);
     const [vatRate, setVatRate] = useState(7);
+    const [includeDiscount, setIncludeDiscount] = useState(false);
     const [discountRate, setDiscountRate] = useState(0);
     const [isDocEditable, setIsDocEditable] = useState(false);
     const [docConfig, setDocConfig] = useState({
@@ -597,6 +598,8 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             setDocData(docDataPayload);
 
             setIncludeVat(true);
+            setIncludeDiscount(false);
+            setDiscountRate(0);
             setIsDocEditable(false);
 
             // Force Modal Open immediately
@@ -829,6 +832,9 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         setDocConfig(prev => ({ ...prev, titleTH: details.th, titleEN: details.en }));
         setDocData({ type: selectionStatus, items: selectedList });
         setIncludeVat(true);
+        const isRestock = selectionStatus === 'Restock';
+        setIncludeDiscount(isRestock);
+        setDiscountRate(isRestock ? 30 : 0);
         setShowSelectionModal(false);
         setShowDocModal(true);
         setIsDocEditable(false);
@@ -929,7 +935,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             activeStep, isCustomBranch, qcSelectedItem, customInputType,
             showSplitMode, splitQty, splitCondition, isBreakdownUnit, conversionRate, newUnitName, splitDisposition,
             selectedDisposition, dispositionDetails, isCustomRoute,
-            showDocModal, docData, includeVat, vatRate, discountRate, isDocEditable, docConfig,
+            showDocModal, docData, includeVat, vatRate, includeDiscount, discountRate, isDocEditable, docConfig,
             showSelectionModal, selectionStatus, selectionItems, selectedItemIds,
             formData, requestItems, customProblemType, customRootCause,
             docSelectedItem, showStep4SplitModal,
@@ -954,7 +960,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             setShowSplitMode, setIsBreakdownUnit, setConversionRate, setNewUnitName, setSplitQty, setSplitCondition, setSplitDisposition, handleSplitSubmit,
             toggleSplitMode,
             handlePrintClick, toggleSelection, setShowSelectionModal,
-            handleGenerateDoc, setIncludeVat, setVatRate, setDiscountRate, setIsDocEditable, setDocConfig, setShowDocModal,
+            handleGenerateDoc, setIncludeVat, setVatRate, setIncludeDiscount, setDiscountRate, setIsDocEditable, setDocConfig, setShowDocModal,
             handleConfirmDocGeneration, handleUpdateDocItem,
 
             // Step 4 Split Actions

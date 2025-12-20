@@ -1,9 +1,10 @@
 import React from 'react';
-import { Activity, Box, CheckSquare, Calendar, RotateCcw, X, Truck } from 'lucide-react';
+import { Activity, Box, CheckSquare, Calendar, RotateCcw, X, Truck, Layers, PlusSquare, MinusSquare } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import Swal from 'sweetalert2';
 import { useData } from '../../../DataContext';
-// import { ReturnRecord } from '../../../types';
+import { ReturnRecord } from '../../../types';
+import { BRANCH_LIST } from '../../../constants';
 
 interface Step3BranchReceiveProps {
     onComplete?: () => void;
@@ -13,109 +14,293 @@ export const Step3BranchReceive: React.FC<Step3BranchReceiveProps> = ({ onComple
     const { items, updateReturnRecord } = useData();
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
+    // Filter State
+    const [selectedBranchFilter, setSelectedBranchFilter] = React.useState<string>('');
+
+    // Selection & Grouping State
+    const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+    const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set());
+
     // Modal State
-    const [showModal, setShowModal] = React.useState(false);
-    const [targetIds, setTargetIds] = React.useState<string[]>([]);
+    // Modal State removed
 
-    // Form State
-    const [receivedDate, setReceivedDate] = React.useState(new Date().toISOString().split('T')[0]);
-    const [driverName, setDriverName] = React.useState('');
-    const [plateNumber, setPlateNumber] = React.useState('');
-    const [editQty, setEditQty] = React.useState<number>(0);
-    const [editUnit, setEditUnit] = React.useState<string>('');
 
-    // Filter Items: Status 'JobAccepted' or 'COL_JobAccepted' ensuring NO NCR items (unless explicitly LOGISTICS)
+    // Filter Items: Status 'JobAccepted' or 'COL_JobAccepted'
     const acceptedItems = React.useMemo(() => {
         return items.filter(item => {
             // 1. Check Status
             const isStatusMatch = item.status === 'COL_JobAccepted' || item.status === 'JobAccepted';
             if (!isStatusMatch) return false;
 
-            // 2. Explicitly INCLUDE 'LOGISTICS' type (even if it has an NCR number due to legacy data)
-            if (item.documentType === 'LOGISTICS') return true;
+            // 2. Explicitly INCLUDE 'LOGISTICS' type
+            const isLogistics = item.documentType === 'LOGISTICS';
+            // 3. Exclude actual NCR items if not Logistics
+            if (!isLogistics && (item.documentType === 'NCR' || !!item.ncrNumber)) return false;
 
-            // 3. Exclude actual NCR items (Document Type 'NCR' OR has NCR Number)
-            // If it's not explicitly LOGISTICS, we assume presence of NCR Number means it belongs to NCR flow
-            if (item.documentType === 'NCR' || !!item.ncrNumber) return false;
+            // 4. Branch Filter
+            if (selectedBranchFilter && item.branch !== selectedBranchFilter) {
+                return false;
+            }
 
             return true;
         });
-    }, [items]);
+    }, [items, selectedBranchFilter]);
 
-    const handleReceiveItem = (id: string) => {
-        if (isSubmitting) return;
-        const item = items.find(i => i.id === id);
-        if (item) {
-            setEditQty(item.quantity || 0);
-            setEditUnit(item.unit || '');
-        }
-        setTargetIds([id]);
-        setDriverName('');
-        setPlateNumber('');
-        setShowModal(true);
+    // Grouping Logic: Group by Document ID (R Number)
+    const groupedItems = React.useMemo(() => {
+        const groups: Record<string, ReturnRecord[]> = {};
+
+        acceptedItems.forEach(item => {
+            const rawKey = item.documentNo ? item.documentNo.trim() : `_NO_DOC_${item.id}`;
+            const key = rawKey.toLowerCase();
+
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(item);
+        });
+
+        // Convert to array and sort by Date of the first item
+        return Object.entries(groups).map(([key, groupItems]) => ({
+            key,
+            items: groupItems,
+            rep: groupItems[0]
+        })).sort((a, b) => {
+            const dateA = new Date(a.rep.date || 0).getTime();
+            const dateB = new Date(b.rep.date || 0).getTime();
+            return dateB - dateA;
+        });
+    }, [acceptedItems]);
+
+
+    const handleToggleExpand = (groupKey: string) => {
+        const newSet = new Set(expandedGroups);
+        if (newSet.has(groupKey)) newSet.delete(groupKey);
+        else newSet.add(groupKey);
+        setExpandedGroups(newSet);
     };
 
-    const handleReceiveAll = () => {
-        if (acceptedItems.length === 0) return;
-        if (isSubmitting) return;
-        setTargetIds(acceptedItems.map(i => i.id));
-        setDriverName('');
-        setPlateNumber('');
-        setShowModal(true);
+    const handleToggleSelectGroup = (groupItems: ReturnRecord[]) => {
+        const groupIds = groupItems.map(i => i.id);
+        const allSelected = groupIds.every(id => selectedIds.includes(id));
+
+        if (allSelected) {
+            setSelectedIds(prev => prev.filter(id => !groupIds.includes(id)));
+        } else {
+            setSelectedIds(prev => Array.from(new Set([...prev, ...groupIds])));
+        }
     };
 
-    const confirmReceive = async () => {
-        // Validation
-        if (!receivedDate) {
-            Swal.fire({ icon: 'warning', title: 'กรุณาระบุวันที่รับสินค้า' });
-            return;
-        }
-        if (!driverName.trim()) {
-            Swal.fire({ icon: 'warning', title: 'กรุณาระบุชื่อพนักงานขับรถ' });
-            return;
-        }
-        if (!plateNumber.trim()) {
-            Swal.fire({ icon: 'warning', title: 'กรุณาระบุทะเบียนรถ' });
-            return;
-        }
+    const handleReceiveSelected = async () => {
+        if (selectedIds.length === 0) return;
+        if (isSubmitting) return;
 
-        setIsSubmitting(true);
-        try {
-            for (const id of targetIds) {
-                await updateReturnRecord(id, {
-                    status: 'COL_BranchReceived',
-                    dateReceived: receivedDate,
-                    dateBranchReceived: receivedDate,
-                    // If single item, update quantity and unit
-                    ...(targetIds.length === 1 ? { quantity: editQty, unit: editUnit } : {}),
-                    transportInfo: {
-                        driverName: driverName,
-                        plateNumber: plateNumber,
-                        transportCompany: 'Company' // Defaulting to internal/company as per context
+        const defaultDate = new Date().toISOString().split('T')[0];
+        const selectedItems = items.filter(i => selectedIds.includes(i.id));
+
+        // Generate Rows HTML
+        const rowsHtml = selectedItems.map(item => `
+            <tr data-id="${item.id}" class="item-row">
+                <td style="padding: 5px;"><input type="text" class="swal2-input product-name" style="margin:0; width:100%; font-size:0.9em;" value="${item.productName || ''}" placeholder="ชื่อสินค้า"></td>
+                <td style="padding: 5px;"><input type="number" class="swal2-input product-qty" style="margin:0; width:80px; font-size:0.9em;" value="${item.quantity}" min="0"></td>
+                <td style="padding: 5px;"><input type="text" class="swal2-input product-unit" style="margin:0; width:60px; font-size:0.9em;" value="${item.unit || ''}" placeholder="หน่วย"></td>
+                <td style="padding: 5px; text-align:center;">-</td>
+            </tr>
+        `).join('');
+
+        const { value: formValues } = await Swal.fire({
+            title: `บันทึกรับสินค้า (${selectedIds.length} รายการ)`,
+            width: '800px',
+            html: `
+                <div style="text-align: left; font-size: 0.9rem; color: #334155;">
+                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                        <div>
+                            <label style="display:block; font-weight:bold; margin-bottom:4px;">วันที่รับจริง <span style="color:red">*</span></label>
+                            <input id="swal-date" type="date" class="swal2-input" style="margin:0; width:100%; box-sizing:border-box;" value="${defaultDate}">
+                        </div>
+                        <div>
+                            <label style="display:block; font-weight:bold; margin-bottom:4px;">ชื่อคนขับ <span style="color:red">*</span></label>
+                            <input id="swal-driver" type="text" class="swal2-input" style="margin:0; width:100%; box-sizing:border-box;" placeholder="ระบุชื่อ...">
+                        </div>
+                        <div>
+                            <label style="display:block; font-weight:bold; margin-bottom:4px;">ทะเบียนรถ <span style="color:red">*</span></label>
+                            <input id="swal-plate" type="text" class="swal2-input" style="margin:0; width:100%; box-sizing:border-box;" placeholder="ระบุทะเบียน...">
+                        </div>
+                    </div>
+
+                    <div style="max-height: 300px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+                        <table style="width:100%; border-collapse: collapse;">
+                            <thead style="background: #f1f5f9; position: sticky; top: 0;">
+                                <tr>
+                                    <th style="padding: 8px; text-align: left; font-size: 0.85rem;">ชื่อสินค้า (Product)</th>
+                                    <th style="padding: 8px; text-align: left; font-size: 0.85rem; width: 80px;">Qty</th>
+                                    <th style="padding: 8px; text-align: left; font-size: 0.85rem; width: 60px;">Unit</th>
+                                    <th style="padding: 8px; width: 40px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="swal-items-body">
+                                ${rowsHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" id="btn-add-row" style="margin-top: 10px; width: 100%; padding: 8px; border: 1px dashed #cbd5e1; background: #f8fafc; color: #475569; font-weight: bold; cursor: pointer; border-radius: 6px;">+ เพิ่มสินค้า (Add Product)</button>
+                </div>
+            `,
+            didOpen: () => {
+                const addBtn = document.getElementById('btn-add-row');
+                const tbody = document.getElementById('swal-items-body');
+
+                if (addBtn && tbody) {
+                    addBtn.addEventListener('click', () => {
+                        const newRow = document.createElement('tr');
+                        newRow.classList.add('item-row');
+                        newRow.setAttribute('data-new', 'true');
+                        newRow.innerHTML = `
+                             <td style="padding: 5px;"><input type="text" class="swal2-input product-name" style="margin:0; width:100%; font-size:0.9em;" placeholder="ระบุชื่อสินค้า"></td>
+                            <td style="padding: 5px;"><input type="number" class="swal2-input product-qty" style="margin:0; width:80px; font-size:0.9em;" value="1" min="0"></td>
+                            <td style="padding: 5px;"><input type="text" class="swal2-input product-unit" style="margin:0; width:60px; font-size:0.9em;" placeholder="หน่วย"></td>
+                            <td style="padding: 5px; text-align:center;"><button type="button" class="btn-remove-row" style="color: red; border: none; background: none; cursor: pointer;">X</button></td>
+                        `;
+                        tbody.appendChild(newRow);
+
+                        // Scroll to bottom
+                        const container = tbody.parentElement?.parentElement;
+                        if (container) container.scrollTop = container.scrollHeight;
+
+                        // Add listener for remove button
+                        newRow.querySelector('.btn-remove-row')?.addEventListener('click', () => {
+                            newRow.remove();
+                        });
+                    });
+                }
+            },
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: 'ยืนยัน (Confirm)',
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#4f46e5',
+            preConfirm: () => {
+                const dateEl = document.getElementById('swal-date') as HTMLInputElement;
+                const driverEl = document.getElementById('swal-driver') as HTMLInputElement;
+                const plateEl = document.getElementById('swal-plate') as HTMLInputElement;
+
+                if (!dateEl.value || !driverEl.value || !plateEl.value) {
+                    Swal.showValidationMessage('กรุณากรอกวันที่, ชื่อคนขับ และทะเบียนรถ');
+                    return false;
+                }
+
+                // Gather Items
+                const rows = document.querySelectorAll('.item-row');
+                const itemsData: any[] = [];
+                let isValid = true;
+
+                rows.forEach((row: Element) => {
+                    const id = row.getAttribute('data-id');
+                    const isNew = row.getAttribute('data-new') === 'true';
+                    const name = (row.querySelector('.product-name') as HTMLInputElement).value;
+                    const qty = Number((row.querySelector('.product-qty') as HTMLInputElement).value);
+                    const unit = (row.querySelector('.product-unit') as HTMLInputElement).value;
+
+                    if (!name) {
+                        isValid = false;
+                        return;
                     }
+
+                    itemsData.push({
+                        id,
+                        isNew,
+                        productName: name,
+                        quantity: qty,
+                        unit
+                    });
                 });
+
+                if (!isValid) {
+                    Swal.showValidationMessage('กรุณาระบุชื่อสินค้าให้ครบถ้วน');
+                    return false;
+                }
+
+                return {
+                    date: dateEl.value,
+                    driver: driverEl.value,
+                    plate: plateEl.value,
+                    items: itemsData
+                };
             }
+        });
 
-            await Swal.fire({
-                icon: 'success',
-                title: 'รับสินค้าเรียบร้อย',
-                text: `บันทึกข้อมูลรับสินค้า ${targetIds.length} รายการ`,
-                timer: 1500,
-                showConfirmButton: false
-            });
+        if (formValues) {
+            setIsSubmitting(true);
+            try {
+                // transport info
+                const transportInfo = {
+                    driverName: formValues.driver,
+                    plateNumber: formValues.plate,
+                    transportCompany: 'Company'
+                };
 
-            setShowModal(false);
-            setTargetIds([]);
+                // 1. Update Existing Items
+                for (const itemData of formValues.items) {
+                    if (!itemData.isNew && itemData.id) {
+                        await updateReturnRecord(itemData.id, {
+                            status: 'COL_BranchReceived',
+                            dateReceived: formValues.date,
+                            dateBranchReceived: formValues.date,
+                            quantity: itemData.quantity,
+                            unit: itemData.unit,
+                            productName: itemData.productName,
+                            transportInfo
+                        });
+                    } else if (itemData.isNew) {
+                        // 2. Create New Item
+                        // Inherit metadata from first selected item
+                        let template = selectedItems[0];
+                        if (!template && selectedItems.length === 0) {
+                            // Should not happen as we check length > 0
+                            // But if add button used without selection? (Button is hidden if no selection)
+                            return;
+                        }
 
-            // Auto-navigate if done
-            if (acceptedItems.length === targetIds.length && onComplete) {
-                onComplete();
+                        const newId = `EXTRA_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
+                        const newRecord: ReturnRecord = {
+                            ...template,
+                            id: newId,
+                            status: 'COL_BranchReceived',
+                            dateReceived: formValues.date,
+                            dateBranchReceived: formValues.date,
+                            productCode: itemData.productName,
+                            productName: itemData.productName,
+                            quantity: itemData.quantity,
+                            unit: itemData.unit,
+                            transportInfo,
+                            documentNo: template.documentNo,
+                            invoiceNo: template.invoiceNo,
+                            tmNo: template.tmNo,
+                            collectionOrderId: template.collectionOrderId,
+                            branch: template.branch
+                        };
+
+                        await updateReturnRecord(newId, newRecord);
+                    }
+                }
+
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'รับสินค้าเรียบร้อย',
+                    text: `บันทึกข้อมูลรับสินค้า ${formValues.items.length} รายการ`,
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
+                setSelectedIds([]);
+                if (onComplete) {
+                    // onComplete();
+                }
+            } catch (error) {
+                console.error("Error receiving items:", error);
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: 'ไม่สามารถบันทึกข้อมูลได้' });
+            } finally {
+                setIsSubmitting(false);
             }
-        } catch (error) {
-            console.error("Error receiving items:", error);
-            Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: 'ไม่สามารถบันทึกข้อมูลได้' });
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
@@ -135,26 +320,15 @@ export const Step3BranchReceive: React.FC<Step3BranchReceiveProps> = ({ onComple
         if (password === '1234') {
             setIsSubmitting(true);
             try {
-                const success = await updateReturnRecord(id, {
-                    status: 'Requested'
+                await updateReturnRecord(id, { status: 'Requested' });
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'ย้อนกลับเรียบร้อย',
+                    text: 'รายการจะไปปรากฏใน Step 2',
+                    timer: 2000,
+                    showConfirmButton: false
                 });
-
-                if (success) {
-                    // Wait for Firebase listener to update UI
-                    await new Promise(resolve => setTimeout(resolve, 500));
-
-                    await Swal.fire({
-                        icon: 'success',
-                        title: 'ย้อนกลับเรียบร้อย',
-                        text: 'รายการจะไปปรากฏใน Step 2',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                } else {
-                    Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถย้อนกลับได้', 'error');
-                }
             } catch (error) {
-                console.error('[Step3] Undo Error:', error);
                 Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถย้อนกลับได้', 'error');
             } finally {
                 setIsSubmitting(false);
@@ -170,35 +344,54 @@ export const Step3BranchReceive: React.FC<Step3BranchReceiveProps> = ({ onComple
                 <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                     <Activity className="w-6 h-6 text-indigo-600" /> 3. รับสินค้า (Branch Physical Receive)
                 </h3>
-                {acceptedItems.length > 0 && (
-                    <button
-                        onClick={handleReceiveAll}
-                        disabled={isSubmitting}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-wait"
+
+                <div className="flex items-center gap-3">
+                    <select
+                        value={selectedBranchFilter}
+                        onChange={(e) => setSelectedBranchFilter(e.target.value)}
+                        className="p-2 border border-slate-300 rounded-lg text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+                        aria-label="กรองข้อมูลตามสาขา"
+                        title="กรองข้อมูลตามสาขา"
                     >
-                        {isSubmitting ? 'กำลังทำงาน...' : `รับสินค้าทั้งหมด (${acceptedItems.length})`}
-                    </button>
-                )}
+                        <option value="">ทั้งหมด (All Branches)</option>
+                        {BRANCH_LIST.map(b => (
+                            <option key={b} value={b}>{b}</option>
+                        ))}
+                    </select>
+
+                    {selectedIds.length > 0 && (
+                        <button
+                            onClick={handleReceiveSelected}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition-all flex items-center gap-2"
+                        >
+                            <CheckSquare className="w-5 h-5" /> ยืนยันรับของ ({selectedIds.length})
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col">
                 <div className="overflow-auto flex-1">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-slate-50 text-slate-600 font-bold sticky top-0 shadow-sm z-10">
+                    <table className="w-full text-sm text-left border-collapse">
+                        <thead className="bg-slate-50 text-slate-600 font-bold sticky top-0 shadow-sm z-10 text-xs uppercase">
                             <tr>
-                                <th className="p-4 border-b">สาขา (Branch)</th>
-                                <th className="p-4 border-b">ใบกำกับ / วันที่ (Inv / Date)</th>
-                                <th className="p-4 border-b">จำนวน (Qty)</th>
-                                <th className="p-4 border-b">เลขที่เอกสาร (Doc Info)</th>
-                                <th className="p-4 border-b">ลูกค้าปลายทาง</th>
-                                <th className="p-4 border-b">หมายเหตุ</th>
-                                <th className="p-4 border-b text-center">Action</th>
+                                <th className="p-3 border-b text-center w-12">#</th>
+                                <th className="p-3 border-b min-w-[100px]">วันที่ (DATE)</th>
+                                <th className="p-3 border-b min-w-[120px]">สาขา (BRANCH)</th>
+                                <th className="p-3 border-b min-w-[150px]">ลูกค้าต้นทาง</th>
+                                <th className="p-3 border-b min-w-[150px]">ลูกค้าปลายทาง</th>
+                                <th className="p-3 border-b min-w-[100px]">เลข INVOICE</th>
+                                <th className="p-3 border-b min-w-[130px]">เลขที่เอกสาร (R)</th>
+                                <th className="p-3 border-b min-w-[120px]">วันที่ใบคุมรถ</th>
+                                <th className="p-3 border-b min-w-[120px]">เลขที่ใบคุม (TM)</th>
+                                <th className="p-3 border-b min-w-[120px]">เลขที่ COL (COL NO)</th>
+                                <th className="p-3 border-b min-w-[300px]">สินค้า (PRODUCT) - EXPAND (+)</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {acceptedItems.length === 0 ? (
+                            {groupedItems.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="p-12 text-center text-slate-400">
+                                    <td colSpan={11} className="p-12 text-center text-slate-400">
                                         <div className="flex flex-col items-center gap-2">
                                             <Box className="w-8 h-8 opacity-20" />
                                             <span>ไม่มีรายการที่ต้องรับสินค้า</span>
@@ -206,166 +399,157 @@ export const Step3BranchReceive: React.FC<Step3BranchReceiveProps> = ({ onComple
                                     </td>
                                 </tr>
                             ) : (
-                                acceptedItems.map(item => (
-                                    <tr key={item.id} className="hover:bg-indigo-50/30 transition-colors">
-                                        <td className="p-4 align-top">
-                                            <div className="font-bold text-slate-700">{item.branch}</div>
-                                        </td>
-                                        <td className="p-4 align-top">
-                                            <div className="text-sm font-semibold text-slate-700">{item.invoiceNo || '-'}</div>
-                                            <div className="text-xs text-slate-500 flex items-center gap-1 mt-1">
-                                                <Calendar className="w-3 h-3" />
-                                                <span title="วันที่ใบคุมรถ">{item.controlDate || item.date || '-'}</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-4 align-top">
-                                            <div className="font-bold text-slate-700">{item.quantity} {item.unit}</div>
-                                        </td>
-                                        <td className="p-4 align-top">
-                                            <div className="flex flex-col gap-1">
-                                                <div className="flex items-center gap-1 text-xs">
-                                                    <span className="font-bold text-slate-500 w-8">R:</span>
-                                                    <span className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">{item.documentNo || '-'}</span>
+                                groupedItems.map((group) => {
+                                    const { rep, items: gItems, key: gKey } = group;
+                                    const expanded = expandedGroups.has(gKey);
+                                    const allSelected = gItems.every(i => selectedIds.includes(i.id));
+                                    const someSelected = gItems.some(i => selectedIds.includes(i.id));
+
+                                    return (
+                                        <tr key={gKey} className={`hover:bg-slate-50 transition-colors text-xs align-top ${allSelected ? 'bg-indigo-50/30' : ''}`}>
+                                            {/* Checkbox */}
+                                            <td className="p-3 text-center border-r border-slate-100 bg-slate-50/30">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={allSelected}
+                                                    aria-label={`เลือกรายการทั้งหมดในกลุ่ม ${rep.documentNo || gKey}`}
+                                                    title={`เลือกรายการทั้งหมดในกลุ่ม ${rep.documentNo || gKey}`}
+                                                    ref={input => { if (input) input.indeterminate = someSelected && !allSelected; }}
+                                                    onChange={() => handleToggleSelectGroup(gItems)}
+                                                    className="accent-indigo-600 w-4 h-4 cursor-pointer"
+                                                />
+                                            </td>
+
+                                            {/* Date */}
+                                            <td className="p-3 border-r border-slate-100 font-medium text-slate-700">
+                                                {rep.date ? new Date(rep.date).toLocaleDateString('th-TH') : '-'}
+                                            </td>
+
+                                            {/* Branch */}
+                                            <td className="p-3 border-r border-slate-100">
+                                                <div className="font-bold text-slate-700">{rep.branch}</div>
+                                            </td>
+
+                                            {/* Source Customer */}
+                                            <td className="p-3 border-r border-slate-100 text-slate-600 truncate max-w-[150px]" title={rep.customerName}>
+                                                {rep.customerName || '-'}
+                                            </td>
+
+                                            {/* Destination Customer */}
+                                            <td className="p-3 border-r border-slate-100 text-slate-600 truncate max-w-[150px]" title={rep.destinationCustomer}>
+                                                {rep.destinationCustomer || '-'}
+                                            </td>
+
+                                            {/* Invoice */}
+                                            <td className="p-3 border-r border-slate-100 text-slate-500">
+                                                {rep.invoiceNo || '-'}
+                                            </td>
+
+                                            {/* R No */}
+                                            <td className="p-3 border-r border-slate-100">
+                                                <span className="font-bold text-blue-600 dashed-underline cursor-help" title={rep.documentNo}>
+                                                    {rep.documentNo || '-'}
+                                                </span>
+                                                {gItems.length > 1 && (
+                                                    <div className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-[9px] font-bold">
+                                                        <Layers className="w-3 h-3" /> {gItems.length} Items
+                                                    </div>
+                                                )}
+                                            </td>
+
+                                            {/* Control Date */}
+                                            <td className="p-3 border-r border-slate-100 text-slate-600">
+                                                <div className="flex items-center gap-1">
+                                                    <Calendar className="w-3 h-3 text-slate-400" />
+                                                    {rep.controlDate ? new Date(rep.controlDate).toLocaleDateString('th-TH') : '-'}
                                                 </div>
-                                                <div className="flex items-center gap-1 text-xs">
-                                                    <span className="font-bold text-slate-500 w-8">TM:</span>
-                                                    <span className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">{item.tmNo || '-'}</span>
+                                            </td>
+
+                                            {/* TM No */}
+                                            <td className="p-3 border-r border-slate-100 font-mono text-slate-600">
+                                                {rep.tmNo || '-'}
+                                            </td>
+
+                                            {/* COL No */}
+                                            <td className="p-3 border-r border-slate-100">
+                                                {rep.collectionOrderId ? (
+                                                    <span className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-mono border border-indigo-100 block w-fit">
+                                                        {rep.collectionOrderId}
+                                                    </span>
+                                                ) : '-'}
+                                            </td>
+
+                                            {/* Product Column */}
+                                            <td className="p-3 border-r border-slate-100 relative">
+                                                <div className="flex flex-col gap-2">
+                                                    {/* Primary Item */}
+                                                    <div className="flex justify-between items-start group">
+                                                        <div className="flex flex-col gap-0.5">
+                                                            <div className="font-bold text-slate-800 text-xs">{gItems[0].productCode || ''}</div>
+                                                            <div className="text-slate-600 text-[11px] leading-tight">{gItems[0].productName || '-'}</div>
+                                                            <div className="text-slate-500 text-[10px] font-medium bg-slate-100 w-fit px-1.5 py-0.5 rounded mt-0.5">
+                                                                Qty: <span className="text-slate-900 font-bold">{gItems[0].quantity} {gItems[0].unit}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Undo Action */}
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleUndo(gItems[0].id); }}
+                                                            className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            title="ย้อนกลับ (Undo)"
+                                                        >
+                                                            <RotateCcw className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+
+                                                    {/* Expand Toggle */}
+                                                    {gItems.length > 1 && (
+                                                        <button
+                                                            onClick={() => handleToggleExpand(gKey)}
+                                                            className={`flex items-center justify-center gap-1 w-full py-1.5 rounded text-[11px] font-bold border transition-all
+                                                                ${expanded ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100'}`}
+                                                        >
+                                                            {expanded ? <MinusSquare className="w-3 h-3" /> : <PlusSquare className="w-3 h-3" />}
+                                                            {expanded ? 'ย่อรายการ (Collapse)' : `ดูอีก ${gItems.length - 1} รายการ (+)`}
+                                                        </button>
+                                                    )}
+
+                                                    {/* Expanded Items */}
+                                                    {expanded && gItems.length > 1 && (
+                                                        <div className="flex flex-col gap-2 pt-2 border-t border-slate-100 mt-1 animate-slide-down">
+                                                            {gItems.slice(1).map((subItem) => (
+                                                                <div key={subItem.id} className="flex justify-between items-start pl-2 border-l-2 border-indigo-200 group">
+                                                                    <div className="flex flex-col gap-0.5">
+                                                                        <div className="font-bold text-slate-700 text-xs">{subItem.productCode || ''}</div>
+                                                                        <div className="text-slate-500 text-[11px]">{subItem.productName || '-'}</div>
+                                                                        <div className="text-[10px] text-slate-400">
+                                                                            Qty: <b>{subItem.quantity} {subItem.unit}</b>
+                                                                        </div>
+                                                                    </div>
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); handleUndo(subItem.id); }}
+                                                                        className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                        title="ย้อนกลับ (Undo)"
+                                                                    >
+                                                                        <RotateCcw className="w-3 h-3" />
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div className="flex items-center gap-1 text-xs">
-                                                    <span className="font-bold text-indigo-500 w-8">COL:</span>
-                                                    <span className="font-mono text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">{item.collectionOrderId || item.id}</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="p-4 align-top text-slate-600">
-                                            {item.destinationCustomer || '-'}
-                                        </td>
-                                        <td className="p-4 align-top h-full">
-                                            <div className="text-sm text-slate-600 max-w-xs">{item.notes || '-'}</div>
-                                        </td>
-                                        <td className="p-4 align-top text-center">
-                                            <button
-                                                onClick={() => handleReceiveItem(item.id)}
-                                                disabled={isSubmitting}
-                                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-2 mx-auto whitespace-nowrap disabled:opacity-50 disabled:cursor-wait"
-                                            >
-                                                {isSubmitting ? '...' : <><CheckSquare className="w-4 h-4" /> ยืนยันรับของ</>}
-                                            </button>
-                                            <button
-                                                onClick={() => handleUndo(item.id)}
-                                                disabled={isSubmitting}
-                                                className="mt-2 text-slate-400 hover:text-red-500 hover:bg-red-50 p-1 rounded transition-colors flex items-center gap-1 mx-auto text-xs disabled:opacity-50 disabled:cursor-wait"
-                                                title="ย้อนกลับ (Undo)"
-                                            >
-                                                <RotateCcw className="w-3 h-3" /> แก้ไข/ย้อนกลับ
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            {/* Receive Modal */}
-            {showModal && createPortal(
-                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-up">
-                        <div className="bg-indigo-600 p-4 flex justify-between items-center text-white">
-                            <h3 className="font-bold flex items-center gap-2 text-lg">
-                                <Truck className="w-5 h-5" /> ยืนยันข้อมูลรับสินค้า
-                            </h3>
-                            <button onClick={() => setShowModal(false)} aria-label="ปิด" title="ปิด" className="hover:bg-indigo-700 p-1 rounded-full transition-colors">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
+            {/* Modal */}
 
-                        <div className="p-6 space-y-4">
-                            <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-lg">
-                                <p className="text-sm text-indigo-800 font-bold mb-1">
-                                    รายการที่เลือกรบ: <span className="text-indigo-600">{targetIds.length} รายการ</span>
-                                </p>
-                                <p className="text-xs text-indigo-600">กรุณาระบุข้อมูลคนขับและรถที่นำสินค้าเข้ามาส่ง</p>
-                            </div>
-
-                            {/* Quantity & Unit Edit (Single Item Only) */}
-                            {targetIds.length === 1 && (
-                                <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-700 mb-1">จำนวน (Qty)</label>
-                                        <input
-                                            type="number"
-                                            aria-label="จำนวน"
-                                            title="จำนวน"
-                                            className="w-full p-2 border border-slate-300 rounded text-sm font-bold text-blue-600 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                            value={editQty}
-                                            onChange={(e) => setEditQty(Number(e.target.value))}
-                                            min="0"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-700 mb-1">หน่วย (Unit)</label>
-                                        <input
-                                            type="text"
-                                            aria-label="หน่วย"
-                                            title="หน่วย"
-                                            placeholder="เช่น กล่อง, ชิ้น"
-                                            className="w-full p-2 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                                            value={editUnit}
-                                            onChange={(e) => setEditUnit(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-1">วันที่รับจริง (Received Date) <span className="text-red-500">*</span></label>
-                                <input
-                                    type="date"
-                                    aria-label="วันที่รับจริง"
-                                    title="วันที่รับจริง"
-                                    className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-slate-700"
-                                    value={receivedDate}
-                                    onChange={(e) => setReceivedDate(e.target.value)}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-1">ชื่อพนักงานขับรถ (Driver Name) <span className="text-red-500">*</span></label>
-                                <input
-                                    type="text"
-                                    className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    placeholder="ระบุชื่อพนักงานขับรถ..."
-                                    value={driverName}
-                                    onChange={(e) => setDriverName(e.target.value)}
-                                    autoFocus
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-1">ทะเบียนรถ (License Plate) <span className="text-red-500">*</span></label>
-                                <input
-                                    type="text"
-                                    className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    placeholder="ระบุเลขทะเบียนรถ..."
-                                    value={plateNumber}
-                                    onChange={(e) => setPlateNumber(e.target.value)}
-                                />
-                            </div>
-
-                            <button
-                                onClick={confirmReceive}
-                                disabled={isSubmitting}
-                                className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 shadow-lg transition-all mt-4 disabled:opacity-50 disabled:cursor-wait flex justify-center items-center gap-2"
-                            >
-                                {isSubmitting ? 'กำลังบันทึก...' : <>ยืนยันการรับสินค้า (Confirm)</>}
-                            </button>
-                        </div>
-                    </div>
-                </div>,
-                document.body
-            )}
         </div>
     );
 };

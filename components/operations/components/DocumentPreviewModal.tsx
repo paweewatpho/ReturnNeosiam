@@ -15,6 +15,8 @@ interface DocumentPreviewModalProps {
     setIncludeVat: (val: boolean) => void;
     vatRate: number;
     setVatRate: (val: number) => void;
+    includeDiscount: boolean;
+    setIncludeDiscount: (val: boolean) => void;
     discountRate: number;
     setDiscountRate: (val: number) => void;
     handleConfirmDocGeneration: () => void;
@@ -26,29 +28,66 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     isOpen, onClose, docData, docConfig, setDocConfig,
     isDocEditable, setIsDocEditable,
     includeVat, setIncludeVat, vatRate, setVatRate,
-    discountRate, setDiscountRate,
+    includeDiscount, setIncludeDiscount, discountRate, setDiscountRate,
     handleConfirmDocGeneration,
     onUpdateItem,
     isSubmitting = false
 }) => {
     const [editingPrices, setEditingPrices] = useState<Record<string, number>>({});
+    const [editingDiscounts, setEditingDiscounts] = useState<Record<string, number>>({});
 
     if (!isOpen || !docData) return null;
 
-    // Merge editing prices into items for calculation and display
     const effectiveItems = docData.items.map((item: any) => {
+        let newPrice = item.pricePerUnit;
         if (editingPrices[item.id] !== undefined) {
-            const newPrice = editingPrices[item.id];
-            return {
-                ...item,
-                pricePerUnit: newPrice,
-                priceBill: newPrice * (item.quantity || 1)
-            };
+            newPrice = editingPrices[item.id];
         }
-        return item;
+
+        let itemDiscount = item.discountPercent || 0;
+        // If "Include Discount" is unchecked, effectively 0 discount for processing calculation, 
+        // BUT if it IS checked, we use the value.
+        // Wait, if users uncheck the box, it should probably clear discounts? 
+        // For now, let's say if box is checked, we use the discount.
+        if (includeDiscount) {
+            if (editingDiscounts[item.id] !== undefined) {
+                itemDiscount = editingDiscounts[item.id];
+            } else if (item.discountPercent === undefined && discountRate > 0) {
+                // Fallback to global rate if not set explicitly per item yet
+                itemDiscount = discountRate;
+            }
+        } else {
+            itemDiscount = 0;
+        }
+
+        return {
+            ...item,
+            pricePerUnit: newPrice,
+            priceBill: newPrice * (item.quantity || 1),
+            discountPercent: itemDiscount // Pass down for display/calc
+        };
     });
 
-    const totals = calculateTotal(effectiveItems, includeVat, vatRate, discountRate);
+    // Custom Calculation for Item-Level Discount
+    const calculateCustomTotal = (items: any[], hasVat: boolean, vatRate: number) => {
+        let subtotal = 0;
+        let totalDiscount = 0;
+
+        items.forEach(item => {
+            const amount = item.priceBill || 0;
+            const discount = amount * ((item.discountPercent || 0) / 100);
+            subtotal += amount;
+            totalDiscount += discount;
+        });
+
+        const afterDiscount = subtotal - totalDiscount;
+        const vat = hasVat ? afterDiscount * (vatRate / 100) : 0;
+        const net = afterDiscount + vat;
+
+        return { subtotal, discount: totalDiscount, afterDiscount, vat, net };
+    };
+
+    const totals = calculateCustomTotal(effectiveItems, includeVat, vatRate);
 
     const handleExportExcel = () => {
         const title = docConfig.titleTH || getISODetails(docData.type).th;
@@ -114,7 +153,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                             <td colspan="6" class="num" style="font-weight:bold;">รวมเป็นเงิน (Subtotal)</td>
                             <td class="num" style="font-weight:bold;">${totals.subtotal.toFixed(2)}</td>
                         </tr>
-                        ${discountRate > 0 ? `
+                        ${includeDiscount ? `
                         <tr>
                             <td colspan="6" class="num">ส่วนลด (Discount ${discountRate}%)</td>
                             <td class="num" style="color:red;">-${totals.discount.toFixed(2)}</td>
@@ -161,17 +200,35 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                 <div className="flex items-center gap-3">
                     {/* Discount Controls */}
                     <div className="flex items-center gap-2 bg-slate-700 rounded-lg px-2 py-1 border border-slate-600">
-                        <span className="text-xs text-white">ส่วนลด</span>
-                        <input
-                            type="number"
-                            aria-label="ส่วนลดเปอร์เซ็นต์"
-                            title="ส่วนลดเปอร์เซ็นต์"
-                            value={discountRate}
-                            onChange={e => setDiscountRate(Number(e.target.value))}
-                            className="w-12 bg-slate-800 border border-slate-500 rounded px-1 text-center text-xs text-white focus:ring-1 focus:ring-blue-500 outline-none"
-                            min="0" max="100"
-                        />
-                        <span className="text-xs text-slate-400">%</span>
+                        <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+                            <input type="checkbox" checked={includeDiscount} onChange={e => setIncludeDiscount(e.target.checked)} className="rounded text-blue-500 focus:ring-blue-500 bg-slate-600 border-slate-500" />
+                            <span className={includeDiscount ? 'text-white' : 'text-slate-400'}>ส่วนลด</span>
+                        </label>
+                        {includeDiscount && (
+                            <div className="flex items-center gap-1 border-l border-slate-600 pl-2">
+                                <span className="text-[10px] text-slate-400 mr-1">All:</span>
+                                <input
+                                    type="number"
+                                    aria-label="ส่วนลดเปอร์เซ็นต์"
+                                    title="ส่วนลดเปอร์เซ็นต์"
+                                    value={discountRate}
+                                    onChange={e => {
+                                        const val = Number(e.target.value);
+                                        setDiscountRate(val);
+                                        // Update all items in view to this rate if they don't have custom? 
+                                        // Or just batch update everything? User expects bulk edit probably.
+                                        const newDiscounts: Record<string, number> = {};
+                                        effectiveItems.forEach((item: any) => {
+                                            newDiscounts[item.id] = val;
+                                        });
+                                        setEditingDiscounts(prev => ({ ...prev, ...newDiscounts }));
+                                    }}
+                                    className="w-12 bg-slate-800 border border-slate-500 rounded px-1 text-center text-xs text-white focus:ring-1 focus:ring-blue-500 outline-none"
+                                    min="0" max="100"
+                                />
+                                <span className="text-xs text-slate-400">%</span>
+                            </div>
+                        )}
                     </div>
 
                     {/* VAT Controls */}
@@ -311,64 +368,96 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                                 <th className="border border-slate-800 p-2 w-[60px]">หน่วย</th>
                                 <th className="border border-slate-800 p-2 w-[100px]">สภาพ</th>
                                 <th className="border border-slate-800 p-2 w-[100px]">ราคา/หน่วย</th>
+                                {includeDiscount && <th className="border border-slate-800 p-2 w-[80px]">ส่วนลด %</th>}
                                 <th className="border border-slate-800 p-2 w-[100px]">รวมเงิน</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {effectiveItems.map((item: any, idx: number) => (
-                                <tr key={idx}>
-                                    <td className="border border-slate-800 p-2 text-center">{idx + 1}</td>
-                                    <td className="border border-slate-800 p-2">{item.productCode}</td>
-                                    <td className="border border-slate-800 p-2">
-                                        <div>{item.productName}</div>
-                                        <div className="text-[10px] text-slate-500">Ref: {item.refNo}</div>
-                                    </td>
-                                    <td className="border border-slate-800 p-2 text-center font-bold">{item.quantity}</td>
-                                    <td className="border border-slate-800 p-2 text-center">{item.unit}</td>
-                                    <td className="border border-slate-800 p-2 text-center text-xs">{item.condition}</td>
-                                    <td className="border border-slate-800 p-2 text-right">
-                                        {isDocEditable ? (
-                                            <input
-                                                type="number"
-                                                aria-label="ราคาต่อหน่วย"
-                                                title="ราคาต่อหน่วย"
-                                                className="w-full text-right bg-transparent border-b border-dashed border-gray-300 focus:border-blue-500 outline-none text-sm font-bold print:border-none"
-                                                value={item.pricePerUnit ?? ((item.priceBill || 0) / (item.quantity || 1))}
-                                                onChange={(e) => {
-                                                    const val = parseFloat(e.target.value);
-                                                    setEditingPrices(prev => ({ ...prev, [item.id]: isNaN(val) ? 0 : val }));
-                                                }}
-                                                onBlur={(e) => {
-                                                    const val = parseFloat(e.target.value);
-                                                    onUpdateItem(item.id, {
-                                                        pricePerUnit: val,
-                                                        priceBill: val * (item.quantity || 1)
-                                                    });
-                                                }}
-                                            />
-                                        ) : (
-                                            (item.pricePerUnit ?? ((item.priceBill || 0) / (item.quantity || 1))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                            {effectiveItems.map((item: any, idx: number) => {
+                                const itemTotal = (item.priceBill || 0);
+                                const itemDiscount = itemTotal * ((item.discountPercent || 0) / 100);
+                                // const itemNet = itemTotal - itemDiscount;
+
+                                return (
+                                    <tr key={idx}>
+                                        <td className="border border-slate-800 p-2 text-center">{idx + 1}</td>
+                                        <td className="border border-slate-800 p-2">{item.productCode}</td>
+                                        <td className="border border-slate-800 p-2">
+                                            <div>{item.productName}</div>
+                                            <div className="text-[10px] text-slate-500">Ref: {item.refNo}</div>
+                                        </td>
+                                        <td className="border border-slate-800 p-2 text-center font-bold">{item.quantity}</td>
+                                        <td className="border border-slate-800 p-2 text-center">{item.unit}</td>
+                                        <td className="border border-slate-800 p-2 text-center text-xs">{item.condition}</td>
+                                        <td className="border border-slate-800 p-2 text-right">
+                                            {isDocEditable ? (
+                                                <input
+                                                    type="number"
+                                                    aria-label="ราคาต่อหน่วย"
+                                                    title="ราคาต่อหน่วย"
+                                                    className="w-full text-right bg-transparent border-b border-dashed border-gray-300 focus:border-blue-500 outline-none text-sm font-bold print:border-none"
+                                                    value={item.pricePerUnit ?? ((item.priceBill || 0) / (item.quantity || 1))}
+                                                    onChange={(e) => {
+                                                        const val = parseFloat(e.target.value);
+                                                        setEditingPrices(prev => ({ ...prev, [item.id]: isNaN(val) ? 0 : val }));
+                                                    }}
+                                                    onBlur={(e) => {
+                                                        const val = parseFloat(e.target.value);
+                                                        onUpdateItem(item.id, {
+                                                            pricePerUnit: val,
+                                                            priceBill: val * (item.quantity || 1)
+                                                        });
+                                                    }}
+                                                />
+                                            ) : (
+                                                (item.pricePerUnit ?? ((item.priceBill || 0) / (item.quantity || 1))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                            )}
+                                        </td>
+                                        {includeDiscount && (
+                                            <td className="border border-slate-800 p-2 text-right">
+                                                {isDocEditable ? (
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <input
+                                                            type="number"
+                                                            aria-label="ส่วนลด %"
+                                                            className="w-12 text-right bg-transparent border-b border-dashed border-gray-300 focus:border-blue-500 outline-none text-sm font-bold print:border-none"
+                                                            value={item.discountPercent || 0}
+                                                            onChange={(e) => {
+                                                                const val = parseFloat(e.target.value);
+                                                                setEditingDiscounts(prev => ({ ...prev, [item.id]: isNaN(val) ? 0 : val }));
+                                                            }}
+                                                            onBlur={(e) => {
+                                                                const val = parseFloat(e.target.value);
+                                                                onUpdateItem(item.id, { discountPercent: val });
+                                                            }}
+                                                        />
+                                                        <span className="text-[10px] text-slate-500">%</span>
+                                                    </div>
+                                                ) : (
+                                                    <span>{(item.discountPercent || 0)}%</span>
+                                                )}
+                                            </td>
                                         )}
-                                    </td>
-                                    <td className="border border-slate-800 p-2 text-right">{(item.priceBill || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                            ))}
+                                        <td className="border border-slate-800 p-2 text-right">{(item.priceBill || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    </tr>
+                                );
+                            })}
                             {/* Summary Rows */}
                             <tr className="font-bold bg-slate-50 print:bg-transparent">
-                                <td colSpan={6} rowSpan={discountRate > 0 ? (includeVat ? 5 : 3) : (includeVat ? 3 : 1)} className="border border-slate-800 p-4 text-center align-middle text-lg italic bg-slate-50 text-slate-600 print:hidden">
+                                <td colSpan={includeDiscount ? 7 : 6} rowSpan={includeDiscount ? (includeVat ? 5 : 3) : (includeVat ? 3 : 1)} className="border border-slate-800 p-4 text-center align-middle text-lg italic bg-slate-50 text-slate-600 print:hidden">
                                     ({ThaiBahtText(totals.net)})
                                 </td>
-                                <td colSpan={6} rowSpan={discountRate > 0 ? (includeVat ? 5 : 3) : (includeVat ? 3 : 1)} className="border border-slate-800 p-4 text-center align-middle text-lg italic bg-slate-50 text-slate-600 hidden print:table-cell">
+                                <td colSpan={includeDiscount ? 7 : 6} rowSpan={includeDiscount ? (includeVat ? 5 : 3) : (includeVat ? 3 : 1)} className="border border-slate-800 p-4 text-center align-middle text-lg italic bg-slate-50 text-slate-600 hidden print:table-cell">
                                     ({ThaiBahtText(totals.net)})
                                 </td>
                                 <td className="border border-slate-800 p-2 text-right">รวมเป็นเงิน</td>
                                 <td className="border border-slate-800 p-2 text-right">{totals.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             </tr>
 
-                            {discountRate > 0 && (
+                            {includeDiscount && (
                                 <>
                                     <tr className="font-bold bg-slate-50 print:bg-transparent">
-                                        <td className="border border-slate-800 p-2 text-right text-red-600">ส่วนลด {discountRate}%</td>
+                                        <td className="border border-slate-800 p-2 text-right text-red-600">ส่วนลดรวม (Discount Total)</td>
                                         <td className="border border-slate-800 p-2 text-right text-red-600">-{totals.discount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     </tr>
                                     <tr className="font-bold bg-slate-50 print:bg-transparent">

@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { db } from './firebase';
 import { ref, onValue, set, update, remove, runTransaction } from 'firebase/database';
 import { ReturnRecord } from './types';
+import Swal from 'sweetalert2';
 
 // Interface for NCR Item (the product list inside an NCR)
 export interface NCRItem {
@@ -246,25 +247,74 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const addReturnRecord = async (item: ReturnRecord): Promise<boolean> => {
-    // IRON RULE: Unique Document Number (R No) Check
-    const docNo = (item.documentNo || item.refNo || '').trim();
-    if (docNo) {
-      const targetLower = docNo.toLowerCase();
-      const isDuplicate = items.some(existing => {
-        const existingDoc = (existing.documentNo || existing.refNo || '').trim().toLowerCase();
-        // Check if existing doc number matches target
-        // Note: checking specifically the primary doc number field
-        const existingDocField = (existing.documentNo || '').trim().toLowerCase();
-        const existingRefField = (existing.refNo || '').trim().toLowerCase();
+    // IRON RULE: Unique Document Number (R No) Logic
+    // 1. "R 1 number can have products > 1": Allowed Same R + Diff Product.
+    // 2. "Forbidden if Step 2+": If R exists in Step 2 onwards, cannot add new items to it.
 
-        return existingDocField === targetLower || existingRefField === targetLower;
+    const docNo = (item.documentNo || item.refNo || '').trim();
+    const productKey = (item.productCode || item.productName || '').trim();
+
+    if (docNo) {
+      const targetDocLower = docNo.toLowerCase();
+      const targetProdLower = productKey.toLowerCase();
+
+      // Find all existing records with this R No
+      const existingWithSameR = items.filter(existing => {
+        const existingDoc = (existing.documentNo || existing.refNo || '').trim().toLowerCase();
+        return existingDoc === targetDocLower;
       });
 
-      if (isDuplicate) {
-        const msg = `ไม่สามารถบันทึกได้: เลขที่เอกสาร (เลข R) "${docNo}" มีอยู่ในระบบแล้ว (กฎเหล็ก: ห้ามซ้ำ)`;
-        console.warn("🚫 " + msg);
-        alert(msg);
-        return false;
+      if (existingWithSameR.length > 0) {
+        // Rule A: Check if any existing item is already processed (Step 2+)
+        // Statuses that are considered "Step 1" (Safe to add more): 'Draft', 'Requested'
+        const isAlreadyProcessing = existingWithSameR.some(i =>
+          i.status !== 'Draft' && i.status !== 'Requested'
+        );
+
+        if (isAlreadyProcessing) {
+          const msg = `ไม่สามารถบันทึกได้: เลขที่เอกสาร "${docNo}" กำลังดำเนินการอยู่ในระบบ (Step 2+) หรือจบงานแล้ว (ห้ามใช้ซ้ำ)`;
+          console.warn("🚫 " + msg);
+          Swal.fire({
+            icon: 'error',
+            title: 'บันทึกไม่สำเร็จ',
+            html: `
+              <div class="text-left">
+                 <p class="font-bold text-red-600 mb-2">เอกสาร ${docNo} ถูกล็อค (In Process)</p>
+                 <p class="text-sm text-slate-600">เอกสารนี้เข้าสู่กระบวนการรับคืนแล้ว (Step 2 ขึ้นไป) ไม่สามารถเพิ่มสินค้าหรือแก้ไขได้</p>
+              </div>
+            `,
+            confirmButtonText: 'รับทราบ',
+            confirmButtonColor: '#334155'
+          });
+          return false;
+        }
+
+        // Rule B: Check for Exact Duplicate (Same R + Same Product)
+        const isExactDuplicate = existingWithSameR.some(i => {
+          const existingProd = (i.productCode || i.productName || '').trim().toLowerCase();
+          return existingProd === targetProdLower;
+        });
+
+        if (isExactDuplicate) {
+          const msg = `ไม่สามารถบันทึกได้: พบรายการซ้ำ (เลขเอกสาร "${docNo}" + สินค้า "${productKey}")`;
+          console.warn("🚫 " + msg);
+          Swal.fire({
+            icon: 'warning',
+            title: 'รายการซ้ำ (Duplicate)',
+            html: `
+              <div class="text-left">
+                 <p class="font-bold text-amber-600 mb-2">เอกสาร ${docNo} มีสินค้านี้อยู่แล้ว</p>
+                 <div class="bg-amber-50 p-2 rounded border border-amber-200 text-xs text-amber-800 mb-2 font-mono">
+                    Product: ${productKey || 'Unknown'}
+                 </div>
+                 <p class="text-sm text-slate-600">ระบบไม่อนุญาตให้สร้างรายการสินค้าเดิมซ้ำในเอกสารเดียวกัน</p>
+              </div>
+            `,
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#d97706' // Amber
+          });
+          return false;
+        }
       }
     }
 
@@ -286,20 +336,47 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateReturnRecord = async (id: string, data: Partial<ReturnRecord>): Promise<boolean> => {
     // IRON RULE: Unique Document Number Check on Update
     const docNo = (data.documentNo || data.refNo || '').trim();
+
     if (docNo) {
-      const targetLower = docNo.toLowerCase();
-      const isDuplicate = items.some(existing => {
+      const targetDocLower = docNo.toLowerCase();
+
+      // Product Info Resolver (using Data or Fallback to Self)
+      const selfItem = items.find(i => i.id === id);
+      const productKey = (data.productCode || data.productName || selfItem?.productCode || selfItem?.productName || '').trim();
+      const targetProdLower = productKey.toLowerCase();
+
+      // Find conflicts with OTHER items (excluding self)
+      const existingWithSameR = items.filter(existing => {
         if (existing.id === id) return false; // Skip self
-        const existingDocField = (existing.documentNo || '').trim().toLowerCase();
-        const existingRefField = (existing.refNo || '').trim().toLowerCase();
-        return existingDocField === targetLower || existingRefField === targetLower;
+        const existingDoc = (existing.documentNo || existing.refNo || '').trim().toLowerCase();
+        return existingDoc === targetDocLower;
       });
 
-      if (isDuplicate) {
-        const msg = `ไม่สามารถบันทึกได้: เลขที่เอกสาร (เลข R) "${docNo}" มีอยู่ในระบบแล้ว (กฎเหล็ก: ห้ามซ้ำ)`;
-        console.warn("🚫 " + msg);
-        alert(msg);
-        return false;
+      if (existingWithSameR.length > 0) {
+        // Rule A: Check if any existing item is processed (Step 2+)
+        const isAlreadyProcessing = existingWithSameR.some(i =>
+          i.status !== 'Draft' && i.status !== 'Requested'
+        );
+
+        if (isAlreadyProcessing) {
+          const msg = `ไม่สามารถบันทึกได้: เลขที่เอกสาร "${docNo}" ถูกใช้งานและดำเนินการไปแล้ว (Step 2+) (ห้ามใช้ซ้ำ)`;
+          console.warn("🚫 " + msg);
+          alert(msg);
+          return false;
+        }
+
+        // Rule B: Check for Exact Duplicate (Same R + Same Product)
+        const isExactDuplicate = existingWithSameR.some(i => {
+          const existingProd = (i.productCode || i.productName || '').trim().toLowerCase();
+          return existingProd === targetProdLower;
+        });
+
+        if (isExactDuplicate) {
+          const msg = `ไม่สามารถบันทึกได้: พบรายการซ้ำ (เลขเอกสาร "${docNo}" + สินค้า "${productKey}")`;
+          console.warn("🚫 " + msg);
+          alert(msg);
+          return false;
+        }
       }
     }
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ClipboardList, Truck, X, Calendar, RotateCcw } from 'lucide-react';
+import { ClipboardList, Truck, X, Calendar, RotateCcw, Trash2, PlusSquare, MinusSquare, Layers } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useData } from '../../../DataContext';
 import { ReturnRecord, CollectionOrder } from '../../../types';
@@ -15,71 +15,14 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
     const { items, updateReturnRecord, deleteReturnRecord, getNextCollectionNumber } = useData();
 
     const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
-    const [showModal, setShowModal] = React.useState(false);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [selectedBranchFilter, setSelectedBranchFilter] = React.useState<string>('');
 
-    const [pickupDate, setPickupDate] = React.useState(new Date().toISOString().split('T')[0]);
 
-    // Handle Undo (Step 2 -> Step 1) implies deleting the request so it can be re-created or just removed
-    const handleUndo = async (id: string) => {
-        if (isSubmitting) return;
+    // Enhanced Grouping State
+    const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set());
 
-        const { value: password } = await Swal.fire({
-            title: 'ใส่รหัสผ่านเพื่อแก้ไข (Undo)',
-            input: 'password',
-            inputLabel: 'รหัสผ่าน (Password)',
-            inputPlaceholder: 'ใส่รหัสผ่าน...',
-            showCancelButton: true,
-            confirmButtonText: 'ยืนยัน',
-            cancelButtonText: 'ยกเลิก'
-        });
-
-        if (password === '1234') {
-            const confirmResult = await Swal.fire({
-                title: 'ยืนยันการลบใบงาน?',
-                text: "การกระทำนี้จะลบใบงานนี้ถาวร คุณต้องสร้างใหม่ในขั้นตอนที่ 1",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'ลบใบงาน (Delete)'
-            });
-
-            if (confirmResult.isConfirmed) {
-                setIsSubmitting(true);
-                try {
-                    // Actual delete call
-                    const success = await deleteReturnRecord(id);
-
-                    if (success) {
-                        // Wait for Firebase listener to update UI
-                        await new Promise(resolve => setTimeout(resolve, 500));
-
-                        await Swal.fire({
-                            icon: 'success',
-                            title: 'ลบเรียบร้อย',
-                            text: 'ใบงานถูกลบออกจากระบบแล้ว',
-                            timer: 2000,
-                            showConfirmButton: false
-                        });
-                    } else {
-                        Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถลบได้', 'error');
-                    }
-                } catch (error) {
-                    console.error('[Step2] Delete Error:', error);
-                    Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถลบได้', 'error');
-                } finally {
-                    setIsSubmitting(false);
-                }
-            }
-        } else if (password) {
-            Swal.fire('รหัสผ่านไม่ถูกต้อง', '', 'error');
-        }
-    };
-
-    // Filter Items: Status 'Requested' BUT exclude NCR (which go to NCR Hub Step 2)
-    // Fix: Allow items with NCR Number IF they are explicitly marked as LOGISTICS (Legacy Fix)
+    // Filter Items: Status 'Requested'
     const requestedItems = React.useMemo(() => {
         return items.filter(item => {
             if (item.status !== 'Requested') return false;
@@ -99,73 +42,241 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
         });
     }, [items, selectedBranchFilter]);
 
-    const handleToggleSelect = (id: string) => {
-        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    // Grouping Logic: Group by Document ID (R Number)
+    const groupedItems = React.useMemo(() => {
+        const groups: Record<string, ReturnRecord[]> = {};
+
+        requestedItems.forEach(item => {
+            // Key: Use Document No if available, else ID (Single Item Treat)
+            // Normalize Key: Remove spaces, lowercase
+            const rawKey = item.documentNo ? item.documentNo.trim() : `_NO_DOC_${item.id}`;
+            const key = rawKey.toLowerCase();
+
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(item);
+        });
+
+        // Convert to array and sort by Date of the first item
+        return Object.entries(groups).map(([key, groupItems]) => ({
+            key,
+            items: groupItems,
+            // Representative item for header info (Date, Branch, DocNo, TM)
+            rep: groupItems[0]
+        })).sort((a, b) => {
+            const dateA = new Date(a.rep.date || 0).getTime();
+            const dateB = new Date(b.rep.date || 0).getTime();
+            return dateB - dateA;
+        });
+    }, [requestedItems]);
+
+
+    const handleToggleExpand = (groupKey: string) => {
+        const newSet = new Set(expandedGroups);
+        if (newSet.has(groupKey)) newSet.delete(groupKey);
+        else newSet.add(groupKey);
+        setExpandedGroups(newSet);
+    };
+
+    // Updated Selection: Selects ALL items in the group
+    const handleToggleSelectGroup = (groupItems: ReturnRecord[]) => {
+        const groupIds = groupItems.map(i => i.id);
+        const allSelected = groupIds.every(id => selectedIds.includes(id));
+
+        if (allSelected) {
+            // Deselect All
+            setSelectedIds(prev => prev.filter(id => !groupIds.includes(id)));
+        } else {
+            // Select All (Union)
+            setSelectedIds(prev => Array.from(new Set([...prev, ...groupIds])));
+        }
+    };
+
+    // Bulk Update for Group (Maintain Consistency)
+    const handleUpdateGroup = async (groupItems: ReturnRecord[], field: keyof ReturnRecord, value: any) => {
+        // Optimistic UI update handled by Firebase listener, but we trigger updates for all
+        for (const item of groupItems) {
+            await updateReturnRecord(item.id, { [field]: value });
+        }
     };
 
     const handleCreateJob = async () => {
         if (selectedIds.length === 0) return;
         if (isSubmitting) return;
 
-        setIsSubmitting(true);
-        try {
-            // Use Centralized COL Number Generator (Safe & Sequential)
-            const newColId = await getNextCollectionNumber();
+        // Validation: 1 COL No must have only 1 Document No (R)
+        const selectedItems = items.filter(i => selectedIds.includes(i.id));
+        const uniqueInfos = Array.from(new Set(
+            selectedItems.map(i => (i.documentNo || '').trim())
+        )).filter(Boolean);
 
-            const newOrder: CollectionOrder = {
-                id: newColId,
-                driverId: 'Unspecified',
-                vehiclePlate: 'Unspecified',
-                linkedRmaIds: selectedIds,
-                pickupLocation: {
-                    name: 'Multiple Customers',
-                    address: 'Multiple Addresses',
-                    contactName: '-',
-                    contactPhone: '-'
-                },
-                pickupDate: pickupDate,
-                packageSummary: { totalBoxes: 1, description: 'Batch Collection' },
-                status: 'ASSIGNED',
-                createdDate: new Date().toISOString()
-            };
-
-            // 1. Create Order in Firebase
-            await set(ref(db, `collection_orders/${newColId}`), newOrder);
-
-            // 2. Update Items
-            for (const id of selectedIds) {
-                await updateReturnRecord(id, {
-                    status: 'COL_JobAccepted',
-                    collectionOrderId: newColId,
-                    dateJobAccepted: new Date().toISOString()
-                });
-            }
-
+        if (uniqueInfos.length > 1) {
             await Swal.fire({
-                icon: 'success',
-                title: 'สร้างงานสำเร็จ',
-                text: `สร้างงานรับสินค้าเรียบร้อยแล้ว: ${newColId}`,
-                timer: 2000,
-                showConfirmButton: false
+                icon: 'warning',
+                title: 'ไม่สามารถสร้างงานได้',
+                html: `กฎเหล็ก: <b>1 COL (ใบงาน) ใช้ได้กับ 1 เลขเอกสาร (R) เท่านั้น</b><br/><br/>(คุณเลือกรายการมาจาก ${uniqueInfos.length} เลขที่เอกสาร: ${uniqueInfos.join(', ')})<br/>กรุณาเลือกเฉพาะรายการของเลข R เดียวกัน`,
+                confirmButtonText: 'เข้าใจแล้ว'
             });
+            return;
+        }
 
-            setShowModal(false);
-            setSelectedIds([]);
-
-            // Navigate to next step if callback provided
-            if (onComplete) {
-                onComplete();
+        const { value: date } = await Swal.fire({
+            title: 'สร้างงานรับสินค้า (Create Job)',
+            html: `
+                <div style="text-align:left;">
+                    <label style="display:block; font-weight:bold; margin-bottom:5px;">วันที่รับสินค้า (Date)</label>
+                    <input id="swal-job-date" type="date" class="swal2-input" style="margin:0; width:100%;" value="${new Date().toISOString().split('T')[0]}">
+                </div>
+            `,
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: 'ยืนยัน (Confirm)',
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#2563eb',
+            preConfirm: () => {
+                const dateVal = (document.getElementById('swal-job-date') as HTMLInputElement).value;
+                if (!dateVal) {
+                    Swal.showValidationMessage('กรุณาระบุวันที่');
+                }
+                return dateVal;
             }
-        } catch (error) {
-            console.error('Error creating job:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'เกิดข้อผิดพลาด',
-                text: 'ไม่สามารถสร้างงานได้ กรุณาลองใหม่',
-                confirmButtonColor: '#d33'
+        });
+
+        if (date) {
+            setIsSubmitting(true);
+            try {
+                const newColId = await getNextCollectionNumber();
+
+                const newOrder: CollectionOrder = {
+                    id: newColId,
+                    driverId: 'Unspecified',
+                    vehiclePlate: 'Unspecified',
+                    linkedRmaIds: selectedIds,
+                    pickupLocation: {
+                        name: 'Multiple Customers',
+                        address: 'Multiple Addresses',
+                        contactName: '-',
+                        contactPhone: '-'
+                    },
+                    pickupDate: date,
+                    packageSummary: { totalBoxes: 1, description: 'Batch Collection' },
+                    status: 'ASSIGNED',
+                    createdDate: new Date().toISOString()
+                };
+
+                // 1. Create Order in Firebase
+                await set(ref(db, `collection_orders/${newColId}`), newOrder);
+
+                // 2. Update Items
+                for (const id of selectedIds) {
+                    await updateReturnRecord(id, {
+                        status: 'COL_JobAccepted',
+                        collectionOrderId: newColId,
+                        dateJobAccepted: new Date().toISOString()
+                    });
+                }
+
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'สร้างงานสำเร็จ',
+                    text: `สร้างงานรับสินค้าเรียบร้อยแล้ว: ${newColId}`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+                setSelectedIds([]);
+                if (onComplete) {
+                    onComplete();
+                }
+            } catch (error) {
+                console.error('Error creating job:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'ไม่สามารถสร้างงานได้ กรุณาลองใหม่',
+                    confirmButtonColor: '#d33'
+                });
+            } finally {
+                setIsSubmitting(false);
+            }
+        }
+    };
+
+    const handleDeleteItem = async (id: string) => {
+        if (isSubmitting) return;
+
+        const { value: password } = await Swal.fire({
+            title: 'ใส่รหัสผ่านเพื่อแก้ไข (Undo)',
+            input: 'password',
+            inputLabel: 'รหัสผ่าน (Password)',
+            inputPlaceholder: 'ใส่รหัสผ่าน...',
+            showCancelButton: true,
+            confirmButtonText: 'ยืนยัน',
+            cancelButtonText: 'ยกเลิก'
+        });
+
+        if (password === '1234') {
+            const confirmResult = await Swal.fire({
+                title: 'ยืนยันการลบรายการ?',
+                text: "การกระทำนี้จะลบรายการนี้ถาวร คุณต้องสร้างใหม่ในขั้นตอนที่ 1",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'ลบรายการ (Delete)'
             });
-        } finally {
-            setIsSubmitting(false);
+
+            if (confirmResult.isConfirmed) {
+                setIsSubmitting(true);
+                try {
+                    await deleteReturnRecord(id);
+                    await Swal.fire({ icon: 'success', title: 'ลบเรียบร้อย', timer: 1500, showConfirmButton: false });
+                } catch (error) {
+                    Swal.fire('Error', 'ไม่สามารถลบได้', 'error');
+                } finally {
+                    setIsSubmitting(false);
+                }
+            }
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.length === 0) return;
+        if (isSubmitting) return;
+
+        const { value: password } = await Swal.fire({
+            title: 'ใส่รหัสผ่านเพื่อลบรายการที่เลือก',
+            input: 'password',
+            inputLabel: `รหัสผ่าน (Password) - ลบ ${selectedIds.length} รายการ`,
+            inputPlaceholder: 'ใส่รหัสผ่าน...',
+            showCancelButton: true,
+            confirmButtonText: 'ยืนยัน',
+            cancelButtonText: 'ยกเลิก'
+        });
+
+        if (password === '1234') {
+            const confirmResult = await Swal.fire({
+                title: `ยืนยันการลบ ${selectedIds.length} รายการ?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'ยืนยันลบ (Delete All)'
+            });
+
+            if (confirmResult.isConfirmed) {
+                setIsSubmitting(true);
+                try {
+                    let successCount = 0;
+                    for (const id of selectedIds) {
+                        const success = await deleteReturnRecord(id);
+                        if (success) successCount++;
+                    }
+                    await Swal.fire({ icon: 'success', title: `ลบสำเร็จ ${successCount} รายการ`, timer: 2000, showConfirmButton: false });
+                    setSelectedIds([]);
+                } catch (error) {
+                    Swal.fire('Error', 'ลบไม่สำเร็จบางรายการ', 'error');
+                } finally {
+                    setIsSubmitting(false);
+                }
+            }
         }
     };
 
@@ -191,43 +302,46 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
                     </select>
 
                     {selectedIds.length > 0 && (
-                        <button
-                            onClick={() => setShowModal(true)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition-all flex items-center gap-2"
-                        >
-                            <Truck className="w-5 h-5" /> สร้างงานรับสินค้า ({selectedIds.length})
-                        </button>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handleBulkDelete}
+                                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition-all flex items-center gap-2"
+                            >
+                                <Trash2 className="w-5 h-5" /> ลบรายการที่เลือก ({selectedIds.length})
+                            </button>
+                            <button
+                                onClick={handleCreateJob}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition-all flex items-center gap-2"
+                            >
+                                <Truck className="w-5 h-5" /> สร้างงานรับสินค้า ({selectedIds.length})
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col">
                 <div className="overflow-auto flex-1">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-slate-50 text-slate-600 font-bold sticky top-0 shadow-sm z-10">
+                    <table className="w-full text-sm text-left border-collapse">
+                        <thead className="bg-slate-50 text-slate-600 font-bold sticky top-0 shadow-sm z-10 text-xs uppercase">
                             <tr>
-                                <th className="p-4 border-b w-10">
-                                    <input type="checkbox"
-                                        aria-label="เลือกทั้งหมด"
-                                        title="เลือกทั้งหมด"
-                                        onChange={(e) => setSelectedIds(e.target.checked ? requestedItems.map(i => i.id) : [])}
-                                        checked={requestedItems.length > 0 && selectedIds.length === requestedItems.length}
-                                    />
-                                </th>
-                                <th className="p-4 border-b">สาขา (Branch)</th>
-                                <th className="p-4 border-b">ใบกำกับ / วันที่ (Inv / Date)</th>
-                                <th className="p-4 border-b">จำนวน (Qty)</th>
-                                <th className="p-4 border-b">เลขที่เอกสาร (Doc Info)</th>
-                                <th className="p-4 border-b">ลูกค้าปลายทาง</th>
-                                <th className="p-4 border-b">หมายเหตุ</th>
-                                <th className="p-4 border-b text-center">Action</th>
-                                <th className="p-4 border-b text-center">สถานะ</th>
+                                <th className="p-3 border-b text-center w-12">#</th>
+                                <th className="p-3 border-b min-w-[100px]">วันที่ (DATE)</th>
+                                <th className="p-3 border-b min-w-[120px]">สาขา (BRANCH)</th>
+                                <th className="p-3 border-b min-w-[150px]">ลูกค้าต้นทาง</th>
+                                <th className="p-3 border-b min-w-[150px]">ลูกค้าปลายทาง</th>
+                                <th className="p-3 border-b min-w-[100px]">เลข INVOICE</th>
+                                <th className="p-3 border-b min-w-[130px]">เลขที่เอกสาร (R)</th>
+                                <th className="p-3 border-b min-w-[120px]">วันที่ใบคุมรถ</th>
+                                <th className="p-3 border-b min-w-[120px]">เลขที่ใบคุม (TM)</th>
+                                <th className="p-3 border-b min-w-[120px]">เลขที่ COL (COL NO)</th>
+                                <th className="p-3 border-b min-w-[300px]">สินค้า (PRODUCT) - EXPAND (+)</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {requestedItems.length === 0 ? (
+                            {groupedItems.length === 0 ? (
                                 <tr>
-                                    <td colSpan={9} className="p-12 text-center text-slate-400">
+                                    <td colSpan={11} className="p-12 text-center text-slate-400">
                                         <div className="flex flex-col items-center gap-2">
                                             <ClipboardList className="w-8 h-8 opacity-20" />
                                             <span>ไม่มีรายการใหม่ที่ต้องการการรับงาน</span>
@@ -235,81 +349,194 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
                                     </td>
                                 </tr>
                             ) : (
-                                requestedItems.map(item => (
-                                    <tr key={item.id} className="hover:bg-blue-50/50 transition-colors cursor-pointer" onClick={() => handleToggleSelect(item.id)}>
-                                        <td className="p-4 align-top">
-                                            <input type="checkbox" aria-label={`เลือกรายการ ${item.id}`} title={`เลือกรายการ ${item.id}`} checked={selectedIds.includes(item.id)} onChange={() => { }} className="accent-blue-600 w-4 h-4" />
-                                        </td>
-                                        <td className="p-4 align-top">
-                                            <select
-                                                onClick={(e) => e.stopPropagation()}
-                                                onChange={(e) => updateReturnRecord(item.id, { branch: e.target.value })}
-                                                value={item.branch || ''}
-                                                className="font-bold text-slate-700 bg-transparent border-b border-dashed border-slate-300 hover:border-blue-400 focus:border-blue-600 focus:ring-0 cursor-pointer py-1 pr-6"
-                                                title="แก้ไขสาขา"
-                                            >
-                                                <option value="" disabled>เลือกสาขา</option>
-                                                {BRANCH_LIST.map((branch) => (
-                                                    <option key={branch} value={branch}>
-                                                        {branch}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </td>
-                                        <td className="p-4 align-top">
-                                            <div className="text-sm font-semibold text-slate-700">{item.invoiceNo || '-'}</div>
-                                            <div className="text-xs text-slate-500 flex items-center gap-1 mt-1">
-                                                <Calendar className="w-3 h-3" />
-                                                <span title="วันที่ใบคุมรถ">{item.controlDate || item.date || '-'}</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-4 align-top">
-                                            <div className="font-bold text-slate-700">{item.quantity} {item.unit}</div>
-                                        </td>
-                                        <td className="p-4 align-top">
-                                            <div className="flex flex-col gap-1">
-                                                <div className="flex items-center gap-1 text-xs">
-                                                    <span className="font-bold text-slate-500 w-6">R:</span>
-                                                    <span className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">{item.documentNo || '-'}</span>
+                                groupedItems.map((group, gIndex) => {
+                                    const { rep, items: gItems, key: gKey } = group;
+                                    const expanded = expandedGroups.has(gKey);
+
+                                    // Check State: Are ALL items in group selected?
+                                    const allSelected = gItems.every(i => selectedIds.includes(i.id));
+                                    const someSelected = gItems.some(i => selectedIds.includes(i.id));
+
+                                    return (
+                                        <tr key={gKey} className={`hover:bg-slate-50 transition-colors text-xs align-top ${allSelected ? 'bg-blue-50/30' : ''}`}>
+                                            {/* # Checkbox for Group */}
+                                            <td className="p-3 text-center border-r border-slate-100 bg-slate-50/30">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={allSelected}
+                                                    aria-label={`เลือกรายการทั้งหมดในกลุ่ม ${rep.documentNo || gKey}`}
+                                                    title={`เลือกรายการทั้งหมดในกลุ่ม ${rep.documentNo || gKey}`}
+                                                    ref={input => { if (input) input.indeterminate = someSelected && !allSelected; }}
+                                                    onChange={() => handleToggleSelectGroup(gItems)}
+                                                    className="accent-blue-600 w-4 h-4 cursor-pointer"
+                                                />
+                                            </td>
+
+                                            {/* Date */}
+                                            <td className="p-3 border-r border-slate-100 font-medium text-slate-700">
+                                                {rep.date ? new Date(rep.date).toLocaleDateString('th-TH') : '-'}
+                                            </td>
+
+                                            {/* Branch (Editable - Updates All in Group) */}
+                                            <td className="p-3 border-r border-slate-100">
+                                                <select
+                                                    onChange={(e) => handleUpdateGroup(gItems, 'branch', e.target.value)}
+                                                    value={rep.branch || ''}
+                                                    aria-label="เลือกสาขา"
+                                                    title="เลือกสาขา"
+                                                    className="w-full bg-transparent border-none p-0 font-bold text-slate-700 focus:ring-0 text-xs cursor-pointer truncate"
+                                                >
+                                                    <option value="" disabled>เลือกสาขา</option>
+                                                    {BRANCH_LIST.map((branch) => (
+                                                        <option key={branch} value={branch}>{branch}</option>
+                                                    ))}
+                                                </select>
+                                                {gItems.length > 1 && <div className="text-[9px] text-slate-400 mt-1">*อัพเดท {gItems.length} รายการ</div>}
+                                            </td>
+
+                                            {/* Source Customer */}
+                                            <td className="p-3 border-r border-slate-100 text-slate-600 truncate max-w-[150px]" title={rep.customerName}>
+                                                {rep.customerName || '-'}
+                                            </td>
+
+                                            {/* Destination Customer */}
+                                            <td className="p-3 border-r border-slate-100 text-slate-600 truncate max-w-[150px]" title={rep.destinationCustomer}>
+                                                {rep.destinationCustomer || '-'}
+                                            </td>
+
+                                            {/* Invoice (Editable) */}
+                                            <td className="p-3 border-r border-slate-100 text-slate-500">
+                                                <input
+                                                    type="text"
+                                                    disabled={true} // Usually Invoice comes from import
+                                                    value={rep.invoiceNo || '-'}
+                                                    aria-label="เลขที่ Invoice"
+                                                    title="เลขที่ Invoice"
+                                                    placeholder="Invoice NO"
+                                                    // If editable needed, use handleUpdateGroup
+                                                    className="w-full bg-transparent border-none p-0 text-xs truncate"
+                                                />
+                                            </td>
+
+                                            {/* R No */}
+                                            <td className="p-3 border-r border-slate-100">
+                                                <input
+                                                    type="text"
+                                                    value={rep.documentNo || ''}
+                                                    onChange={(e) => handleUpdateGroup(gItems, 'documentNo', e.target.value)}
+                                                    className="w-full bg-transparent border-b border-dashed border-slate-300 focus:border-blue-500 outline-none text-blue-600 font-bold px-1 py-0.5"
+                                                    placeholder="R..."
+                                                    aria-label="เลขที่เอกสาร R"
+                                                    title="เลขที่เอกสาร R"
+                                                />
+                                                {gItems.length > 1 && (
+                                                    <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-[9px] font-bold">
+                                                        <Layers className="w-3 h-3" /> {gItems.length} Items
+                                                    </span>
+                                                )}
+                                            </td>
+
+                                            {/* Control Date */}
+                                            <td className="p-3 border-r border-slate-100 text-slate-600">
+                                                <div className="flex items-center gap-1">
+                                                    <Calendar className="w-3 h-3 text-slate-400" />
+                                                    {rep.controlDate ? new Date(rep.controlDate).toLocaleDateString('th-TH') : '-'}
                                                 </div>
-                                                <div className="flex items-center gap-1 text-xs">
-                                                    <span className="font-bold text-slate-500 w-6">TM:</span>
-                                                    <span className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">{item.tmNo || '-'}</span>
+                                            </td>
+
+                                            {/* TM No (Editable) */}
+                                            <td className="p-3 border-r border-slate-100">
+                                                <input
+                                                    type="text"
+                                                    value={rep.tmNo || ''}
+                                                    onChange={(e) => handleUpdateGroup(gItems, 'tmNo', e.target.value)}
+                                                    className="w-full bg-transparent border-b border-dashed border-slate-300 focus:border-blue-500 outline-none text-slate-700 font-mono px-1 py-0.5"
+                                                    placeholder="TM..."
+                                                    aria-label="เลขที่ใบคุม TM"
+                                                    title="เลขที่ใบคุม TM"
+                                                />
+                                            </td>
+
+                                            {/* COL No */}
+                                            <td className="p-3 border-r border-slate-100">
+                                                {rep.collectionOrderId ? (
+                                                    <span className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-mono border border-indigo-100 block w-fit">
+                                                        {rep.collectionOrderId}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-300">-</span>
+                                                )}
+                                            </td>
+
+                                            {/* Product Column (Expandable) */}
+                                            <td className="p-3 border-r border-slate-100 relative">
+                                                <div className="flex flex-col gap-2">
+                                                    {/* Primary Item (Always Visible) */}
+                                                    <div className="flex justify-between items-start group">
+                                                        <div className="flex flex-col gap-0.5">
+                                                            <div className="font-bold text-slate-800 text-xs">{gItems[0].productCode || ''}</div>
+                                                            <div className="text-slate-600 text-[11px] leading-tight">{gItems[0].productName || '-'}</div>
+                                                            <div className="text-slate-500 text-[10px] font-medium bg-slate-100 w-fit px-1.5 py-0.5 rounded mt-0.5">
+                                                                Qty: <span className="text-slate-900 font-bold">{gItems[0].quantity} {gItems[0].unit}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Delete Single Item Action */}
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleDeleteItem(gItems[0].id); }}
+                                                            className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            title="ลบรายการนี้"
+                                                            aria-label="ลบรายการนี้"
+                                                        >
+                                                            <X className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+
+                                                    {/* Expand Toggle Button */}
+                                                    {gItems.length > 1 && (
+                                                        <button
+                                                            onClick={() => handleToggleExpand(gKey)}
+                                                            className={`flex items-center justify-center gap-1 w-full py-1.5 rounded text-[11px] font-bold border transition-all
+                                                                ${expanded
+                                                                    ? 'bg-slate-100 text-slate-600 border-slate-200'
+                                                                    : 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100'}`}
+                                                            aria-label={expanded ? "ย่อรายการ" : "ขยายดูรายการเพิ่มเติม"}
+                                                            title={expanded ? "ย่อรายการ" : "ขยายดูรายการเพิ่มเติม"}
+                                                        >
+                                                            {expanded ? <MinusSquare className="w-3 h-3" /> : <PlusSquare className="w-3 h-3" />}
+                                                            {expanded ? 'ย่อรายการ (Collapse)' : `ดูอีก ${gItems.length - 1} รายการ (+)`}
+                                                        </button>
+                                                    )}
+
+                                                    {/* Expanded Items List */}
+                                                    {expanded && gItems.length > 1 && (
+                                                        <div className="flex flex-col gap-2 pt-2 border-t border-slate-100 mt-1 animate-slide-down">
+                                                            {gItems.slice(1).map((subItem, idx) => (
+                                                                <div key={subItem.id} className="flex justify-between items-start pl-2 border-l-2 border-indigo-200 group">
+                                                                    <div className="flex flex-col gap-0.5">
+                                                                        <div className="font-bold text-slate-700 text-xs">{subItem.productCode || ''}</div>
+                                                                        <div className="text-slate-500 text-[11px]">{subItem.productName || '-'}</div>
+                                                                        <div className="text-[10px] text-slate-400">
+                                                                            Qty: <b>{subItem.quantity} {subItem.unit}</b>
+                                                                        </div>
+                                                                    </div>
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); handleDeleteItem(subItem.id); }}
+                                                                        className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                        title="ลบรายการนี้"
+                                                                        aria-label="ลบรายการนี้"
+                                                                    >
+                                                                        <X className="w-3 h-3" />
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div className="flex items-center gap-1 text-xs">
-                                                    <span className="font-bold text-indigo-500 w-6">COL:</span>
-                                                    <span className="font-mono text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">{item.collectionOrderId || '-'}</span>
-                                                </div>
-                                                <div className="flex items-center gap-1 text-xs">
-                                                    <span className="font-bold text-blue-500 w-6">ID:</span>
-                                                    <span className="font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">{item.id}</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="p-4 align-top text-slate-600">
-                                            {item.destinationCustomer || '-'}
-                                        </td>
-                                        <td className="p-4 align-top">
-                                            <div className="text-sm text-slate-600 max-w-xs">{item.notes || '-'}</div>
-                                        </td>
-                                        <td className="p-4 align-top text-center">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleUndo(item.id);
-                                                }}
-                                                disabled={isSubmitting}
-                                                className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors disabled:opacity-50 disabled:cursor-wait"
-                                                title="ยกเลิก/ลบ (Undo)"
-                                            >
-                                                <RotateCcw className="w-4 h-4" />
-                                            </button>
-                                        </td>
-                                        <td className="p-4 align-top text-center">
-                                            <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">{item.status}</span>
-                                        </td>
-                                    </tr>
-                                ))
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
@@ -317,34 +544,7 @@ export const Step2JobAccept: React.FC<Step2JobAcceptProps> = ({ onComplete }) =>
             </div>
 
             {/* Modal */}
-            {
-                showModal && (
-                    <div className="absolute inset-0 z-20 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-up">
-                            <div className="bg-blue-600 p-4 flex justify-between items-center text-white">
-                                <h3 className="font-bold flex items-center gap-2"><Truck className="w-5 h-5" /> สร้างงานรับสินค้า</h3>
-                                <button onClick={() => setShowModal(false)} aria-label="ปิด" title="ปิด"><X className="w-5 h-5" /></button>
-                            </div>
-                            <div className="p-6 space-y-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-1">วันที่รับสินค้า (Date)</label>
-                                    <input
-                                        type="date"
-                                        aria-label="วันที่รับสินค้า"
-                                        title="วันที่รับสินค้า"
-                                        className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={pickupDate}
-                                        onChange={e => setPickupDate(e.target.value)}
-                                    />
-                                </div>
-                                <button onClick={handleCreateJob} disabled={isSubmitting} className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 shadow-lg transition-all mt-2 disabled:opacity-50 disabled:cursor-wait">
-                                    {isSubmitting ? 'กำลังสร้างใบงาน...' : 'ยืนยัน (Confirm)'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
+
         </div>
     );
 };

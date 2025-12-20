@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useData } from '../DataContext';
 import {
   FileText, Search, Download, RotateCcw, Calendar, Truck, User,
-  Printer, Edit, Trash2, X, Save
+  Printer, Edit, Trash2, X, Save, PlusSquare, MinusSquare, Layers
 } from 'lucide-react';
 import { ReturnRecord, ReturnStatus } from '../types';
 import { formatDate } from '../utils/dateUtils';
@@ -43,6 +43,59 @@ const COLReport: React.FC<COLReportProps> = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
 
+  // Grouping State
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  // --- SMART TRACKER: R68121552 ---
+  // Tracks and reports the exact location of the user's specific document
+  useEffect(() => {
+    const targetDoc = 'R68121552';
+    const foundItems = items.filter(i =>
+      (i.documentNo && i.documentNo.includes(targetDoc)) ||
+      (i.refNo && i.refNo.includes(targetDoc))
+    );
+
+    if (foundItems.length > 0) {
+      const item = foundItems[0];
+      const locationMap: Record<string, string> = {
+        'Draft': 'Step 1: สร้างใบงาน (Draft) - ยังไม่ถูกส่งเข้าระบบ',
+        'Requested': 'Step 1: รอรับงาน (Requested) - อยู่ในหน้ารายงานนี้',
+        'JobAccepted': 'Step 2: รับงานแล้ว (Job Accepted)',
+        'COL_JobAccepted': 'Step 2: รับงานแล้ว (Job Accepted)',
+        'BranchReceived': 'Step 3: รับเข้าสาขา (Rx)',
+        'COL_BranchReceived': 'Step 3: รับเข้าสาขา (Rx)',
+        'Consolidated': 'Step 4: รวมสินค้า (Consol)',
+        'COL_Consolidated': 'Step 4: รวมสินค้า (Consol)',
+        'InTransit': 'Step 5: ระหว่างขนส่ง',
+        'COL_InTransit': 'Step 5: ระหว่างขนส่ง',
+        'HubReceived': 'Step 6: ถึง Hub',
+        'COL_HubReceived': 'Step 6: ถึง Hub',
+        'Completed': 'Step 7: จบงาน',
+        'Canceled': 'ถูกยกเลิก (Canceled)'
+      };
+
+      const location = locationMap[item.status || ''] || `สถานะ: ${item.status}`;
+
+      // Notify user clearly where it is
+      const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 4000,
+        timerProgressBar: true,
+        background: '#eff6ff', // Blue tint
+        color: '#1e3a8a'
+      });
+
+      Toast.fire({
+        icon: 'info',
+        title: `🔎 พบเอกสาร ${targetDoc}`,
+        html: `<div class="text-xs text-left mt-1"><b>อยู่ที่:</b> ${location}<br/><b>(มี ${foundItems.length} รายการ)</b></div>`
+      });
+    }
+  }, [items]);
+  // -----------------------------
+
   // Filter Logic: Select only Collection items
   const filteredItems = useMemo(() => {
     return items.filter(item => {
@@ -82,16 +135,44 @@ const COLReport: React.FC<COLReportProps> = () => {
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [items, filters]);
 
-  // Pagination Logic
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
-  const paginatedItems = useMemo(() => {
+  // Grouping Logic: Group by Document No (R Number)
+  const groupedItems = useMemo(() => {
+    const groups: Record<string, ReturnRecord[]> = {};
+
+    filteredItems.forEach(item => {
+      // Key: Use Document No if available, else ID (Single Item Treat)
+      const rawKey = item.documentNo ? item.documentNo.trim() : `_NO_DOC_${item.id}`;
+      const key = rawKey.toLowerCase();
+
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(item);
+    });
+
+    // Convert to array and use the first item as representative for sorting/display
+    return Object.entries(groups).map(([key, groupItems]) => ({
+      key,
+      items: groupItems,
+      rep: groupItems[0]
+    })).sort((a, b) => new Date(b.rep.date).getTime() - new Date(a.rep.date).getTime());
+  }, [filteredItems]);
+
+  // Pagination Logic (Based on GROUPS now)
+  const totalPages = Math.ceil(groupedItems.length / itemsPerPage);
+  const paginatedGroups = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredItems.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredItems, currentPage, itemsPerPage]);
+    return groupedItems.slice(startIndex, startIndex + itemsPerPage);
+  }, [groupedItems, currentPage, itemsPerPage]);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [filters, itemsPerPage]);
+
+  const handleToggleExpand = (groupKey: string) => {
+    const newSet = new Set(expandedGroups);
+    if (newSet.has(groupKey)) newSet.delete(groupKey);
+    else newSet.add(groupKey);
+    setExpandedGroups(newSet);
+  };
 
   // Actions
   const handleExportExcel = async () => {
@@ -211,7 +292,91 @@ const COLReport: React.FC<COLReportProps> = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (targetItem: ReturnRecord) => {
+    // Robust Search: Find ALL items related to this Document
+    // 1. Match by DocumentNo
+    // 2. Match by RefNo (sometimes used interchangeably)
+    // 3. Normalized comparison (trim, lower)
+    const targetDoc = (targetItem.documentNo || '').trim().toLowerCase();
+    const targetRef = (targetItem.refNo || '').trim().toLowerCase();
+
+    // Safety: Don't bulk delete if no identifier
+    if (!targetDoc && !targetRef) {
+      await performSingleDelete(targetItem.id);
+      return;
+    }
+
+    const relatedItems = items.filter(i => {
+      const iDoc = (i.documentNo || '').trim().toLowerCase();
+      const iRef = (i.refNo || '').trim().toLowerCase();
+      // Match Logic: Any match on Doc or Ref
+      const matchDoc = targetDoc && (iDoc === targetDoc || iRef === targetDoc);
+      const matchRef = targetRef && (iDoc === targetRef || iRef === targetRef);
+      return matchDoc || matchRef;
+    });
+
+    const isGroup = relatedItems.length > 1;
+
+    if (isGroup) {
+      // Generate Summary of what will be deleted
+      const statusCounts: Record<string, number> = {};
+      relatedItems.forEach(i => { statusCounts[i.status || 'Unknown'] = (statusCounts[i.status || 'Unknown'] || 0) + 1; });
+      const statusSummary = Object.entries(statusCounts).map(([s, c]) => `${s}: ${c}`).join(', ');
+
+      const result = await Swal.fire({
+        title: 'ลบข้อมูลทั้งระบบ (System Clean)',
+        html: `
+                พบข้อมูลที่เกี่ยวข้องกับเอกสาร <b>${targetItem.documentNo || targetItem.refNo}</b> จำนวน <b>${relatedItems.length}</b> รายการ
+                <br/><div class="text-xs text-slate-500 mt-2 mb-2 bg-slate-100 p-2 rounded text-left">
+                   <b>Status Breakdown:</b><br/>
+                   ${statusSummary}
+                </div>
+                <br/>
+                <span class="text-red-500 font-bold">⚠️ การลบนี้จะกำจัดข้อมูลทั้งหมด (รวมถึงรายการที่ซ่อนอยู่)</span>
+                <br/><span class="text-xs">เพื่อให้คุณสามารถนำเข้าไฟล์ใหม่ได้โดยไม่ติดปัญหาตกค้าง</span>
+            `,
+        icon: 'warning',
+        showDenyButton: true,
+        showCancelButton: true,
+        confirmButtonText: `ยืนยันลบทั้งหมด (${relatedItems.length})`,
+        denyButtonText: `ลบเฉพาะรายการนี้ (1)`,
+        confirmButtonColor: '#d33',
+        denyButtonColor: '#f59e0b',
+      });
+
+      if (result.isConfirmed) {
+        // Delete All
+        const { value: password } = await Swal.fire({
+          title: 'ยืนยันรหัสผ่าน (Admin)',
+          input: 'password',
+          inputPlaceholder: 'Password',
+          showCancelButton: true,
+          inputAttributes: {
+            autocapitalize: 'off',
+            autocorrect: 'off'
+          }
+        });
+
+        if (password === '1234') {
+          let successCount = 0;
+          await Promise.all(relatedItems.map(async (i) => {
+            const success = await deleteReturnRecord(i.id);
+            if (success) successCount++;
+          }));
+          Swal.fire('ล้างข้อมูลสำเร็จ', `ลบรายการจำนวน ${successCount} รายการเรียบร้อยแล้ว`, 'success');
+        } else if (password) {
+          Swal.fire('รหัสผ่านผิด', '', 'error');
+        }
+      } else if (result.isDenied) {
+        await performSingleDelete(targetItem.id);
+      }
+    } else {
+      // Standard Single Delete
+      await performSingleDelete(targetItem.id);
+    }
+  };
+
+  const performSingleDelete = async (id: string) => {
     const result = await Swal.fire({
       title: 'ลบรายการ?',
       text: "คุณต้องการลบรายการนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้",
@@ -224,7 +389,6 @@ const COLReport: React.FC<COLReportProps> = () => {
     });
 
     if (result.isConfirmed) {
-      // Password protection for delete (optional, but good practice)
       const { value: password } = await Swal.fire({
         title: 'ยืนยันรหัสผ่าน',
         input: 'password',
@@ -361,13 +525,13 @@ const COLReport: React.FC<COLReportProps> = () => {
                 <th className="px-3 py-3 border-r min-w-[120px]">วันที่ใบคุมรถ</th>
                 <th className="px-3 py-3 border-r min-w-[120px]">เลขที่ใบคุม (TM)</th>
                 <th className="px-3 py-3 border-r min-w-[150px]">เลขที่ COL (COL No)</th>
-                <th className="px-3 py-3 border-r min-w-[200px]">สินค้า (Product)</th>
+                <th className="px-3 py-3 border-r min-w-[200px]">สินค้า (Product) - EXPAND (+)</th>
                 <th className="px-3 py-3 text-center min-w-[100px]">สถานะ</th>
                 <th className="px-3 py-3 text-center min-w-[100px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {paginatedItems.length === 0 ? (
+              {paginatedGroups.length === 0 ? (
                 <tr>
                   <td colSpan={11} className="p-8 text-center text-slate-400 italic">
                     ไม่พบรายการ Collection ในช่วงเวลานี้
@@ -375,121 +539,179 @@ const COLReport: React.FC<COLReportProps> = () => {
                   </td>
                 </tr>
               ) : (
-                paginatedItems.map((item, index) => (
-                  <tr key={item.id} className="hover:bg-slate-50 transition-colors text-xs text-slate-700">
-                    {/* Index */}
-                    <td className="px-3 py-2 border-r text-center text-slate-400 relative">
-                      <button
-                        onClick={() => handleOpenTimeline(item)}
-                        className="absolute left-1 top-2 p-0.5 rounded-full hover:bg-blue-100 text-blue-400 hover:text-blue-600 transition-colors"
-                        title="ดู Timeline (View Infographic)"
-                      >
-                        <div className="bg-blue-50 border border-blue-200 rounded-full p-0.5">
-                          <Search className="w-2.5 h-2.5" />
+                paginatedGroups.map((group, index) => {
+                  const { rep, items: groupItems, key: groupKey } = group;
+                  const expanded = expandedGroups.has(groupKey);
+
+                  return (
+                    <tr key={groupKey} className="hover:bg-slate-50 transition-colors text-xs text-slate-700 align-top">
+                      {/* Index */}
+                      <td className="px-3 py-2 border-r text-center text-slate-400 relative">
+                        <button
+                          onClick={() => handleOpenTimeline(rep)}
+                          className="absolute left-1 top-2 p-0.5 rounded-full hover:bg-blue-100 text-blue-400 hover:text-blue-600 transition-colors"
+                          title="ดู Timeline (View Infographic)"
+                        >
+                          <div className="bg-blue-50 border border-blue-200 rounded-full p-0.5">
+                            <Search className="w-2.5 h-2.5" />
+                          </div>
+                        </button>
+                        {(currentPage - 1) * itemsPerPage + index + 1}
+                      </td>
+
+                      {/* Date */}
+                      <td className="px-3 py-2 border-r align-top">
+                        {formatDate(rep.date)}
+                      </td>
+
+                      {/* Branch */}
+                      <td className="px-3 py-2 border-r align-top">
+                        <div className="font-bold">{rep.branch}</div>
+                      </td>
+
+                      {/* Invoice */}
+                      <td className="px-3 py-2 border-r align-top">
+                        {rep.invoiceNo ? <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-mono">{rep.invoiceNo}</span> : '-'}
+                      </td>
+
+                      {/* Doc No (R) */}
+                      <td className="px-3 py-2 border-r align-top">
+                        {rep.documentNo ? (
+                          <div className="flex flex-col gap-1">
+                            <span className="font-bold text-blue-600 font-mono">{rep.documentNo}</span>
+                            {groupItems.length > 1 && (
+                              <span className="inline-flex items-center gap-1 w-fit bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                <Layers className="w-3 h-3" /> {groupItems.length} items
+                              </span>
+                            )}
+                          </div>
+                        ) : '-'}
+                      </td>
+
+                      {/* Control Date */}
+                      <td className="px-3 py-2 border-r align-top">
+                        {rep.controlDate ? (
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3 text-slate-400" />
+                            <span>{formatDate(rep.controlDate)}</span>
+                          </div>
+                        ) : '-'}
+                      </td>
+
+                      {/* TM No */}
+                      <td className="px-3 py-2 border-r align-top">
+                        {rep.tmNo ? <span className="text-slate-700 font-medium">{rep.tmNo}</span> : '-'}
+                      </td>
+
+                      {/* COL No */}
+                      <td className="px-3 py-2 border-r align-top">
+                        {rep.collectionOrderId ? <span className="font-mono text-indigo-600 font-bold bg-indigo-50 px-1.5 py-0.5 rounded text-[10px]">{rep.collectionOrderId}</span> : '-'}
+                      </td>
+
+                      {/* Product (Collapsible) */}
+                      <td className="px-3 py-2 border-r align-top">
+                        <div className="flex flex-col gap-2">
+                          {/* First Item */}
+                          <div className="group">
+                            <div className="font-bold text-slate-800">{groupItems[0].productCode === 'N/A' ? '' : groupItems[0].productCode}</div>
+                            <div className="line-clamp-2" title={groupItems[0].productName}>{groupItems[0].productName === 'N/A' ? '' : groupItems[0].productName}</div>
+                            <div className="mt-1 text-slate-500 text-[10px] flex gap-2">
+                              <span>Qty: <span className="font-semibold text-slate-700">{groupItems[0].quantity}</span> {groupItems[0].unit}</span>
+                            </div>
+                          </div>
+
+                          {/* Expand Button */}
+                          {groupItems.length > 1 && (
+                            <button
+                              onClick={() => handleToggleExpand(groupKey)}
+                              className={`flex items-center justify-center gap-1 w-full py-1.5 rounded text-[10px] font-bold border transition-all mt-1
+                                        ${expanded
+                                  ? 'bg-slate-100 text-slate-600 border-slate-200'
+                                  : 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100'}`}
+                              aria-label={expanded ? "ย่อรายการ" : "ขยายดูรายการเพิ่มเติม"}
+                              title={expanded ? "ย่อรายการ" : "ขยายดูรายการเพิ่มเติม"}
+                            >
+                              {expanded ? <MinusSquare className="w-3 h-3" /> : <PlusSquare className="w-3 h-3" />}
+                              {expanded ? 'ย่อรายการ (Collapse)' : `ดูอีก ${groupItems.length - 1} รายการ (+)`}
+                            </button>
+                          )}
+
+                          {/* Expanded List */}
+                          {expanded && groupItems.length > 1 && (
+                            <div className="flex flex-col gap-3 pt-2 border-t border-slate-100 mt-1 animate-slide-down">
+                              {groupItems.slice(1).map((subItem) => (
+                                <div key={subItem.id} className="pl-2 border-l-2 border-indigo-200 group relative">
+                                  <div className="font-bold text-slate-700 text-[11px]">{subItem.productCode === 'N/A' ? '' : subItem.productCode}</div>
+                                  <div className="text-slate-600 text-[11px] leading-tight mb-0.5">{subItem.productName === 'N/A' ? '' : subItem.productName}</div>
+                                  <div className="text-[10px] text-slate-500">Qty: <b>{subItem.quantity} {subItem.unit}</b></div>
+
+                                  {/* Mini Actions for Sub-Items */}
+                                  <div className="flex gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={() => handleEdit(subItem)} className="p-0.5 bg-amber-50 text-amber-600 rounded border border-amber-200 hover:bg-amber-100" title="แก้ไข">
+                                      <Edit className="w-2.5 h-2.5" />
+                                    </button>
+                                    <button onClick={() => handleDelete(subItem)} className="p-0.5 bg-red-50 text-red-600 rounded border border-red-200 hover:bg-red-100" title="ลบ">
+                                      <Trash2 className="w-2.5 h-2.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      </button>
-                      {(currentPage - 1) * itemsPerPage + index + 1}
-                    </td>
+                      </td>
 
-                    {/* Date */}
-                    <td className="px-3 py-2 border-r align-top">
-                      {formatDate(item.date)}
-                    </td>
-
-                    {/* Branch */}
-                    <td className="px-3 py-2 border-r align-top">
-                      <div className="font-bold">{item.branch}</div>
-                    </td>
-
-                    {/* Invoice */}
-                    <td className="px-3 py-2 border-r align-top">
-                      {item.invoiceNo ? <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-mono">{item.invoiceNo}</span> : '-'}
-                    </td>
-
-                    {/* Doc No (R) */}
-                    <td className="px-3 py-2 border-r align-top">
-                      {item.documentNo ? <span className="font-bold text-blue-600 font-mono">{item.documentNo}</span> : '-'}
-                    </td>
-
-                    {/* Control Date */}
-                    <td className="px-3 py-2 border-r align-top">
-                      {item.controlDate ? (
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3 text-slate-400" />
-                          <span>{formatDate(item.controlDate)}</span>
-                        </div>
-                      ) : '-'}
-                    </td>
-
-                    {/* TM No */}
-                    <td className="px-3 py-2 border-r align-top">
-                      {item.tmNo ? <span className="text-slate-700 font-medium">{item.tmNo}</span> : '-'}
-                    </td>
-
-                    {/* COL No */}
-                    <td className="px-3 py-2 border-r align-top">
-                      {item.collectionOrderId ? <span className="font-mono text-indigo-600 font-bold bg-indigo-50 px-1.5 py-0.5 rounded text-[10px]">{item.collectionOrderId}</span> : '-'}
-                    </td>
-
-                    {/* Product */}
-                    <td className="px-3 py-2 border-r align-top">
-                      <div className="font-bold text-slate-800">{item.productCode === 'N/A' ? '' : item.productCode}</div>
-                      <div className="line-clamp-2" title={item.productName}>{item.productName === 'N/A' ? '' : item.productName}</div>
-                      <div className="mt-1 text-slate-500 text-[10px] flex gap-2">
-                        <span>Qty: <span className="font-semibold text-slate-700">{item.quantity}</span> {item.unit}</span>
-                      </div>
-                    </td>
-
-                    {/* Status */}
-                    <td className="px-3 py-2 text-center align-top">
-                      <span className={`
+                      {/* Status */}
+                      <td className="px-3 py-2 text-center align-top">
+                        <span className={`
                           inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border
-                          ${item.status === 'Requested' ? 'bg-slate-100 text-slate-600 border-slate-200' : ''}
-                          ${item.status === 'COL_JobAccepted' ? 'bg-blue-50 text-blue-600 border-blue-200' : ''}
-                          ${item.status === 'COL_BranchReceived' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : ''}
-                          ${item.status === 'COL_Consolidated' ? 'bg-orange-50 text-orange-600 border-orange-200' : ''}
-                          ${item.status === 'COL_InTransit' || item.status === 'COL_HubReceived' ? 'bg-purple-50 text-purple-600 border-purple-200' : ''}
-                          ${item.status === 'Completed' ? 'bg-green-50 text-green-600 border-green-200' : ''}
+                          ${rep.status === 'Requested' ? 'bg-slate-100 text-slate-600 border-slate-200' : ''}
+                          ${rep.status === 'COL_JobAccepted' ? 'bg-blue-50 text-blue-600 border-blue-200' : ''}
+                          ${rep.status === 'COL_BranchReceived' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : ''}
+                          ${rep.status === 'COL_Consolidated' ? 'bg-orange-50 text-orange-600 border-orange-200' : ''}
+                          ${rep.status === 'COL_InTransit' || rep.status === 'COL_HubReceived' ? 'bg-purple-50 text-purple-600 border-purple-200' : ''}
+                          ${rep.status === 'Completed' ? 'bg-green-50 text-green-600 border-green-200' : ''}
                         `}>
-                        {item.status}
-                      </span>
-                    </td>
+                          {rep.status}
+                        </span>
+                      </td>
 
-                    {/* Actions */}
-                    <td className="px-3 py-2 align-top text-center border-l">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => handlePrint(item)}
-                          className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-blue-600 transition-colors"
-                          title="พิมพ์ (Print)"
-                        >
-                          <Printer className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={() => handleEdit(item)}
-                          className="p-1 hover:bg-slate-100 rounded text-amber-500 hover:text-amber-600 transition-colors"
-                          title="แก้ไข (Edit)"
-                        >
-                          <Edit className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={() => handleRowExportExcel(item)}
-                          className="p-1 hover:bg-slate-100 rounded text-green-600 hover:text-green-700 transition-colors"
-                          title="Export Excel"
-                        >
-                          <Download className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          className="p-1 hover:bg-slate-100 rounded text-red-400 hover:text-red-600 transition-colors"
-                          title="ลบ (Delete)"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      {/* Actions (Main Row - First Item) */}
+                      <td className="px-3 py-2 align-top text-center border-l">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => handlePrint(rep)}
+                            className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-blue-600 transition-colors"
+                            title="พิมพ์ (Print)"
+                          >
+                            <Printer className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(rep)}
+                            className="p-1 hover:bg-slate-100 rounded text-amber-500 hover:text-amber-600 transition-colors"
+                            title="แก้ไข (Edit)"
+                          >
+                            <Edit className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => handleRowExportExcel(rep)}
+                            className="p-1 hover:bg-slate-100 rounded text-green-600 hover:text-green-700 transition-colors"
+                            title="Export Excel"
+                          >
+                            <Download className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(rep)}
+                            className="p-1 hover:bg-slate-100 rounded text-red-400 hover:text-red-600 transition-colors"
+                            title="ลบ (Delete)"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
@@ -511,7 +733,7 @@ const COLReport: React.FC<COLReportProps> = () => {
               <option value={50}>50</option>
               <option value={100}>100</option>
             </select>
-            <span>รายการต่อหน้า (จากทั้งหมด {filteredItems.length} รายการ)</span>
+            <span>รายการต่อหน้า (จากทั้งหมด {groupedItems.length} รายการ - {filteredItems.length} Products)</span>
           </div>
 
           <div className="flex items-center gap-2">
