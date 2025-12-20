@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Printer, GitFork, Link, PlusSquare, MinusSquare, Layers } from 'lucide-react';
+import { Printer, GitFork, Link, PlusSquare, MinusSquare, Layers, RotateCcw } from 'lucide-react';
 import { ReturnRecord, DispositionAction } from '../../../types';
 
 interface KanbanColumnProps {
@@ -11,10 +11,11 @@ interface KanbanColumnProps {
     onPrintClick: (status: DispositionAction, list: ReturnRecord[]) => void;
     onItemClick?: (item: ReturnRecord) => void;
     onSplitClick?: (item: ReturnRecord) => void;
+    onUndoClick?: (item: ReturnRecord) => void;
     overrideFilter?: boolean;
 }
 
-export const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, icon: Icon, color, items, onPrintClick, onItemClick, onSplitClick, overrideFilter }) => {
+export const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, icon: Icon, color, items, onPrintClick, onItemClick, onSplitClick, onUndoClick, overrideFilter }) => {
     // 1. Filter items first
     const columnItems = useMemo(() => {
         if (overrideFilter) return items;
@@ -86,6 +87,19 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, icon:
                     )}
                 </div>
                 <div className="flex items-center gap-1">
+                    {onUndoClick && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onUndoClick(item);
+                            }}
+                            className="p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors"
+                            aria-label="ย้อนกลับ (Reverse)"
+                            title="ย้อนกลับสถานะ (Reverse Status)"
+                        >
+                            <RotateCcw className="w-3 h-3" />
+                        </button>
+                    )}
                     {onSplitClick && (
                         <button
                             onClick={(e) => {

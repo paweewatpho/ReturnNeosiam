@@ -11,7 +11,7 @@ interface Step7DocsProps {
 }
 
 export const Step7Docs: React.FC<Step7DocsProps> = ({ onPrintDocs }) => {
-    const { items } = useData();
+    const { items, updateReturnRecord, ncrReports } = useData();
     const [activeTab, setActiveTab] = React.useState<'NCR' | 'COLLECTION'>('NCR');
 
     // Filter Items:
@@ -20,6 +20,14 @@ export const Step7Docs: React.FC<Step7DocsProps> = ({ onPrintDocs }) => {
     // In legacy/Collection flow: 'HubReceived' (if QC skipped) or 'QCCompleted'
     const processedItems = React.useMemo(() => {
         return items.filter(item => {
+            // Check for verification (If NCR Report is Canceled, hide it)
+            if (item.ncrNumber) {
+                const linkedReport = ncrReports.find(r => r.ncrNo === item.ncrNumber);
+                if (linkedReport && linkedReport.status === 'Canceled') {
+                    return false;
+                }
+            }
+
             const isNCR = item.documentType === 'NCR' || !!item.ncrNumber || item.status.startsWith('NCR_');
             const isCollection = !isNCR;
 
@@ -44,7 +52,8 @@ export const Step7Docs: React.FC<Step7DocsProps> = ({ onPrintDocs }) => {
 
             return false;
         });
-    }, [items]);
+    }, [items, ncrReports]);
+
 
     const handlePrintClick = async (status: DispositionAction, list: ReturnRecord[]) => {
         if (onPrintDocs) {
@@ -61,6 +70,60 @@ export const Step7Docs: React.FC<Step7DocsProps> = ({ onPrintDocs }) => {
             text: 'การแยกรายการ (Split) ในขั้นตอนนี้กำลังพัฒนา',
             confirmButtonText: 'รับทราบ'
         });
+    };
+
+    // Undo / Reverse Function
+    const handleUndo = async (item: ReturnRecord) => {
+        // Determine previous status based on current flow
+        const isNCR = item.documentType === 'NCR' || !!item.ncrNumber || item.status.startsWith('NCR_');
+
+        let targetStatus = '';
+        let confirmText = '';
+
+        if (isNCR) {
+            // NCR: Back to QC Queue (Step 4)
+            targetStatus = 'NCR_HubReceived';
+            confirmText = 'ย้อนกลับไป "รอตรวจสอบคุณภาพ (QC)"';
+        } else {
+            // Collection: Back to Hub Receive Queue (Step 6 input)
+            // Current Status is COL_HubReceived (Output of Step 6)
+            // So we send it back to "InTransit" (Input of Step 6)
+            targetStatus = 'COL_InTransit';
+            confirmText = 'ย้อนกลับไป "รับสินค้าเข้า Hub"';
+        }
+
+        // Legacy handling
+        if (item.status === 'QCCompleted') targetStatus = 'ReceivedAtHub'; // Back to QC input
+        if (item.status === 'HubReceived') targetStatus = 'InTransitToHub'; // Back to Hub input
+
+        const result = await Swal.fire({
+            title: 'ยืนยันการย้อนกลับ (Undo)',
+            text: `ต้องการ${confirmText} ใช่หรือไม่?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'ใช่, ย้อนกลับ',
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#f59e0b'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                await updateReturnRecord(item.id, {
+                    status: targetStatus
+                });
+
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'เรียบร้อย',
+                    text: 'ส่งรายการกลับเรียบร้อยแล้ว',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            } catch (error) {
+                console.error("Undo Error:", error);
+                Swal.fire('Error', 'Failed to undo action', 'error');
+            }
+        }
     };
 
     // Helper: Identify NCR items
@@ -125,15 +188,16 @@ export const Step7Docs: React.FC<Step7DocsProps> = ({ onPrintDocs }) => {
                     items={itemsRTV}
                     onPrintClick={handlePrintClick}
                     onSplitClick={handleSplitClick}
+                    onUndoClick={handleUndo}
                     overrideFilter={true}
                 />
 
                 {activeTab === 'NCR' && (
                     <>
-                        <KanbanColumn title="สินค้าสำหรับขาย (Restock)" status="Restock" icon={RotateCcw} color="bg-green-500" items={itemsRestock} onPrintClick={handlePrintClick} onSplitClick={handleSplitClick} />
-                        <KanbanColumn title="สินค้าสำหรับเคลม (Claim)" status="Claim" icon={ShieldCheck} color="bg-blue-500" items={itemsClaim} onPrintClick={handlePrintClick} onSplitClick={handleSplitClick} />
-                        <KanbanColumn title="สินค้าใช้ภายใน (Internal)" status="InternalUse" icon={Home} color="bg-purple-500" items={itemsInternal} onPrintClick={handlePrintClick} onSplitClick={handleSplitClick} />
-                        <KanbanColumn title="สินค้าสำหรับทำลาย (Scrap)" status="Recycle" icon={Trash2} color="bg-red-500" items={itemsScrap} onPrintClick={handlePrintClick} onSplitClick={handleSplitClick} />
+                        <KanbanColumn title="สินค้าสำหรับขาย (Restock)" status="Restock" icon={RotateCcw} color="bg-green-500" items={itemsRestock} onPrintClick={handlePrintClick} onSplitClick={handleSplitClick} onUndoClick={handleUndo} />
+                        <KanbanColumn title="สินค้าสำหรับเคลม (Claim)" status="Claim" icon={ShieldCheck} color="bg-blue-500" items={itemsClaim} onPrintClick={handlePrintClick} onSplitClick={handleSplitClick} onUndoClick={handleUndo} />
+                        <KanbanColumn title="สินค้าใช้ภายใน (Internal)" status="InternalUse" icon={Home} color="bg-purple-500" items={itemsInternal} onPrintClick={handlePrintClick} onSplitClick={handleSplitClick} onUndoClick={handleUndo} />
+                        <KanbanColumn title="สินค้าสำหรับทำลาย (Scrap)" status="Recycle" icon={Trash2} color="bg-red-500" items={itemsScrap} onPrintClick={handlePrintClick} onSplitClick={handleSplitClick} onUndoClick={handleUndo} />
                     </>
                 )}
             </div>

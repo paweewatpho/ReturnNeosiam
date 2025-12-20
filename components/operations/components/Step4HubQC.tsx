@@ -9,7 +9,7 @@ import { conditionLabels, dispositionLabels } from '../utils';
 import { RETURN_ROUTES } from '../../../constants';
 
 export const Step4HubQC: React.FC = () => {
-    const { items, updateReturnRecord, addReturnRecord } = useData();
+    const { items, updateReturnRecord, addReturnRecord, ncrReports } = useData();
 
     // Local State
     const [qcSelectedItem, setQcSelectedItem] = useState<ReturnRecord | null>(null);
@@ -41,11 +41,19 @@ export const Step4HubQC: React.FC = () => {
     // COL items skip this step and go directly to Docs.
     const receivedItems = React.useMemo(() => {
         return items.filter(item => {
+            // Check for verification (If NCR Report is Canceled, hide it) -> Only for NCR
+            if (item.ncrNumber) {
+                const linkedReport = ncrReports.find(r => r.ncrNo === item.ncrNumber);
+                if (linkedReport && linkedReport.status === 'Canceled') {
+                    return false;
+                }
+            }
+
             // Filter by status: Items waiting for QC at Hub
             // We include both NCR specific status and generic Hub Received status
             return item.status === 'NCR_HubReceived' || item.status === 'ReceivedAtHub';
         });
-    }, [items]);
+    }, [items, ncrReports]);
 
     // Grouping Logic for Sidebar
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());

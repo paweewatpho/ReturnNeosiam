@@ -5,25 +5,33 @@ import { ReturnRecord } from '../../../types';
 import { DispositionBadge } from './DispositionBadge';
 
 export const StepCompleted: React.FC = () => {
-    const { items } = useData();
+    const { items, ncrReports } = useData();
     const [searchTerm, setSearchTerm] = useState('');
 
     // Filter Completed Items (Completed or DirectReturn)
     const completedItems = useMemo(() => {
-        return items.filter(item =>
-            (item.status === 'Completed' || item.status === 'DirectReturn') &&
-            (item.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.productCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.ncrNumber?.toLowerCase().includes(searchTerm.toLowerCase()))
-        ).sort((a, b) => {
+        return items.filter(item => {
+            // Check for verification (If NCR Report is Canceled, hide it) -> Only for NCR
+            if (item.ncrNumber) {
+                const linkedReport = ncrReports.find(r => r.ncrNo === item.ncrNumber);
+                if (linkedReport && linkedReport.status === 'Canceled') {
+                    return false;
+                }
+            }
+
+            return (item.status === 'Completed' || item.status === 'DirectReturn') &&
+                (item.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    item.productCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    item.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    item.ncrNumber?.toLowerCase().includes(searchTerm.toLowerCase()));
+        }).sort((a, b) => {
             // Sort by dateCompleted descending, then fallback to date
             const dateA = a.dateCompleted || a.dateInTransit || a.date;
             const dateB = b.dateCompleted || b.dateInTransit || b.date;
             return new Date(dateB).getTime() - new Date(dateA).getTime();
         });
-    }, [items, searchTerm]);
+    }, [items, searchTerm, ncrReports]);
 
     const stats = useMemo(() => {
         return {

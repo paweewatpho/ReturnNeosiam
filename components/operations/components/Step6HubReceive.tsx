@@ -6,7 +6,7 @@ import { ReturnRecord } from '../../../types';
 import Swal from 'sweetalert2';
 
 export const Step6HubReceive: React.FC = () => {
-    const { items, updateReturnRecord } = useData();
+    const { items, updateReturnRecord, ncrReports } = useData();
     const [filterBranch, setFilterBranch] = React.useState<string>('');
     const [filterCustomer, setFilterCustomer] = React.useState<string>('');
     const [filterDestination, setFilterDestination] = React.useState<string>('');
@@ -15,8 +15,18 @@ export const Step6HubReceive: React.FC = () => {
 
     // Filter Items: Status 'InTransitToHub', 'COL_InTransit', or 'NCR_InTransit'
     const incomingItems = React.useMemo(() => {
-        return items.filter(item => item.status === 'InTransitToHub' || item.status === 'COL_InTransit' || item.status === 'NCR_InTransit');
-    }, [items]);
+        return items.filter(item => {
+            // Check for verification (If NCR Report is Canceled, hide it) -> Only for NCR
+            if (item.ncrNumber) {
+                const linkedReport = ncrReports.find(r => r.ncrNo === item.ncrNumber);
+                if (linkedReport && linkedReport.status === 'Canceled') {
+                    return false;
+                }
+            }
+
+            return item.status === 'InTransitToHub' || item.status === 'COL_InTransit' || item.status === 'NCR_InTransit';
+        });
+    }, [items, ncrReports]);
 
     const handleHubReceive = async (targetItem: ReturnRecord, groupItems: ReturnRecord[] = []) => {
         if (isSubmitting) return;

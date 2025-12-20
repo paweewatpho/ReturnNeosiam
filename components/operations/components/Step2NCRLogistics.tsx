@@ -12,7 +12,7 @@ interface Step2NCRLogisticsProps {
 }
 
 export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm }) => {
-    const { items, updateReturnRecord } = useData();
+    const { items, updateReturnRecord, ncrReports } = useData();
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,6 +41,14 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
     // Filter Logic
     const pendingItems = useMemo(() => {
         return items.filter(item => {
+            // Check for verification (If NCR Report is Canceled, hide it) -> Only for NCR
+            if (item.ncrNumber) {
+                const linkedReport = ncrReports.find(r => r.ncrNo === item.ncrNumber);
+                if (linkedReport && linkedReport.status === 'Canceled') {
+                    return false;
+                }
+            }
+
             // Check if item is NCR:
             // 1. Explicitly Document Type NCR
             // 2. OR Has NCR Number AND is NOT explicitly LOGISTICS (legacy data support)
@@ -51,7 +59,7 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
             }
             return item.status === 'COL_Consolidated';
         });
-    }, [items]);
+    }, [items, ncrReports]);
 
     const uniqueBranches = useMemo(() => Array.from(new Set(pendingItems.map(i => i.branch))).filter(Boolean), [pendingItems]);
 

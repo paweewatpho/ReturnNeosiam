@@ -8,7 +8,7 @@ import Swal from 'sweetalert2';
 type FilterMode = 'ALL' | 'NCR' | 'COL';
 
 export const Step8Closure: React.FC = () => {
-    const { items, updateReturnRecord } = useData();
+    const { items, updateReturnRecord, ncrReports } = useData();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // UI State
@@ -19,6 +19,14 @@ export const Step8Closure: React.FC = () => {
     // AND apply NCR/COL Filter
     const documentedItems = React.useMemo(() => {
         return items.filter(item => {
+            // Check for verification (If NCR Report is Canceled, hide it) -> Only for NCR
+            if (item.ncrNumber) {
+                const linkedReport = ncrReports.find(r => r.ncrNo === item.ncrNumber);
+                if (linkedReport && linkedReport.status === 'Canceled') {
+                    return false;
+                }
+            }
+
             // 1. Basic Status Check
             const isReadyForClosure = (
                 item.status === 'DocsCompleted' ||
@@ -37,7 +45,7 @@ export const Step8Closure: React.FC = () => {
             if (filterMode === 'COL') return !isNCR; // Assume if not NCR, it's COL/Standard
             return true; // ALL
         });
-    }, [items, filterMode]);
+    }, [items, filterMode, ncrReports]);
 
     // Grouping Logic
     const groupedItems = React.useMemo(() => {
