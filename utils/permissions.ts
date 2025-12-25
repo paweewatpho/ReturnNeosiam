@@ -59,7 +59,7 @@ export const canEditStep = (
  * @param step - หมายเลข Step
  * @returns true = ดูได้, false = ไม่สามารถดู
  */
-export const canViewStep = (userRole: UserRole | undefined, step: number): boolean => {
+export const canViewStep = (userRole: UserRole | undefined, _step: number): boolean => {
     if (!userRole) return false;
 
     // ทุก Role สามารถดูทุก Step ได้ (แต่อาจแก้ไขไม่ได้)

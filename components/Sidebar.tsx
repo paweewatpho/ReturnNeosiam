@@ -5,6 +5,7 @@ import { ref, set } from 'firebase/database';
 import { db } from '../firebase';
 import { useAuth } from '../AuthContext';
 import { getRoleDisplayName, getRoleColor, canAccessView } from '../utils/permissions';
+import Swal from 'sweetalert2';
 
 interface SidebarProps {
   currentView: AppView;
@@ -54,8 +55,25 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, isOpen = f
     }
   };
 
+
+
   const handleLogout = async () => {
-    if (window.confirm('ต้องการออกจากระบบหรือไม่?')) {
+    const result = await Swal.fire({
+      title: 'ต้องการออกจากระบบ?',
+      text: "คุณต้องทำการเข้าสู่ระบบใหม่เพื่อใช้งาน",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'ใช่, ออกจากระบบ',
+      cancelButtonText: 'ยกเลิก',
+      background: '#fff',
+      customClass: {
+        popup: 'rounded-2xl shadow-xl border border-slate-100'
+      }
+    });
+
+    if (result.isConfirmed) {
       await logout();
     }
   };
@@ -72,7 +90,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, isOpen = f
       {/* Sidebar Container */}
       <div
         ref={sidebarRef}
-        className={`fixed inset-y-0 left-0 w-64 bg-slate-900 text-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 lg:translate-x-0 lg:static lg:shadow-none flex flex-col h-full print:hidden ${isOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed inset-y-0 left-0 w-64 bg-slate-900/80 backdrop-blur-md text-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 lg:translate-x-0 lg:static lg:shadow-none flex flex-col h-full print:hidden ${isOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
       >
         <div className="p-6 flex items-center justify-between border-b border-slate-800">

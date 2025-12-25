@@ -93,7 +93,7 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
                     actionRework: false,
                     actionSpecialAcceptance: false,
                     actionScrap: false,
-                    actionScrapReplace: false,
+                    actionReplace: false,
                     [field]: true
                 };
             } else {
@@ -422,9 +422,9 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
                                             <div className="flex items-center gap-2"><span className="text-xs text-slate-500">จำนวน:</span><input type="number" aria-label="จำนวนทำลาย" title="จำนวนทำลาย" value={formData.actionScrapQty} onChange={e => setFormData({ ...formData, actionScrapQty: Number(e.target.value) })} className="w-20 border rounded px-2 py-1" /></div>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            <input type="checkbox" aria-label="เปลี่ยนสินค้าใหม่" title="เปลี่ยนสินค้าใหม่" checked={formData.actionScrapReplace} onChange={() => handleActionSelection('actionScrapReplace')} className="w-4 h-4" />
+                                            <input type="checkbox" aria-label="เปลี่ยนสินค้าใหม่" title="เปลี่ยนสินค้าใหม่" checked={formData.actionReplace} onChange={() => handleActionSelection('actionReplace')} className="w-4 h-4" />
                                             <span className="font-bold w-32">เปลี่ยนสินค้าใหม่</span>
-                                            <div className="flex items-center gap-2"><span className="text-xs text-slate-500">จำนวน:</span><input type="number" aria-label="จำนวนเปลี่ยนใหม่" title="จำนวนเปลี่ยนใหม่" value={formData.actionScrapReplaceQty} onChange={e => setFormData({ ...formData, actionScrapReplaceQty: Number(e.target.value) })} className="w-20 border rounded px-2 py-1" /></div>
+                                            <div className="flex items-center gap-2"><span className="text-xs text-slate-500">จำนวน:</span><input type="number" aria-label="จำนวนเปลี่ยนใหม่" title="จำนวนเปลี่ยนใหม่" value={formData.actionReplaceQty} onChange={e => setFormData({ ...formData, actionReplaceQty: Number(e.target.value) })} className="w-20 border rounded px-2 py-1" /></div>
                                         </div>
                                     </div>
                                 </div>
@@ -475,6 +475,85 @@ export const ItemAnalysisModal: React.FC<ItemAnalysisModalProps> = ({ isOpen, on
                                         />
                                         <span className="font-bold text-amber-600">⚠ มีค่าใช้จ่าย (Has Cost)</span>
                                     </label>
+
+                                    {/* Field Settlement (New for Consistency) */}
+                                    <div className={`mb-4 p-4 rounded-lg border flex flex-col gap-3 transition-colors ${formData.isFieldSettled ? 'bg-amber-50 border-amber-200 shadow-sm' : 'bg-slate-50 border-slate-200'}`}>
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.isFieldSettled || false}
+                                                onChange={(e) => {
+                                                    const checked = e.target.checked;
+                                                    setFormData({
+                                                        ...formData,
+                                                        isFieldSettled: checked,
+                                                        preliminaryRoute: checked ? 'จบงานหน้างาน' : formData.preliminaryRoute
+                                                    });
+                                                    if (checked) setPreliminaryRoute('จบงานหน้างาน');
+                                                }}
+                                                className="w-5 h-5 text-amber-600 rounded focus:ring-amber-500"
+                                            />
+                                            <span className={`text-sm font-bold transition-colors ${formData.isFieldSettled ? 'text-amber-800' : 'text-slate-600 group-hover:text-amber-700'}`}>
+                                                จบงานหน้างาน / พนักงานชดเชยเงิน (Field Settlement)
+                                            </span>
+                                        </label>
+
+                                        {formData.isFieldSettled && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in pl-8 border-l-2 border-amber-200 ml-2.5">
+                                                <div>
+                                                    <label className="block text-xs font-bold text-amber-900 mb-1">จำนวนเงินที่ชดเชย (Amount)</label>
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="number"
+                                                            aria-label="จำนวนเงินชดเชย"
+                                                            title="จำนวนเงินชดเชย"
+                                                            className="w-full p-2 text-sm border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 bg-white"
+                                                            value={formData.fieldSettlementAmount || ''}
+                                                            onChange={e => setFormData({ ...formData, fieldSettlementAmount: parseFloat(e.target.value) || 0 })}
+                                                            placeholder="0.00"
+                                                        />
+                                                        <span className="text-sm font-bold text-amber-800">บาท</span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold text-amber-900 mb-1">หลักฐานการรับเงิน (Evidence Ref)</label>
+                                                    <input
+                                                        type="text"
+                                                        aria-label="หลักฐานการรับเงิน"
+                                                        title="หลักฐานการรับเงิน"
+                                                        className="w-full p-2 text-sm border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 bg-white"
+                                                        value={formData.fieldSettlementEvidence || ''}
+                                                        onChange={e => setFormData({ ...formData, fieldSettlementEvidence: e.target.value })}
+                                                        placeholder="เลขที่บิล / รายละเอียด..."
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold text-amber-900 mb-1">ชื่อ-นามสกุล ผู้รับผิดชอบ</label>
+                                                    <input
+                                                        type="text"
+                                                        aria-label="ชื่อผู้รับผิดชอบ"
+                                                        title="ชื่อผู้รับผิดชอบ"
+                                                        className="w-full p-2 text-sm border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 bg-white"
+                                                        value={formData.fieldSettlementName || ''}
+                                                        onChange={e => setFormData({ ...formData, fieldSettlementName: e.target.value })}
+                                                        placeholder="ชื่อ-นามสกุล"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold text-amber-900 mb-1">ตำแหน่ง</label>
+                                                    <input
+                                                        type="text"
+                                                        aria-label="ตำแหน่ง"
+                                                        title="ตำแหน่ง"
+                                                        className="w-full p-2 text-sm border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 bg-white"
+                                                        value={formData.fieldSettlementPosition || ''}
+                                                        onChange={e => setFormData({ ...formData, fieldSettlementPosition: e.target.value })}
+                                                        placeholder="เช่น พนักงานขับรถ / พนักงานขาย"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
 
                                     {formData.hasCost && (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in bg-amber-50 p-4 rounded-lg border border-amber-100">

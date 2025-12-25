@@ -1,11 +1,11 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../DataContext';
 import { db } from '../firebase';
 import { ref, remove, set } from 'firebase/database';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
-  PieChart, Pie, Legend, AreaChart, Area
+  PieChart, Pie, Legend, AreaChart, Area, Line
 } from 'recharts';
 import {
   Truck, CheckCircle, Clock, FileText, Package, AlertOctagon, DollarSign, Trash2, MapPin, Box,
@@ -346,6 +346,14 @@ const Dashboard: React.FC = () => {
     ncrReports.filter(n => n.status !== 'Canceled').forEach(report => {
       // Root Cause
       let source = report.item?.problemSource || (report as any).problemSource || 'Other';
+
+      // Normalize Source (Merge Other/Others)
+      const s = source.trim().toLowerCase();
+      if (s === 'other' || s === 'others' || s.startsWith('other') || s.includes('อื่นๆ') || s === '-') source = 'อื่นๆ';
+      else if (s === 'customer') source = 'ลูกค้า (Customer)';
+      else if (s === 'transport' || s.includes('transport')) source = 'ขนส่ง (Transport)';
+      else if (source.startsWith('ระหว่างขนส่ง')) source = 'ขนส่ง (Transport)';
+
       rootCauses[source] = (rootCauses[source] || 0) + 1;
 
       // Process Causes
@@ -390,13 +398,13 @@ const Dashboard: React.FC = () => {
           <Truck className="w-4 h-4" /> ระบบงานรับสินค้า (Inbound Collection System)
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-          <PipelineCard step="1" title="ใบสั่งงาน (Request)" count={collectionStats.requests} icon={FileText} color="bg-teal-50 text-teal-600 border-teal-200" desc="รอจ่ายงาน" />
-          <PipelineCard step="2" title="รับงาน (Job)" count={collectionStats.assigned} icon={MapPin} color="bg-teal-50 text-teal-600 border-teal-200" desc="รถเข้ารับ" />
-          <PipelineCard step="3" title="รับของ (Collected)" count={collectionStats.collected} icon={Box} color="bg-teal-50 text-teal-600 border-teal-200" desc="เข้าสาขา" />
-          <PipelineCard step="4" title="จุดพัก (Hub)" count={collectionStats.consolidated} icon={Package} color="bg-indigo-50 text-indigo-600 border-indigo-200" desc="รอขนส่ง" />
-          <PipelineCard step="5" title="ขนส่ง (Transit)" count={collectionStats.transit} icon={Truck} color="bg-blue-50 text-blue-600 border-blue-200" desc="เข้า Ops Hub" />
-          <PipelineCard step="6" title="รอปิดงาน (Pending)" count={collectionStats.pendingCompletion} icon={Clock} color="bg-orange-50 text-orange-600 border-orange-200" desc="Direct/Docs" />
-          <PipelineCard step="7" title="จบงาน (Completed)" count={collectionStats.completed} icon={CheckCircle} color="bg-green-50 text-green-600 border-green-200" desc="สำเร็จ" />
+          <PipelineCard step="1" title="ใบสั่งงาน (Request)" count={collectionStats.requests} icon={FileText} variant="teal" desc="รอจ่ายงาน" />
+          <PipelineCard step="2" title="รับงาน (Job)" count={collectionStats.assigned} icon={MapPin} variant="blue" desc="รถเข้ารับ" />
+          <PipelineCard step="3" title="รับของ (Collected)" count={collectionStats.collected} icon={Box} variant="emerald" desc="เข้าสาขา" />
+          <PipelineCard step="4" title="จุดพัก (Hub)" count={collectionStats.consolidated} icon={Package} variant="purple" desc="รอขนส่ง" />
+          <PipelineCard step="5" title="ขนส่ง (Transit)" count={collectionStats.transit} icon={Truck} variant="indigo" desc="เข้า Ops Hub" />
+          <PipelineCard step="6" title="รอปิดงาน (Pending)" count={collectionStats.pendingCompletion} icon={Clock} variant="amber" desc="Direct/Docs" />
+          <PipelineCard step="7" title="จบงาน (Completed)" count={collectionStats.completed} icon={CheckCircle} variant="rose" desc="สำเร็จ" />
         </div>
       </div>
 
@@ -406,12 +414,12 @@ const Dashboard: React.FC = () => {
           <Activity className="w-4 h-4" /> ศูนย์ปฏิบัติการคืนสินค้า (Return Operations Hub)
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <PipelineCard step="1" title="แจ้งคืน (Request)" count={pipeline.requests} icon={FileText} color="bg-slate-100 text-slate-600" desc="รออนุมัติ" />
-          <PipelineCard step="2" title="ขนส่ง (Logistics)" count={pipeline.logistics} icon={Truck} color="bg-amber-50 text-amber-600 border-amber-200" desc="ระหว่างทาง" />
-          <PipelineCard step="3" title="รับเข้า (Receive)" count={pipeline.receiving} icon={Package} color="bg-blue-50 text-blue-600 border-blue-200" desc="ถึง Hub" isAlert={pipeline.receiving > 20} />
-          <PipelineCard step="4" title="ตรวจสอบ (QC)" count={pipeline.qc} icon={Activity} color="bg-purple-50 text-purple-600 border-purple-200" desc="รอคัดแยก" />
-          <PipelineCard step="5" title="คลัง/เอกสาร" count={pipeline.disposition} icon={FileText} color="bg-indigo-50 text-indigo-600 border-indigo-200" desc="รอปิดงาน" />
-          <PipelineCard step="6" title="ปิดงาน (Done)" count={pipeline.completed} icon={CheckCircle} color="bg-green-50 text-green-600 border-green-200" desc="สำเร็จ" />
+          <PipelineCard step="1" title="แจ้งคืน (Request)" count={pipeline.requests} icon={FileText} variant="slate" desc="รออนุมัติ" />
+          <PipelineCard step="2" title="ขนส่ง (Logistics)" count={pipeline.logistics} icon={Truck} variant="amber" desc="ระหว่างทาง" />
+          <PipelineCard step="3" title="รับเข้า (Receive)" count={pipeline.receiving} icon={Package} variant="blue" desc="ถึง Hub" />
+          <PipelineCard step="4" title="ตรวจสอบ (QC)" count={pipeline.qc} icon={Activity} variant="purple" desc="รอคัดแยก" />
+          <PipelineCard step="5" title="คลัง/เอกสาร" count={pipeline.disposition} icon={FileText} variant="indigo" desc="รอปิดงาน" />
+          <PipelineCard step="6" title="ปิดงาน (Done)" count={pipeline.completed} icon={CheckCircle} variant="emerald" desc="สำเร็จ" />
         </div>
       </div>
 
@@ -421,12 +429,12 @@ const Dashboard: React.FC = () => {
           <Package className="w-4 h-4" /> สรุปสต็อกคงคลัง (Inventory On-Hand)
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-          <StockCard title="สินค้าขาย (Sellable)" count={stockSummary.restock} color="bg-green-100 text-green-800 border-green-200" />
-          <StockCard title="สินค้าคืน (RTV)" count={stockSummary.rtv} color="bg-amber-100 text-amber-800 border-amber-200" />
-          <StockCard title="เคลม (Claim)" count={stockSummary.claim} color="bg-blue-100 text-blue-800 border-blue-200" />
-          <StockCard title="ใช้ภายใน (Internal)" count={stockSummary.internal} color="bg-purple-100 text-purple-800 border-purple-200" />
-          <StockCard title="ซาก (Scrap)" count={stockSummary.scrap} color="bg-red-100 text-red-800 border-red-200" />
-          <StockCard title="ส่งคืนตรง (Direct)" count={stockSummary.directReturn} color="bg-slate-100 text-slate-800 border-slate-200" />
+          <StockCard title="สินค้าขาย (Sellable)" count={stockSummary.restock} variant="green" icon={CheckCircle} subTitle="Fully Recovered" />
+          <StockCard title="สินค้าคืน (RTV)" count={stockSummary.rtv} variant="orange" icon={Truck} subTitle="To Vendor" />
+          <StockCard title="เคลม (Claim)" count={stockSummary.claim} variant="blue" icon={AlertTriangle} subTitle="Awaiting Claim" />
+          <StockCard title="ใช้ภายใน (Internal)" count={stockSummary.internal} variant="purple" icon={Box} subTitle="In-House Use" />
+          <StockCard title="ซาก (Scrap)" count={stockSummary.scrap} variant="red" icon={Trash2} subTitle="Scrapped" />
+          <StockCard title="ส่งคืนตรง (Direct)" count={stockSummary.directReturn} variant="slate" icon={RotateCcw} subTitle="Bypassed Hub" />
         </div>
       </div>
 
@@ -436,84 +444,124 @@ const Dashboard: React.FC = () => {
           <DollarSign className="w-4 h-4" /> ประสิทธิภาพทางการเงิน (Financial Impact)
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total Intake" value={`฿${financials.totalIntakeValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} subText="มูลค่ารับเข้าทั้งระบบ" icon={Package} color="bg-slate-700" />
-          <StatCard title="Recovery Value" value={`฿${financials.recoveryValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} subText="รายได้จากการขายคืน (Restock)" icon={TrendingUp} color="bg-green-600" />
-          <StatCard title="RTV Credit" value={`฿${financials.rtvValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} subText="เครดิตจากการส่งคืน (RTV)" icon={Truck} color="bg-amber-500" />
-          <StatCard title="Cost Impact" value={`฿${financials.ncrCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} subText="มูลค่าความเสียหาย (NCR & Costs)" icon={AlertOctagon} color="bg-red-500" isAlert />
+          < StatCard title="Total Intake" value={`฿${financials.totalIntakeValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} subText="มูลค่ารับเข้าทั้งระบบ" icon={Package} variant="dark" />
+          <StatCard title="Recovery Value" value={`฿${financials.recoveryValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} subText="รายได้จากการขายคืน (Restock)" icon={TrendingUp} variant="green" />
+          <StatCard title="RTV Credit" value={`฿${financials.rtvValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} subText="เครดิตจากการส่งคืน (RTV)" icon={Truck} variant="orange" />
+          <StatCard title="Cost Impact" value={`฿${financials.ncrCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} subText="มูลค่าความเสียหาย (NCR & Costs)" icon={AlertOctagon} variant="red" />
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* 3. PROBLEM ANALYSIS (By Dept) */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col">
-          <div className="mb-4">
-            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-500" />
-              วิเคราะห์ปัญหา (Problem Analysis)
-            </h3>
-            <p className="text-xs text-slate-500">จำแนกตามหน่วยงานที่รับผิดชอบ (จาก Return)</p>
-          </div>
-          <div className="flex-1 min-h-[200px]">
-            {problemAnalysisData.length > 0 ? (
-              <div className="w-full h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={problemAnalysisData} layout="vertical" margin={{ left: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                    <XAxis type="number" hide />
-                    <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11 }} />
-                    <Tooltip />
-                    <Bar dataKey="value" fill="#f59e0b" radius={[0, 4, 4, 0]} barSize={20} />
-                  </BarChart>
-                </ResponsiveContainer>
+        {/* 3. TRENDS & ANALYSIS (Main Chart) - Spans 2 Columns */}
+        <div className="lg:col-span-2 bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col">
+          <div className="mb-8 flex flex-col justify-between items-start gap-2">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-1.5 h-8 bg-indigo-600 rounded-full"></div>
+                <h3 className="text-xl font-bold text-slate-800">
+                  แนวโน้มการรับคืนและมูลค่า (Return Trends)
+                </h3>
               </div>
-            ) : (
-              <div className="h-full flex items-center justify-center text-slate-400 text-sm">ไม่มีข้อมูลปัญหา</div>
-            )}
+              <p className="text-sm text-slate-400 pl-4">เปรียบเทียบปริมาณสินค้า (ชิ้น) กับมูลค่าความเสียหาย (บาท)</p>
+            </div>
+            {/* Custom Legend */}
+            <div className="flex items-center gap-6 pl-4 mt-2">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-indigo-500"></span>
+                <span className="text-xs font-bold text-slate-600">ปริมาณรับเข้า (Qty)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-amber-500 border-2 border-white ring-1 ring-amber-500"></span>
+                <span className="text-xs font-bold text-slate-600">มูลค่าความเสียหาย (Cost)</span>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* 4. DISPOSITION MIX */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col">
-          <div className="mb-4">
-            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-blue-600" />
-              การตัดสินใจ (Disposition Mix)
-            </h3>
-            <p className="text-xs text-slate-500">สัดส่วนการจัดการสินค้า</p>
-          </div>
-          <div className="w-full h-[300px] relative">
+          <div className="flex-1 min-h-[350px] w-full">
+            {/* Mock Data for Trend - In real app, compute from 'items' dates */}
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={dispositionData} innerRadius={50} outerRadius={70} paddingAngle={2} dataKey="value">
-                  {dispositionData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                </Pie>
-                <Tooltip />
-                <Legend verticalAlign="bottom" height={36} iconSize={8} wrapperStyle={{ fontSize: '11px' }} />
-              </PieChart>
+              <AreaChart data={[
+                { name: 'Mon', qty: 120, cost: 5000 },
+                { name: 'Tue', qty: 132, cost: 4500 },
+                { name: 'Wed', qty: 101, cost: 8000 },
+                { name: 'Thu', qty: 134, cost: 2000 },
+                { name: 'Fri', qty: 190, cost: 6000 },
+                { name: 'Sat', qty: 230, cost: 9000 },
+                { name: 'Sun', qty: 210, cost: 12000 },
+              ]}>
+                <defs>
+                  <linearGradient id="colorQty" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={10} />
+                <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fill: '#f59e0b', fontSize: 12 }} unit="฿" />
+                <Tooltip
+                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                />
+                <Area
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="qty"
+                  stroke="#6366f1"
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#colorQty)"
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="cost"
+                  stroke="#f59e0b"
+                  strokeWidth={3}
+                  dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#f59e0b' }}
+                />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* 5. COST TRACKING (By Responsible) */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col">
-          <div className="mb-4">
-            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-red-500" />
-              ค่าใช้จ่าย (Cost Tracking)
-            </h3>
-            <p className="text-xs text-slate-500">Top 5 ผู้รับผิดชอบความเสียหาย (บาท)</p>
+        {/* 4. TOP CRITICAL (Pink Bars) */}
+        <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col">
+          <div className="mb-6">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-1.5 h-8 bg-pink-500 rounded-full"></div>
+              <h3 className="text-xl font-bold text-slate-800 leading-tight">
+                5 อันดับความเสียหาย<br />(Top Critical Costs)
+              </h3>
+            </div>
           </div>
-          <div className="flex-1 min-h-[200px]">
+          <div className="flex-1 min-h-[300px]">
             {financials.costResponsibleData.length > 0 ? (
-              <div className="w-full h-[300px]">
+              <div className="w-full h-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={financials.costResponsibleData} layout="vertical" margin={{ left: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <BarChart data={financials.costResponsibleData} layout="vertical" margin={{ left: 0, right: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f8fafc" />
                     <XAxis type="number" hide />
-                    <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11 }} />
-                    <Tooltip formatter={(val: number) => `฿${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
-                    <Bar dataKey="value" fill="#ef4444" radius={[0, 4, 4, 0]} barSize={20} />
+                    <YAxis
+                      dataKey="name"
+                      type="category"
+                      width={80}
+                      tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      cursor={{ fill: '#fee2e2', opacity: 0.4, radius: 8 }}
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                      formatter={(val: number) => `฿${val.toLocaleString()}`}
+                    />
+                    <Bar
+                      dataKey="value"
+                      fill="#ec4899"
+                      radius={[0, 10, 10, 0]}
+                      barSize={12}
+                      background={{ fill: '#fce7f3', radius: [0, 10, 10, 0] }}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -525,49 +573,53 @@ const Dashboard: React.FC = () => {
 
       </div>
 
-      {/* 6. NCR ROOT CAUSE & PROCESS */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-        <div className="mb-6">
-          <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            <AlertOctagon className="w-5 h-5 text-purple-600" />
-            สาเหตุและการป้องกัน (NCR Root Cause & Prevention)
+      {/* 5. DISPOSITION MIX (Donut) & NCR */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-12">
+        {/* Donut Chart */}
+        <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
+          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-slate-800"></span>
+            สัดส่วนการจัดการสินค้า (Disposition Mix)
           </h3>
-          <p className="text-xs text-slate-500">วิเคราะห์สาเหตุเชิงลึกจากระบบ NCR</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Root Cause Bar Chart */}
-          <div className="h-[350px]">
-            <h4 className="text-sm font-bold text-slate-700 mb-2">Problem Source Breakdown</h4>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={ncrStats.rootCauseData} margin={{ bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-45} textAnchor="end" height={120} />
-                <YAxis hide />
-                <Tooltip />
-                <Bar dataKey="value" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={30} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Process Cause Area Chart */}
-          <div className="h-[350px]">
-            <h4 className="text-sm font-bold text-slate-700 mb-2">Process Issues (Causes)</h4>
+          <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={ncrStats.causeData} outerRadius={80} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                  {ncrStats.causeData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={['#ef4444', '#f59e0b', '#3b82f6', '#10b981'][index % 4]} />
-                  ))}
+                <Pie
+                  data={dispositionData}
+                  innerRadius={80}
+                  outerRadius={110}
+                  paddingAngle={5}
+                  dataKey="value"
+                  cornerRadius={8}
+                >
+                  {dispositionData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />)}
                 </Pie>
-                <Tooltip />
-                <Legend />
+                <Tooltip contentStyle={{ borderRadius: '12px' }} />
+                <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle" />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
-      </div>
 
+        {/* NCR Area Chart */}
+        <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
+          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-purple-600"></span>
+            สาเหตุปัญหา (Problem Sources)
+          </h3>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={ncrStats.rootCauseData} layout="vertical" margin={{ left: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f8fafc" />
+                <XAxis type="number" hide />
+                <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip cursor={{ fill: '#f3e8ff' }} contentStyle={{ borderRadius: '12px' }} />
+                <Bar dataKey="value" fill="#8b5cf6" radius={[0, 8, 8, 0]} barSize={20} background={{ fill: '#f3e8ff', radius: [0, 8, 8, 0] }} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
       {/* MAINTENANCE ZONE */}
       <div className="flex flex-col md:flex-row gap-4 justify-center mt-12 mb-8 opacity-70 hover:opacity-100 transition-opacity">
 
@@ -605,39 +657,173 @@ const Dashboard: React.FC = () => {
   );
 };
 
-// Component: Pipeline Card
-const PipelineCard = ({ step, title, count, icon: Icon, color, desc, isAlert }: any) => (
-  <div className={`p-4 rounded-xl border flex flex-col items-center text-center transition-all ${color} ${isAlert ? 'ring-2 ring-red-400 bg-red-50' : ''}`}>
-    <div className="text-[10px] font-bold opacity-60 uppercase mb-1">Step {step}</div>
-    <div className="mb-2 p-2 bg-white bg-opacity-50 rounded-full">
-      <Icon className="w-5 h-5" />
-    </div>
-    <div className={`text-2xl font-bold mb-1 ${isAlert ? 'text-red-600' : ''}`}>{count}</div>
-    <div className="text-xs font-bold truncate w-full">{title}</div>
-    <div className="text-[10px] opacity-70 mt-1">{desc}</div>
-  </div>
-);
+// Component: CountUpNumber (Kinetic Typography)
+const CountUpNumber = ({ end, duration = 1500 }: { end: number, duration?: number }) => {
+  const [count, setCount] = useState(0);
 
-// Component: Stat Card
-const StatCard = ({ title, value, subText, icon: Icon, color, isAlert }: any) => (
-  <div className={`bg-white rounded-xl shadow-sm border p-5 flex items-start justify-between transition-transform hover:-translate-y-1 duration-200 ${isAlert ? 'border-red-200 bg-red-50/10' : 'border-slate-100'}`}>
-    <div>
-      <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">{title}</p>
-      <h3 className={`text-2xl font-bold mb-1 ${isAlert ? 'text-red-600' : 'text-slate-800'}`}>{value}</h3>
-      <p className="text-xs text-slate-400">{subText}</p>
-    </div>
-    <div className={`p-3 rounded-lg shadow-sm ${color} text-white`}>
-      <Icon className="w-5 h-5" />
-    </div>
-  </div>
-);
+  useEffect(() => {
+    let startTime: number | null = null;
+    const animate = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const progress = timestamp - startTime;
+      const percentage = Math.min(progress / duration, 1);
 
-// Component: Stock Card (for Inventory On-Hand)
-const StockCard = ({ title, count, color }: any) => (
-  <div className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${color}`}>
-    <div className="text-3xl font-bold mb-1">{count}</div>
-    <div className="text-xs font-bold uppercase opacity-80">{title}</div>
-  </div>
-);
+      // Easing function: easeOutExpo
+      const easeOut = (x: number) => (x === 1 ? 1 : 1 - Math.pow(2, -10 * x));
+
+      setCount(Math.floor(easeOut(percentage) * end));
+
+      if (progress < duration) {
+        requestAnimationFrame(animate);
+      } else {
+        setCount(end);
+      }
+    };
+    requestAnimationFrame(animate);
+  }, [end, duration]);
+
+  return <>{count.toLocaleString()}</>;
+};
+
+// Component: Pipeline Card (Fresh Professional Design)
+const PipelineCard = ({ step, title, count, icon: Icon, variant = 'blue', desc }: any) => {
+  // Color Themes (Pastel & Clean)
+  const themes: any = {
+    teal: { border: 'border-teal-200', bg: 'bg-teal-50', iconColor: 'text-teal-600', blob: 'bg-teal-100', hoverBorder: 'group-hover:border-teal-400' },
+    blue: { border: 'border-blue-200', bg: 'bg-blue-50', iconColor: 'text-blue-600', blob: 'bg-blue-100', hoverBorder: 'group-hover:border-blue-400' },
+    indigo: { border: 'border-indigo-200', bg: 'bg-indigo-50', iconColor: 'text-indigo-600', blob: 'bg-indigo-100', hoverBorder: 'group-hover:border-indigo-400' },
+    purple: { border: 'border-purple-200', bg: 'bg-purple-50', iconColor: 'text-purple-600', blob: 'bg-purple-100', hoverBorder: 'group-hover:border-purple-400' },
+    amber: { border: 'border-amber-200', bg: 'bg-amber-50', iconColor: 'text-amber-600', blob: 'bg-amber-100', hoverBorder: 'group-hover:border-amber-400' },
+    emerald: { border: 'border-emerald-200', bg: 'bg-emerald-50', iconColor: 'text-emerald-600', blob: 'bg-emerald-100', hoverBorder: 'group-hover:border-emerald-400' },
+    rose: { border: 'border-rose-200', bg: 'bg-rose-50', iconColor: 'text-rose-600', blob: 'bg-rose-100', hoverBorder: 'group-hover:border-rose-400' },
+    slate: { border: 'border-slate-200', bg: 'bg-slate-50', iconColor: 'text-slate-600', blob: 'bg-slate-200', hoverBorder: 'group-hover:border-slate-400' },
+  };
+
+  const theme = themes[variant] || themes.blue;
+
+  return (
+    <div className={`relative p-5 rounded-[2rem] border ${theme.border} ${theme.bg} flex flex-col items-center text-center transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:ring-2 hover:ring-offset-2 hover:ring-transparent ${theme.hoverBorder} cursor-pointer overflow-hidden group h-full min-h-[220px]`}>
+      {/* Decorative Blob */}
+      <div className={`absolute -top-6 -right-6 w-24 h-24 rounded-full ${theme.blob} opacity-60 blur-2xl transition-transform duration-500 group-hover:scale-150`}></div>
+
+      {/* Step Label */}
+      <div className="relative z-10 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 transition-colors group-hover:text-slate-600">
+        Step {step}
+      </div>
+
+      {/* Icon Circle */}
+      <div className={`relative z-10 mb-4 p-4 rounded-full shadow-sm bg-white ring-4 ring-white/50 ${theme.iconColor} transition-transform duration-300 group-hover:scale-110 group-hover:shadow-md`}>
+        <Icon className="w-6 h-6" strokeWidth={1.5} />
+      </div>
+
+      {/* Count */}
+      <div className="relative z-10 text-4xl font-black text-slate-800 mb-2 transition-all group-hover:scale-105">
+        <CountUpNumber end={count} />
+      </div>
+
+      {/* Title */}
+      <div className="relative z-10 text-xs font-bold text-slate-600 truncate w-full mb-1 px-2">
+        {title}
+      </div>
+
+      {/* Desc */}
+      <div className="relative z-10 text-[10px] text-slate-400 font-medium">
+        {desc}
+      </div>
+    </div>
+  );
+};
+
+// Component: Stat Card (Financials - Premium Design)
+const StatCard = ({ title, value, subText, icon: Icon, variant = 'default' }: any) => {
+  // Define styles for different variants
+  const styles: any = {
+    dark: "bg-slate-900 text-white border-none shadow-xl shadow-slate-200 hover:shadow-slate-400/50",
+    green: "bg-gradient-to-br from-emerald-500 to-teal-600 text-white border-none shadow-xl shadow-emerald-200 hover:shadow-emerald-400/50",
+    orange: "bg-gradient-to-br from-amber-400 to-orange-600 text-white border-none shadow-xl shadow-orange-200 hover:shadow-orange-400/50",
+    red: "bg-gradient-to-br from-red-500 to-rose-600 text-white border-none shadow-xl shadow-red-200 hover:shadow-red-400/50",
+    default: "bg-white text-slate-800 border-slate-100 shadow-sm hover:border-blue-300"
+  };
+
+  const currentStyle = styles[variant] || styles.default;
+  const isDark = variant !== 'default';
+
+  return (
+    <div className={`relative overflow-hidden rounded-[2rem] p-6 flex flex-col justify-between h-40 transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] hover:shadow-2xl cursor-pointer group ${currentStyle}`}>
+      {/* Abstract Background Shapes */}
+      {isDark && (
+        <>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -mr-10 -mt-10 blur-2xl transition-transform group-hover:scale-125 duration-700"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-black opacity-10 rounded-full -ml-8 -mb-8 blur-xl transition-transform group-hover:scale-150 duration-700"></div>
+        </>
+      )}
+
+      <div className="relative z-10 flex justify-between items-start">
+        <div>
+          <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${isDark ? 'text-white/70' : 'text-slate-500'}`}>{title}</p>
+          <div className={`p-2 rounded-lg inline-flex ${isDark ? 'bg-white/20 backdrop-blur-sm text-white' : 'bg-slate-100 text-slate-600'}`}>
+            <span className="text-[10px] font-medium">{subText}</span>
+          </div>
+        </div>
+        <div className={`p-3 rounded-2xl ${isDark ? 'bg-white/20 backdrop-blur-md text-white' : 'bg-slate-100 text-slate-600'} transition-transform group-hover:rotate-12`}>
+          <Icon className="w-6 h-6" />
+        </div>
+      </div>
+
+      <div className="relative z-10 mt-auto">
+        <h3 className="text-3xl font-black tracking-tight group-hover:scale-105 transition-transform origin-left">{value}</h3>
+      </div>
+    </div>
+  );
+};
+
+// Component: Stock Card (Vibrant Pill Design)
+const StockCard = ({ title, count, variant, icon: Icon, subTitle }: any) => {
+  const styles: any = {
+    blue: "bg-gradient-to-br from-[#4f46e5] to-[#3b82f6] shadow-indigo-300", // Indigo - Blue
+    orange: "bg-gradient-to-br from-[#f97316] to-[#ef4444] shadow-orange-300", // Orange - Red
+    green: "bg-gradient-to-br from-[#10b981] to-[#059669] shadow-emerald-300", // Emerald
+    purple: "bg-gradient-to-br from-[#a855f7] to-[#d946ef] shadow-purple-300", // Purple - Fuchsia
+    red: "bg-gradient-to-br from-[#ef4444] to-[#be123c] shadow-rose-300",     // Red
+    amber: "bg-gradient-to-br from-[#f59e0b] to-[#d97706] shadow-amber-300",   // Amber
+    slate: "bg-gradient-to-br from-[#64748b] to-[#475569] shadow-slate-300",   // Slate
+  };
+
+  const style = styles[variant] || styles.slate;
+
+  return (
+    <div className={`relative overflow-hidden rounded-[2rem] p-6 h-44 flex flex-col justify-between shadow-xl transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl cursor-pointer group ${style}`}>
+
+      {/* Background Icon Watermark */}
+      {Icon && (
+        <div className="absolute -bottom-6 -right-6 opacity-20 transform rotate-[-10deg] group-hover:scale-110 group-hover:rotate-0 transition-all duration-500 ease-out">
+          <Icon className="w-36 h-36 text-white" strokeWidth={1} />
+        </div>
+      )}
+
+      {/* Top Label */}
+      <div className="relative z-10">
+        <div className="text-white/90 text-sm font-bold tracking-wide mb-1 drop-shadow-sm flex items-center gap-2">
+          <span className="w-1.5 h-1.5 bg-white rounded-full inline-block"></span>
+          {title}
+        </div>
+      </div>
+
+      {/* Main Number */}
+      <div className="relative z-10 text-white font-black text-6xl leading-none tracking-tight drop-shadow-md flex items-baseline gap-2 my-2">
+        <CountUpNumber end={count} />
+        <span className="text-xl font-bold opacity-70 tracking-normal">ชิ้น</span>
+      </div>
+
+      {/* Bottom Badge */}
+      <div className="relative z-10 self-start mt-auto">
+        <div className="bg-white/20 backdrop-blur-md rounded-full px-4 py-1.5 border border-white/10 text-[10px] font-bold text-white tracking-widest uppercase shadow-sm">
+          {subTitle || 'STATUS'}
+        </div>
+      </div>
+
+    </div>
+  );
+};
 
 export default Dashboard;

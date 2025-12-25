@@ -27,6 +27,83 @@ export const CostSection: React.FC<CostSectionProps> = ({ formData, updateField 
                     <span className="font-bold text-red-600">⚠ มีค่าใช้จ่าย (Has Cost)</span>
                 </label>
 
+                {/* Field Settlement Section (New) */}
+                <div className={`mb-4 p-4 rounded-lg border flex flex-col gap-3 transition-colors ${formData.isFieldSettled ? 'bg-amber-50 border-amber-200 shadow-sm' : 'bg-slate-50 border-slate-200'}`}>
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                        <input
+                            type="checkbox"
+                            checked={formData.isFieldSettled || false}
+                            onChange={(e) => {
+                                const checked = e.target.checked;
+                                updateField('isFieldSettled', checked);
+                                if (checked) {
+                                    updateField('preliminaryRoute', 'จบงานหน้างาน');
+                                }
+                            }}
+                            className="w-5 h-5 text-amber-600 rounded focus:ring-amber-500"
+                        />
+                        <span className={`text-sm font-bold transition-colors ${formData.isFieldSettled ? 'text-amber-800' : 'text-slate-600 group-hover:text-amber-700'}`}>
+                            จบงานหน้างาน / พนักงานชดเชยเงิน (Field Settlement)
+                        </span>
+                    </label>
+
+                    {formData.isFieldSettled && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in pl-8 border-l-2 border-amber-200 ml-2.5">
+                            <div>
+                                <label className="block text-xs font-bold text-amber-900 mb-1 uppercase tracking-wider">จำนวนเงินที่ชดเชย (Amount)</label>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="number"
+                                        aria-label="จำนวนเงินชดเชย"
+                                        title="จำนวนเงินชดเชย"
+                                        className="w-full p-2 text-sm border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 bg-white font-bold text-amber-700 shadow-sm"
+                                        value={formData.fieldSettlementAmount || ''}
+                                        onChange={e => updateField('fieldSettlementAmount', parseFloat(e.target.value) || 0)}
+                                        placeholder="0.00"
+                                    />
+                                    <span className="text-sm font-bold text-amber-800">บาท</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-amber-900 mb-1 uppercase tracking-wider">หลักฐานการรับเงิน (Evidence Ref)</label>
+                                <input
+                                    type="text"
+                                    aria-label="หลักฐานการรับเงิน"
+                                    title="หลักฐานการรับเงิน"
+                                    className="w-full p-2 text-sm border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 bg-white placeholder-amber-300"
+                                    value={formData.fieldSettlementEvidence || ''}
+                                    onChange={e => updateField('fieldSettlementEvidence', e.target.value)}
+                                    placeholder="เลขที่บิล / รายละเอียด..."
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-amber-900 mb-1 uppercase tracking-wider">ชื่อ-นามสกุล ผู้รับผิดชอบ</label>
+                                <input
+                                    type="text"
+                                    aria-label="ชื่อผู้รับผิดชอบ"
+                                    title="ชื่อผู้รับผิดชอบ"
+                                    className="w-full p-2 text-sm border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 bg-white placeholder-amber-300"
+                                    value={formData.fieldSettlementName || ''}
+                                    onChange={e => updateField('fieldSettlementName', e.target.value)}
+                                    placeholder="ชื่อ-นามสกุล"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-amber-900 mb-1 uppercase tracking-wider">ตำแหน่ง</label>
+                                <input
+                                    type="text"
+                                    aria-label="ตำแหน่ง"
+                                    title="ตำแหน่ง"
+                                    className="w-full p-2 text-sm border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 bg-white placeholder-amber-300"
+                                    value={formData.fieldSettlementPosition || ''}
+                                    onChange={e => updateField('fieldSettlementPosition', e.target.value)}
+                                    placeholder="เช่น พนักงานขับรถ / พนักงานขาย"
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 {formData.hasCost && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in bg-red-50 p-4 rounded-lg border border-red-100">
                         <div>

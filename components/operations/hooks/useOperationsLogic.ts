@@ -113,8 +113,8 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         actionRework: false, actionReworkQty: 0, actionReworkMethod: '',
         actionSpecialAcceptance: false, actionSpecialAcceptanceQty: 0, actionSpecialAcceptanceReason: '',
         actionScrap: false, actionScrapQty: 0,
-        actionScrapReplace: false, // Corrected name from actionScrapReplace
-        actionScrapReplaceQty: 0,
+        actionReplace: false,
+        actionReplaceQty: 0,
         causePackaging: false, causeTransport: false, causeOperation: false, causeEnv: false,
         causeDetail: '', preventionDetail: '',
 
@@ -122,7 +122,12 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         hasCost: false, costAmount: 0, costResponsible: '', problemSource: '',
         problemAnalysis: undefined, problemAnalysisSub: '', problemAnalysisCause: '', problemAnalysisDetail: '',
 
-        preliminaryDecision: undefined, preliminaryRoute: ''
+        preliminaryDecision: undefined, preliminaryRoute: '',
+        isFieldSettled: false,
+        fieldSettlementAmount: 0,
+        fieldSettlementEvidence: '',
+        fieldSettlementName: '',
+        fieldSettlementPosition: ''
     };
     const [formData, setFormData] = useState<Partial<ReturnRecord>>(initialFormState);
     const [requestItems, setRequestItems] = useState<Partial<ReturnRecord>[]>([]);
@@ -178,8 +183,10 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
         if (isNCR) {
             return (
                 i.status === 'NCR_QCPassed' ||
+                i.status === 'NCR_QCCompleted' ||
                 i.status === 'QCPassed' ||
-                i.status === 'QCCompleted'
+                i.status === 'QCCompleted' ||
+                i.status === 'Settled_OnField'
             );
         }
         return false;
@@ -387,9 +394,9 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                     collectionOrderId: finalColNumber,
                     amount: (item.quantity || 0) * (item.priceBill || 0),
                     reason: item.problemDetail || item.notes || 'แจ้งคืนสินค้า',
-                    status: 'Requested',
+                    status: item.isFieldSettled ? 'Settled_OnField' : 'Requested',
                     dateRequested: item.date || new Date().toISOString().split('T')[0],
-                    disposition: 'Pending',
+                    disposition: item.isFieldSettled ? 'RTV' : 'Pending', // Automatically RTV if settled
                     condition: 'Unknown',
                     productName: item.productName || 'Unknown Product',
                     productCode: item.productCode || 'N/A',
@@ -454,7 +461,12 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                                 hasCost: record.hasCost,
                                 costAmount: record.costAmount,
                                 costResponsible: record.costResponsible,
-                                problemSource: record.problemSource || record.problemAnalysis || '-'
+                                problemSource: record.problemSource || record.problemAnalysis || '-',
+                                isFieldSettled: record.isFieldSettled,
+                                fieldSettlementAmount: record.fieldSettlementAmount,
+                                fieldSettlementEvidence: record.fieldSettlementEvidence,
+                                fieldSettlementName: record.fieldSettlementName,
+                                fieldSettlementPosition: record.fieldSettlementPosition
                             },
                             actionReject: record.actionReject,
                             actionRejectQty: record.actionRejectQty,
@@ -463,13 +475,13 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                             actionRework: record.actionRework,
                             actionReworkQty: record.actionReworkQty,
                             actionReworkMethod: record.actionReworkMethod,
-                            actionSpecialAccept: record.actionSpecialAcceptance,
-                            actionSpecialAcceptQty: record.actionSpecialAcceptanceQty,
-                            actionSpecialAcceptReason: record.actionSpecialAcceptanceReason,
+                            actionSpecialAcceptance: record.actionSpecialAcceptance,
+                            actionSpecialAcceptanceQty: record.actionSpecialAcceptanceQty,
+                            actionSpecialAcceptanceReason: record.actionSpecialAcceptanceReason,
                             actionScrap: record.actionScrap,
                             actionScrapQty: record.actionScrapQty,
-                            actionReplace: record.actionScrapReplace,
-                            actionReplaceQty: record.actionScrapReplaceQty,
+                            actionReplace: record.actionReplace,
+                            actionReplaceQty: record.actionReplaceQty,
                             causePackaging: record.causePackaging,
                             causeTransport: record.causeTransport,
                             causeOperation: record.causeOperation,

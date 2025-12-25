@@ -146,6 +146,26 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, icon:
                     <div className="text-[10px] text-amber-600 bg-amber-50 p-1 rounded mt-1">Route: {item.destinationCustomer}</div>
                 )}
 
+                {item.isFieldSettled && (
+                    <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg shadow-sm border-l-4 border-l-amber-500">
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-[10px] font-bold text-amber-800 uppercase tracking-tighter">💰 จบงานหน้างาน (Settled)</span>
+                            <span className="text-sm font-black text-amber-900 underline decoration-amber-300 decoration-2">{item.fieldSettlementAmount?.toLocaleString()} บ.</span>
+                        </div>
+                        {item.fieldSettlementEvidence && (
+                            <div className="text-[10px] text-amber-700 font-medium truncate italic bg-white/50 px-1 rounded">
+                                Ref: {item.fieldSettlementEvidence}
+                            </div>
+                        )}
+                        {(item.fieldSettlementName || item.fieldSettlementPosition) && (
+                            <div className="mt-1 flex flex-col border-t border-amber-200/50 pt-1 text-[9px] text-amber-900/70 font-bold">
+                                <span>👤 {item.fieldSettlementName || '-'}</span>
+                                {item.fieldSettlementPosition && <span className="text-[8px] font-normal opacity-75 ml-4">({item.fieldSettlementPosition})</span>}
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {item.preliminaryDecision && (
                     <div className="mt-2 pt-2 border-t border-slate-100 flex flex-col gap-1">
                         <div className="flex justify-between items-center">

@@ -154,6 +154,7 @@ export type ReturnStatus =
   | 'COL_Documented'     // Col Step 7 Output (was DocsCompleted)
 
   // Common Final States
+  | 'Settled_OnField'   // จบงานหน้างาน (Driver paid, no return)
   | 'Completed'         // Step 8: Closed
   | 'ReturnToSupplier'
   | 'DirectReturn'
@@ -309,8 +310,8 @@ export interface ReturnRecord {
 
   actionScrap?: boolean;          // ทำลาย (Scrap)
   actionScrapQty?: number;
-  actionScrapReplace?: boolean;   // เปลี่ยนสินค้าใหม่
-  actionScrapReplaceQty?: number;
+  actionReplace?: boolean;        // เปลี่ยนสินค้าใหม่
+  actionReplaceQty?: number;
 
   // Root Cause
   causePackaging?: boolean;
@@ -319,6 +320,13 @@ export interface ReturnRecord {
   causeEnv?: boolean;
   causeDetail?: string;
   preventionDetail?: string;
+  preventionDueDate?: string;
+  responsiblePerson?: string;
+  responsiblePosition?: string;
+  dueDate?: string;
+  approver?: string;
+  approverPosition?: string;
+  approverDate?: string;
 
   // Logistics
   collectionOrderId?: string; // Links to CollectionOrder
@@ -342,6 +350,13 @@ export interface ReturnRecord {
   // Re-applying to ensure update
   rootCause?: string;
   dispositionRoute?: string;
+
+  // Field Settlement (Bypass Logistics)
+  isFieldSettled?: boolean;
+  fieldSettlementAmount?: number;
+  fieldSettlementEvidence?: string; // URL/Base64
+  fieldSettlementName?: string;
+  fieldSettlementPosition?: string;
 }
 
 export interface SearchFilters {

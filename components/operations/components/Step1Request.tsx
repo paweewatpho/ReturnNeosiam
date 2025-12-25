@@ -102,12 +102,17 @@ export const Step1Request: React.FC<Step1RequestProps> = ({
     };
 
     // Handle Preliminary Decision Confirmation
-    const handleDecisionConfirm = (decision: string, route?: string) => {
+    const handleDecisionConfirm = (decision: string, route?: string, settlementData?: any) => {
         if (pendingItemData) {
             const itemWithDecision = {
                 ...pendingItemData,
                 preliminaryDecision: decision as 'Return' | 'Sell' | 'Scrap' | 'Internal' | 'Claim',
-                preliminaryRoute: route || ''
+                preliminaryRoute: route || '',
+                isFieldSettled: settlementData?.isFieldSettled || false,
+                fieldSettlementAmount: settlementData?.amount || 0,
+                fieldSettlementEvidence: settlementData?.evidence || '',
+                fieldSettlementName: settlementData?.name || '',
+                fieldSettlementPosition: settlementData?.position || ''
             };
             handleAddItem(null, itemWithDecision);
             setPendingItemData(null);

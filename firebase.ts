@@ -17,7 +17,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app); // Initialize Analytics
+// const analytics = getAnalytics(app); // Analytics removed as unused
 
 console.log("✅ Firebase App Initialized (RTDB):", app.name);
 

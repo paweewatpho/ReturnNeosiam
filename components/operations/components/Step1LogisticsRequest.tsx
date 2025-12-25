@@ -130,7 +130,7 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                     required
                                     value={formData.branch || ''}
                                     onChange={e => updateField('branch', e.target.value)}
-                                    className="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                    className="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all duration-200 hover:border-blue-300 hover:shadow-sm"
                                 >
                                     <option value="" disabled>-- เลือกสาขา --</option>
                                     <option value="พิษณุโลก">พิษณุโลก</option>
@@ -151,7 +151,7 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                     value={formData.invoiceNo || ''}
                                     onChange={e => updateField('invoiceNo', e.target.value)}
                                     placeholder="INV-xxxx"
-                                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all duration-200 hover:border-blue-300 hover:shadow-sm"
                                 />
                             </div>
                             <div>
@@ -167,7 +167,7 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                         updateField('controlDate', e.target.value);
                                         updateField('date', e.target.value);
                                     }}
-                                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all duration-200 hover:border-blue-300 hover:shadow-sm"
                                 />
                             </div>
                         </div>
@@ -186,7 +186,7 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                         updateField('refNo', e.target.value);
                                     }}
                                     placeholder="R-xxxx"
-                                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all duration-200 hover:border-blue-300 hover:shadow-sm"
                                 />
                             </div>
                             <div>
@@ -198,7 +198,7 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                     value={formData.tmNo || ''}
                                     onChange={e => updateField('tmNo', e.target.value)}
                                     placeholder="TM-xxxx"
-                                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all duration-200 hover:border-blue-300 hover:shadow-sm"
                                 />
                             </div>
                         </div>
@@ -214,7 +214,7 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                     value={formData.customerCode || ''}
                                     onChange={e => updateField('customerCode', e.target.value)}
                                     placeholder="CUS-xxxx"
-                                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all duration-200 hover:border-blue-300 hover:shadow-sm"
                                 />
                             </div>
                             <div className="md:col-span-2">
@@ -229,7 +229,7 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                     value={formData.customerName || ''}
                                     onChange={e => updateField('customerName', e.target.value)}
                                     placeholder="ระบุชื่อลูกค้าต้นทาง..."
-                                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all duration-200 hover:border-blue-300 hover:shadow-sm"
                                     list="customer-list"
                                 />
                                 <datalist id="customer-list">
@@ -251,7 +251,7 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                     value={formData.destinationCustomer || ''}
                                     onChange={e => updateField('destinationCustomer', e.target.value)}
                                     placeholder="ระบุลูกค้าปลายทาง..."
-                                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all duration-200 hover:border-blue-300 hover:shadow-sm"
                                     list="destination-list"
                                 />
                                 <datalist id="destination-list">
@@ -267,7 +267,7 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                     value={formData.province || ''}
                                     onChange={e => updateField('province', e.target.value)}
                                     placeholder="ระบุจังหวัด..."
-                                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all duration-200 hover:border-blue-300 hover:shadow-sm"
                                 />
                             </div>
                         </div>
@@ -282,7 +282,7 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                 value={formData.customerAddress || ''}
                                 onChange={e => updateField('customerAddress', e.target.value)}
                                 placeholder="ที่อยู่ลูกค้า..."
-                                className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all duration-200 hover:border-blue-300 hover:shadow-sm"
                             ></textarea>
                         </div>
 
@@ -298,7 +298,7 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                     value={formData.quantity || ''}
                                     onChange={e => updateField('quantity', parseFloat(e.target.value))}
                                     placeholder="ระบุจำนวน..."
-                                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none font-bold text-blue-600"
+                                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none font-bold text-blue-600 transition-all duration-200 hover:border-blue-300 hover:shadow-sm"
                                 />
                             </div>
                             <div>
@@ -310,7 +310,7 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                     value={formData.unit || ''}
                                     onChange={e => updateField('unit', e.target.value)}
                                     placeholder="เช่น กล่อง, พาเลท, ชิ้น..."
-                                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all duration-200 hover:border-blue-300 hover:shadow-sm"
                                 />
                             </div>
                         </div>
@@ -325,7 +325,7 @@ export const Step1LogisticsRequest: React.FC<Step1LogisticsRequestProps> = ({
                                 value={formData.notes || ''}
                                 onChange={e => updateField('notes', e.target.value)}
                                 placeholder="ระบุรายละเอียดสินค้า หรือหมายเหตุอื่นๆ..."
-                                className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all duration-200 hover:border-blue-300 hover:shadow-sm"
                             ></textarea>
                         </div>
 

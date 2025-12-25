@@ -21,6 +21,7 @@ const MainApp: React.FC = () => {
   const [transferData, setTransferData] = useState<Partial<ReturnRecord> | null>(null);
   const [operationsInitialStep, setOperationsInitialStep] = useState<number | undefined>(undefined);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   // แสดง LoginPage ถ้ายังไม่ได้ Login
   if (!user) {
@@ -101,14 +102,46 @@ const MainApp: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
-            <button
-              className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors"
-              aria-label="การแจ้งเตือน"
-              title="การแจ้งเตือน"
-            >
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors"
+                aria-label="การแจ้งเตือน"
+                title="การแจ้งเตือน"
+              >
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-white animate-pulse"></span>
+              </button>
+
+              {/* Notification Dropdown */}
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden z-50 animate-fade-in-up origin-top-right">
+                  <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <h3 className="font-bold text-slate-800">การแจ้งเตือน (Notifications)</h3>
+                    <span className="text-xs text-blue-600 font-medium cursor-pointer hover:underline">อ่านทั้งหมด</span>
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto">
+                    {[
+                      { id: 1, title: 'NCR ใหม่', desc: 'มีรายงาน NCR #NCR-2024-001 เข้ามาใหม่', time: '10 นาทีที่แล้ว', type: 'alert' },
+                      { id: 2, title: 'อนุมัติคำขอ', desc: 'คำขอคืนสินค้า #REQ-998 รอการอนุมัติ', time: '1 ชม. ที่แล้ว', type: 'info' },
+                      { id: 3, title: 'สินค้าเข้า Hub', desc: 'รถขนส่งทะเบียน 71-0139 เข้าถึงศูนย์แล้ว', time: '2 ชม. ที่แล้ว', type: 'success' },
+                    ].map((item) => (
+                      <div key={item.id} className="p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer flex gap-3 items-start group">
+                        <div className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${item.type === 'alert' ? 'bg-red-500' : item.type === 'success' ? 'bg-green-500' : 'bg-blue-500'}`}></div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{item.title}</p>
+                          <p className="text-xs text-slate-500 line-clamp-2">{item.desc}</p>
+                          <p className="text-[10px] text-slate-400 mt-1">{item.time}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="p-3 text-center border-t border-slate-100 bg-slate-50/50">
+                    <button className="text-xs text-slate-500 hover:text-slate-800 font-medium">ดูประวัติทั้งหมด</button>
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="flex items-center gap-3 pl-3 md:pl-4 border-l border-slate-200">
               <div className="text-right hidden md:block">
                 <p className="text-sm font-bold text-slate-800">{user.displayName}</p>

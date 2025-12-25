@@ -19,6 +19,7 @@ export interface NCRItem {
   unit: string;
   pricePerUnit?: number;
   priceBill: number;
+  priceSell?: number;
   expiryDate: string;
   hasCost: boolean;
   costAmount?: number;
@@ -26,6 +27,57 @@ export interface NCRItem {
   problemSource: string;
   preliminaryDecision?: string | null;
   preliminaryRoute?: string;
+  isFieldSettled?: boolean;
+  fieldSettlementAmount?: number;
+  fieldSettlementEvidence?: string;
+  fieldSettlementName?: string;
+  fieldSettlementPosition?: string;
+
+  // New: Matching ReturnRecord/NCRRecord flags for per-item tracking
+  problemDamaged?: boolean;
+  problemDamagedInBox?: boolean;
+  problemLost?: boolean;
+  problemMixed?: boolean;
+  problemWrongInv?: boolean;
+  problemLate?: boolean;
+  problemDuplicate?: boolean;
+  problemWrong?: boolean;
+  problemIncomplete?: boolean;
+  problemOver?: boolean;
+  problemWrongInfo?: boolean;
+  problemShortExpiry?: boolean;
+  problemTransportDamage?: boolean;
+  problemAccident?: boolean;
+  problemPOExpired?: boolean;
+  problemNoBarcode?: boolean;
+  problemNotOrdered?: boolean;
+  problemOther?: boolean;
+  problemOtherText?: string;
+  problemDetail?: string;
+
+  actionReject?: boolean;
+  actionRejectQty?: number;
+  actionRejectSort?: boolean;
+  actionRejectSortQty?: number;
+  actionRework?: boolean;
+  actionReworkQty?: number;
+  actionReworkMethod?: string;
+  actionSpecialAcceptance?: boolean;
+  actionSpecialAcceptanceQty?: number;
+  actionSpecialAcceptanceReason?: string;
+  actionScrap?: boolean;
+  actionScrapQty?: number;
+  actionReplace?: boolean;
+  actionReplaceQty?: number;
+
+  // Root Cause Specifics
+  causePackaging?: boolean;
+  causeTransport?: boolean;
+  causeOperation?: boolean;
+  causeEnv?: boolean;
+  causeDetail?: string;
+  preventionDetail?: string;
+  preventionDueDate?: string;
 }
 
 // EXPANDED Interface for the main NCR Record
@@ -102,7 +154,7 @@ export interface NCRRecord {
   qaReject: boolean;
   qaReason: string;
 
-  status: 'Open' | 'Closed' | 'Canceled'; // Add 'Canceled' for soft delete
+  status: 'Open' | 'Closed' | 'Canceled' | 'Settled_OnField'; // Add 'Canceled' for soft delete, 'Settled_OnField' for bypass
 }
 
 
@@ -429,7 +481,89 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateNCRReport = async (id: string, data: Partial<NCRRecord>): Promise<boolean> => {
     try {
+      // 1. Get the current (old) record before update to find linked items
+      const oldNCR = ncrReports.find(r => r.id === id);
+      const oldNcrNo = oldNCR?.ncrNo;
+      const oldItemData = oldNCR?.item || (oldNCR as any);
+      const oldProductCode = oldItemData?.productCode;
+
+      // 2. Perform the update on ncr_reports
       await update(ref(db, 'ncr_reports/' + id), data);
+
+      // 3. SYNC to ReturnRecord (Operations Hub)
+      // We need to find the linked return record(s) and update them.
+      // We match by ncrNumber and productCode of the old record.
+      if (oldNcrNo && oldProductCode) {
+        const linkedReturns = items.filter(i =>
+          i.ncrNumber === oldNcrNo &&
+          i.productCode === oldProductCode
+        );
+
+        if (linkedReturns.length > 0) {
+          const fullNCR = { ...oldNCR, ...data } as NCRRecord;
+          const newItemData = fullNCR.item || (fullNCR as any);
+
+          // Prepare synchronized data for ReturnRecord
+          const syncData: Partial<ReturnRecord> = {
+            date: fullNCR.date,
+            dateRequested: fullNCR.date,
+            productName: newItemData.productName,
+            productCode: newItemData.productCode,
+            quantity: newItemData.quantity,
+            unit: newItemData.unit,
+            customerName: newItemData.customerName,
+            destinationCustomer: newItemData.destinationCustomer,
+            branch: newItemData.branch,
+            founder: fullNCR.founder,
+            amount: newItemData.priceBill || 0,
+            priceBill: newItemData.priceBill || 0,
+            pricePerUnit: newItemData.pricePerUnit || 0,
+            neoRefNo: newItemData.neoRefNo || '-',
+            ncrNumber: fullNCR.ncrNo, // Sync NCR Number change
+
+            // Problem Flags
+            problemDamaged: fullNCR.problemDamaged,
+            problemDamagedInBox: fullNCR.problemDamagedInBox,
+            problemLost: fullNCR.problemLost,
+            problemMixed: fullNCR.problemMixed,
+            problemWrongInv: fullNCR.problemWrongInv,
+            problemLate: fullNCR.problemLate,
+            problemDuplicate: fullNCR.problemDuplicate,
+            problemWrong: fullNCR.problemWrong,
+            problemIncomplete: fullNCR.problemIncomplete,
+            problemOver: fullNCR.problemOver,
+            problemWrongInfo: fullNCR.problemWrongInfo,
+            problemShortExpiry: fullNCR.problemShortExpiry,
+            problemTransportDamage: fullNCR.problemTransportDamage,
+            problemAccident: fullNCR.problemAccident,
+            problemPOExpired: fullNCR.problemPOExpired,
+            problemNoBarcode: fullNCR.problemNoBarcode,
+            problemNotOrdered: fullNCR.problemNotOrdered,
+            problemOther: fullNCR.problemOther,
+            problemOtherText: fullNCR.problemOtherText,
+            problemDetail: fullNCR.problemDetail,
+
+            // Root Cause & Cost
+            rootCause: newItemData.problemSource,
+            problemSource: newItemData.problemSource,
+            hasCost: newItemData.hasCost,
+            costAmount: newItemData.costAmount,
+            costResponsible: newItemData.costResponsible,
+
+            // Header Info
+            toDept: fullNCR.toDept,
+            copyTo: fullNCR.copyTo,
+            poNo: fullNCR.poNo,
+          };
+
+          // Update all matching return records
+          for (const ret of linkedReturns) {
+            await update(ref(db, 'return_records/' + ret.id), syncData);
+          }
+          console.log(`✅ Synced NCR ${fullNCR.ncrNo} update to ${linkedReturns.length} Return Records`);
+        }
+      }
+
       return true;
     } catch (error: any) {
       if (error.code === 'PERMISSION_DENIED') {
@@ -445,8 +579,30 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteNCRReport = async (id: string): Promise<boolean> => {
     try {
-      // This is now a "soft delete" or "cancel" operation.
+      // 1. Get the current record before "deleting" (canceling)
+      const oldNCR = ncrReports.find(r => r.id === id);
+
+      // 2. Perform soft delete (Cancel)
       await update(ref(db, 'ncr_reports/' + id), { status: 'Canceled' });
+
+      // 3. SYNC to ReturnRecord - Also cancel the linked items in Hub
+      if (oldNCR && oldNCR.ncrNo) {
+        const oldItemData = oldNCR.item || (oldNCR as any);
+        const linkedReturns = items.filter(i =>
+          i.ncrNumber === oldNCR.ncrNo &&
+          i.productCode === oldItemData.productCode
+        );
+
+        for (const ret of linkedReturns) {
+          // You might want to update status to 'Canceled' or some specific status
+          // Operations Hub filters out 'Canceled' anyway in some views
+          await update(ref(db, 'return_records/' + ret.id), { status: 'Canceled' as any });
+        }
+        if (linkedReturns.length > 0) {
+          console.log(`🚫 Canceled ${linkedReturns.length} linked Return Records in Hub`);
+        }
+      }
+
       return true;
     } catch (error: any) {
       if (error.code === 'PERMISSION_DENIED') {

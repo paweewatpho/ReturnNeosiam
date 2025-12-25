@@ -18,7 +18,7 @@ export const ActionSection: React.FC<ActionSectionProps> = ({
     // รายชื่อฟิลด์ Action ทั้งหมด (เพื่อเอาไว้ reset ตัวอื่นเวลาเลือกตัวหนึ่ง)
     const ALL_ACTIONS: (keyof ReturnRecord)[] = [
         'actionReject', 'actionRejectSort', 'actionRework',
-        'actionSpecialAcceptance', 'actionScrap', 'actionScrapReplace'
+        'actionSpecialAcceptance', 'actionScrap', 'actionReplace'
     ];
 
     const onToggle = (field: keyof ReturnRecord) => {
@@ -84,9 +84,9 @@ export const ActionSection: React.FC<ActionSectionProps> = ({
                         <div className="flex items-center gap-2"><span className="text-xs text-slate-500">จำนวน:</span><input type="number" aria-label="จำนวนทำลาย" title="จำนวนทำลาย" value={formData.actionScrapQty} onChange={e => updateField('actionScrapQty', Number(e.target.value))} className="w-20 border rounded px-2 py-1" /></div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <input type="checkbox" aria-label="เปลี่ยนสินค้าใหม่" title="เปลี่ยนสินค้าใหม่" checked={formData.actionScrapReplace} onChange={() => onToggle('actionScrapReplace')} className="w-4 h-4" />
+                        <input type="checkbox" aria-label="เปลี่ยนสินค้าใหม่" title="เปลี่ยนสินค้าใหม่" checked={formData.actionReplace} onChange={() => onToggle('actionReplace')} className="w-4 h-4" />
                         <span className="font-bold w-32">เปลี่ยนสินค้าใหม่</span>
-                        <div className="flex items-center gap-2"><span className="text-xs text-slate-500">จำนวน:</span><input type="number" aria-label="จำนวนเปลี่ยนใหม่" title="จำนวนเปลี่ยนใหม่" value={formData.actionScrapReplaceQty} onChange={e => updateField('actionScrapReplaceQty', Number(e.target.value))} className="w-20 border rounded px-2 py-1" /></div>
+                        <div className="flex items-center gap-2"><span className="text-xs text-slate-500">จำนวน:</span><input type="number" aria-label="จำนวนเปลี่ยนใหม่" title="จำนวนเปลี่ยนใหม่" value={formData.actionReplaceQty} onChange={e => updateField('actionReplaceQty', Number(e.target.value))} className="w-20 border rounded px-2 py-1" /></div>
                     </div>
                 </div>
             </div>

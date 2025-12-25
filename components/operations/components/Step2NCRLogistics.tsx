@@ -23,6 +23,11 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
     const [editingItemId, setEditingItemId] = useState<string | null>(null);
     const [tempDecision, setTempDecision] = useState<'Return' | 'Sell' | 'Scrap' | 'Internal' | 'Claim' | null>(null);
     const [tempRoute, setTempRoute] = useState<string>('');
+    const [isFieldSettled, setIsFieldSettled] = useState(false);
+    const [fieldAmount, setFieldAmount] = useState<number>(0);
+    const [fieldEvidence, setFieldEvidence] = useState('');
+    const [fieldName, setFieldName] = useState('');
+    const [fieldPosition, setFieldPosition] = useState('');
 
     // Transport Info State
     const [transportMode, setTransportMode] = useState<'Company' | '3PL' | 'Other'>('Company');
@@ -131,14 +136,16 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
         setEditingItemId(itemId);
         setTempDecision('Return'); // Default to Return
         setTempRoute('');
+        setIsFieldSettled(false);
+        setFieldAmount(0);
+        setFieldEvidence('');
+        setFieldName('');
+        setFieldPosition('');
         setIsDecisionModalOpen(true);
     };
 
     const handleSaveDecision = async () => {
-        // Enforce Return decision
-        const decision = 'Return';
-
-        if (!tempRoute || tempRoute === 'Other') {
+        if (!isFieldSettled && (!tempRoute || tempRoute === 'Other')) {
             await Swal.fire({
                 icon: 'warning',
                 title: 'กรุณาระบุเส้นทาง',
@@ -153,8 +160,15 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
 
         try {
             await updateReturnRecord(editingItemId!, {
-                preliminaryDecision: decision,
-                preliminaryRoute: tempRoute
+                status: isFieldSettled ? 'Settled_OnField' : undefined, // Change status if settled
+                preliminaryDecision: 'Return',
+                preliminaryRoute: isFieldSettled ? '' : tempRoute,
+                isFieldSettled,
+                fieldSettlementAmount: fieldAmount,
+                fieldSettlementEvidence: fieldEvidence,
+                fieldSettlementName: fieldName,
+                fieldSettlementPosition: fieldPosition,
+                disposition: isFieldSettled ? 'RTV' : undefined
             });
 
             await Swal.fire({
@@ -167,8 +181,6 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
 
             setIsDecisionModalOpen(false);
             setEditingItemId(null);
-            setTempDecision(null);
-            setTempRoute('');
         } finally {
             setIsSubmitting(false);
         }
@@ -725,61 +737,123 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                         </div>
 
                         <div className="p-6 space-y-4">
-                            {/* Preliminary Decision Section - Return Only */}
-                            <div className="border rounded-xl overflow-hidden bg-indigo-50/30">
-                                <div className="bg-indigo-100 px-4 py-2 border-b border-indigo-200 font-bold text-indigo-800 flex items-center gap-2 text-sm">
-                                    <Truck className="w-4 h-4" /> ระบุเส้นทางส่งคืน (Return Route)
-                                </div>
-                                <div className="p-4">
-                                    <p className="text-xs text-slate-500 mb-3">กรุณาเลือกเส้นทางสำหรับการส่งคืนสินค้า</p>
+                            {/* FIELD SETTLEMENT OPTION */}
+                            <div className={`p-4 rounded-xl border-2 transition-all ${isFieldSettled ? 'bg-amber-50 border-amber-500 shadow-md' : 'bg-slate-50 border-slate-200'}`}>
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={isFieldSettled}
+                                        onChange={(e) => setIsFieldSettled(e.target.checked)}
+                                        className="w-5 h-5 accent-amber-600"
+                                    />
+                                    <span className={`text-lg font-bold ${isFieldSettled ? 'text-amber-800' : 'text-slate-600'}`}>
+                                        💰 จบงานหน้างาน / ชดเชยเงิน (Field Settlement)
+                                    </span>
+                                </label>
+                                <p className="text-xs text-slate-500 ml-8 mt-1">ติ๊กช่องนี้หากสินค้าถูกชดเชยเงินเรียบร้อยแล้ว และไม่ต้องส่งคืน Hub</p>
 
-                                    <div className="p-3 bg-white rounded border border-indigo-100 text-sm">
-                                        <label className="block font-bold mb-2">เลือกเส้นทางส่งคืน <span className="text-red-500">*</span></label>
-                                        <div className="flex flex-wrap gap-2">
-                                            {RETURN_ROUTES.map(route => (
-                                                <label key={route} className={`px-3 py-1 rounded border cursor-pointer transition-all ${tempRoute === route ? 'bg-indigo-50 border-indigo-500 text-indigo-700 font-bold' : 'bg-slate-50 hover:bg-indigo-50/50'}`}>
-                                                    <input
-                                                        type="radio"
-                                                        aria-label={route}
-                                                        title={route}
-                                                        name="tempRoute"
-                                                        value={route}
-                                                        checked={tempRoute === route}
-                                                        onChange={(e) => { setTempDecision('Return'); setTempRoute(e.target.value); }}
-                                                        className="hidden"
-                                                    />
-                                                    {route}
-                                                </label>
-                                            ))}
-                                            <label className={`px-3 py-1 rounded border cursor-pointer transition-all ${tempRoute === 'Other' || (tempRoute && !RETURN_ROUTES.includes(tempRoute)) ? 'bg-indigo-50 border-indigo-500 text-indigo-700 font-bold' : 'bg-slate-50 hover:bg-indigo-50/50'}`}>
-                                                <input
-                                                    type="radio"
-                                                    aria-label="เส้นทางอื่นๆ"
-                                                    title="เส้นทางอื่นๆ"
-                                                    name="tempRoute"
-                                                    value="Other"
-                                                    checked={tempRoute === 'Other' || (tempRoute && !RETURN_ROUTES.includes(tempRoute))}
-                                                    onChange={() => { setTempDecision('Return'); setTempRoute('Other'); }}
-                                                    className="hidden"
-                                                />
-                                                อื่นๆ (Other)
-                                            </label>
+                                {isFieldSettled && (
+                                    <div className="mt-4 ml-8 grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-bold text-amber-900 leading-none">จำนวนเงินที่ชดเชย (บ.)</label>
+                                            <input
+                                                type="number"
+                                                value={fieldAmount || ''}
+                                                onChange={(e) => setFieldAmount(Number(e.target.value))}
+                                                className="w-full p-3 border border-amber-300 rounded-lg text-sm font-bold focus:ring-2 focus:ring-amber-500 bg-white"
+                                                placeholder="0.00"
+                                            />
                                         </div>
-                                        {(tempRoute === 'Other' || (tempRoute && !RETURN_ROUTES.includes(tempRoute))) && (
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-bold text-amber-900 leading-none">หลักฐานการรับเงิน (Ref.)</label>
                                             <input
                                                 type="text"
-                                                aria-label="ระบุเส้นทาง"
-                                                title="ระบุเส้นทาง"
-                                                value={tempRoute === 'Other' ? '' : tempRoute}
-                                                onChange={(e) => setTempRoute(e.target.value)}
-                                                className="w-full mt-2 p-2 border rounded text-sm focus:ring-2 focus:ring-indigo-500"
-                                                placeholder="ระบุเส้นทาง..."
-                                                autoFocus
+                                                value={fieldEvidence}
+                                                onChange={(e) => setFieldEvidence(e.target.value)}
+                                                className="w-full p-3 border border-amber-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 bg-white"
+                                                placeholder="เช่น ลายเซ็น / รูปถ่าย"
                                             />
-                                        )}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-bold text-amber-900 leading-none">ชื่อ-นามสกุล ผู้รับผิดชอบ</label>
+                                            <input
+                                                type="text"
+                                                value={fieldName}
+                                                onChange={(e) => setFieldName(e.target.value)}
+                                                className="w-full p-3 border border-amber-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 bg-white"
+                                                placeholder="ชื่อ-นามสกุล"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-bold text-amber-900 leading-none">ตำแหน่ง</label>
+                                            <input
+                                                type="text"
+                                                value={fieldPosition}
+                                                onChange={(e) => setFieldPosition(e.target.value)}
+                                                className="w-full p-3 border border-amber-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 bg-white"
+                                                placeholder="เช่น พนักงานขับรถ / พนักงานขาย"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {!isFieldSettled && (
+                                <div className="border rounded-xl overflow-hidden bg-indigo-50/30">
+                                    <div className="bg-indigo-100 px-4 py-2 border-b border-indigo-200 font-bold text-indigo-800 flex items-center gap-2 text-sm">
+                                        <Truck className="w-4 h-4" /> ระบุเส้นทางส่งคืน (Return Route)
+                                    </div>
+                                    <div className="p-4">
+                                        <p className="text-xs text-slate-500 mb-3">กรุณาเลือกเส้นทางสำหรับการส่งคืนสินค้า</p>
+
+                                        <div className="p-3 bg-white rounded border border-indigo-100 text-sm">
+                                            <label className="block font-bold mb-2">เลือกเส้นทางส่งคืน <span className="text-red-500">*</span></label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {RETURN_ROUTES.map(route => (
+                                                    <label key={route} className={`px-3 py-1 rounded border cursor-pointer transition-all ${tempRoute === route ? 'bg-indigo-50 border-indigo-500 text-indigo-700 font-bold' : 'bg-slate-50 hover:bg-indigo-50/50'}`}>
+                                                        <input
+                                                            type="radio"
+                                                            aria-label={route}
+                                                            title={route}
+                                                            name="tempRoute"
+                                                            value={route}
+                                                            checked={tempRoute === route}
+                                                            onChange={(e) => { setTempDecision('Return'); setTempRoute(e.target.value); }}
+                                                            className="hidden"
+                                                        />
+                                                        {route}
+                                                    </label>
+                                                ))}
+                                                <label className={`px-3 py-1 rounded border cursor-pointer transition-all ${tempRoute === 'Other' || (tempRoute && !RETURN_ROUTES.includes(tempRoute)) ? 'bg-indigo-50 border-indigo-500 text-indigo-700 font-bold' : 'bg-slate-50 hover:bg-indigo-50/50'}`}>
+                                                    <input
+                                                        type="radio"
+                                                        aria-label="เส้นทางอื่นๆ"
+                                                        title="เส้นทางอื่นๆ"
+                                                        name="tempRoute"
+                                                        value="Other"
+                                                        checked={tempRoute === 'Other' || (tempRoute && !RETURN_ROUTES.includes(tempRoute))}
+                                                        onChange={() => { setTempDecision('Return'); setTempRoute('Other'); }}
+                                                        className="hidden"
+                                                    />
+                                                    อื่นๆ (Other)
+                                                </label>
+                                            </div>
+                                            {(tempRoute === 'Other' || (tempRoute && !RETURN_ROUTES.includes(tempRoute))) && (
+                                                <input
+                                                    type="text"
+                                                    aria-label="ระบุเส้นทาง"
+                                                    title="ระบุเส้นทาง"
+                                                    value={tempRoute === 'Other' ? '' : tempRoute}
+                                                    onChange={(e) => setTempRoute(e.target.value)}
+                                                    className="w-full mt-2 p-2 border rounded text-sm focus:ring-2 focus:ring-indigo-500"
+                                                    placeholder="ระบุเส้นทาง..."
+                                                    autoFocus
+                                                />
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
 
                         <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">

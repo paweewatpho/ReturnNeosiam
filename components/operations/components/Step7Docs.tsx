@@ -46,7 +46,8 @@ export const Step7Docs: React.FC<Step7DocsProps> = ({ onPrintDocs }) => {
             if (isNCR) {
                 return (
                     item.status === 'NCR_QCCompleted' ||  // ✅ Current status from Step4HubQC
-                    item.status === 'QCCompleted'         // ✅ Legacy compatibility
+                    item.status === 'QCCompleted' ||         // ✅ Legacy compatibility
+                    item.status === 'Settled_OnField'      // ✅ Bypass Logistics for Field Settlement
                 );
             }
 
