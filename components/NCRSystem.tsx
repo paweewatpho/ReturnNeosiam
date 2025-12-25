@@ -267,7 +267,7 @@ const NCRSystem: React.FC = () => {
                     ncrNumber: newNcrNo,
                     documentType: 'NCR',
                     founder: formData.founder,
-                    status: item.isFieldSettled ? 'Settled_OnField' : 'COL_JobAccepted',
+                    status: item.isFieldSettled ? 'Settled_OnField' : 'Requested',
                     isFieldSettled: item.isFieldSettled,
                     fieldSettlementAmount: item.fieldSettlementAmount,
                     fieldSettlementEvidence: item.fieldSettlementEvidence,
