@@ -23,6 +23,9 @@ export const StepCompleted: React.FC = () => {
                     item.productCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     item.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    item.refNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    item.documentNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    item.collectionOrderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     item.ncrNumber?.toLowerCase().includes(searchTerm.toLowerCase()));
         }).sort((a, b) => {
             // Sort by dateCompleted descending, then fallback to date
@@ -78,20 +81,29 @@ export const StepCompleted: React.FC = () => {
                 </div>
             </div>
 
-            {/* Toolbar */}
             <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <div className="relative w-72">
+                <div className="relative w-80">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                         type="text"
-                        placeholder="Search items..."
+                        placeholder="เลขบิล / NCR / R / COL / สินค้า..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        className="pl-9 pr-4 py-2 w-full border border-slate-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                        className="pl-9 pr-8 py-2 w-full border border-slate-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
                     />
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    {searchTerm && (
+                        <button
+                            onClick={() => setSearchTerm('')}
+                            aria-label="ล้างการค้นหา"
+                            title="ล้างการค้นหา"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        >
+                            <XCircle className="w-4 h-4" />
+                        </button>
+                    )}
                 </div>
                 <div className="text-sm text-slate-500">
-                    Showing <span className="font-bold text-slate-800">{completedItems.length}</span> items
+                    รายการทั้งหมด: <span className="font-bold text-slate-800">{completedItems.length}</span> รายการ
                 </div>
             </div>
 

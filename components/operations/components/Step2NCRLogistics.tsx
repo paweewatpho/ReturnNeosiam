@@ -41,6 +41,7 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
     const [directDestination, setDirectDestination] = useState<string>('');
     const [customDestination, setCustomDestination] = useState<string>('');
     const [selectedBranch, setSelectedBranch] = useState<string>('All');
+    const [searchQuery, setSearchQuery] = useState<string>('');
 
     // Filter Logic
     const pendingItems = useMemo(() => {
@@ -67,9 +68,21 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
 
     const uniqueBranches = useMemo(() => Array.from(new Set(pendingItems.map(i => i.branch))).filter(Boolean), [pendingItems]);
 
-    const filteredItems = useMemo(() => pendingItems.filter(item =>
-        selectedBranch === 'All' || item.branch === selectedBranch
-    ), [pendingItems, selectedBranch]);
+    const filteredItems = useMemo(() => {
+        return pendingItems.filter(item => {
+            const matchesBranch = selectedBranch === 'All' || item.branch === selectedBranch;
+            const q = searchQuery.toLowerCase().trim();
+            const matchesSearch = !q ||
+                (item.refNo?.toLowerCase().includes(q)) ||
+                (item.ncrNumber?.toLowerCase().includes(q)) ||
+                (item.documentNo?.toLowerCase().includes(q)) ||
+                (item.collectionOrderId?.toLowerCase().includes(q)) ||
+                (item.productName?.toLowerCase().includes(q)) ||
+                (item.productCode?.toLowerCase().includes(q));
+
+            return matchesBranch && matchesSearch;
+        });
+    }, [pendingItems, selectedBranch, searchQuery]);
 
     // Grouping Logic
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -300,6 +313,28 @@ export const Step2NCRLogistics: React.FC<Step2NCRLogisticsProps> = ({ onConfirm 
                             {uniqueBranches.map(b => <option key={b} value={b}>{b}</option>)}
                         </select>
                     </div>
+
+                    <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 min-w-[200px]">
+                        <span className="text-sm font-bold text-slate-600 truncate">ค้นหาบิล:</span>
+                        <input
+                            type="text"
+                            placeholder="เลขที่บิล / NCR / สินค้า / R..."
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                            className="bg-transparent text-sm font-medium outline-none text-slate-800 w-full"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                aria-label="ล้างการค้นหา"
+                                title="ล้างการค้นหา"
+                                className="text-slate-400 hover:text-slate-600"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
+
                     <div className="text-sm text-slate-500">
                         รายการรอดำเนินการ: <span className="font-bold text-indigo-600">{filteredItems.length}</span>
                     </div>
