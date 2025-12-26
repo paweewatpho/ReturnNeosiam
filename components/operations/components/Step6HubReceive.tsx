@@ -39,7 +39,7 @@ export const Step6HubReceive: React.FC = () => {
         let processType: 'SINGLE' | 'GROUP' = 'SINGLE';
 
         if (isGroup) {
-            const { isConfirmed, isDenied, isDismissed } = await Swal.fire({
+            const { isConfirmed, isDismissed } = await Swal.fire({
                 title: 'ตัวเลือกการรับเข้า (Receive Options)',
                 html: `
                     <div class="text-left">
@@ -311,14 +311,15 @@ export const Step6HubReceive: React.FC = () => {
                                         <div className="bg-slate-50 p-3 rounded-lg flex flex-col md:flex-row gap-4 items-center">
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex flex-wrap gap-2 mb-1">
-                                                    <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded font-mono font-bold" title="System Ref">{item.refNo}</span>
+                                                    {item.refNo && item.refNo !== '-' && <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded font-mono font-bold" title="เลขที่อ้างอิง (Ref No.)">Ref: {item.refNo}</span>}
+                                                    {item.ncrNumber && <span className="bg-red-100 text-red-800 text-xs px-2 py-0.5 rounded font-mono font-bold" title="รายการ NCR">NCR: {item.ncrNumber}</span>}
                                                     {item.documentNo && (
-                                                        <span className="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded font-mono font-bold" title="Document No (R)">
-                                                            {item.documentNo}
+                                                        <span className="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded font-mono font-bold" title="เลขที่เอกสาร (R)">
+                                                            R: {item.documentNo}
                                                         </span>
                                                     )}
                                                     {item.collectionOrderId && (
-                                                        <span className="bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded font-mono font-bold" title="COL No">
+                                                        <span className="bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded font-mono font-bold" title="เลขที่ COL">
                                                             {item.collectionOrderId}
                                                         </span>
                                                     )}

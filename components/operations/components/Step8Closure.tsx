@@ -113,7 +113,7 @@ export const Step8Closure: React.FC = () => {
         }
     };
 
-    const handleUndo = async (item: any) => {
+    const handleUndo = async (item: ReturnRecord) => {
         if (isSubmitting) return;
 
         // 1. Password Protection
@@ -153,7 +153,7 @@ export const Step8Closure: React.FC = () => {
 
             // 3. Execute Update
             await updateReturnRecord(item.id, {
-                status: targetStatus as any,
+                status: targetStatus,
             });
 
             const Toast = Swal.mixin({
@@ -234,7 +234,7 @@ export const Step8Closure: React.FC = () => {
                                 {item.productCode}
                                 {hasChildren && !isSubItem && (
                                     <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 rounded-full">
-                                        +{groupedItems.find(g => g.key === groupKey)?.items.length! - 1} รายการ
+                                        +{(groupedItems.find(g => g.key === groupKey)?.items.length || 1) - 1} รายการ
                                     </span>
                                 )}
                             </div>
@@ -250,7 +250,7 @@ export const Step8Closure: React.FC = () => {
                 <td className="px-3 py-2 border-r text-indigo-700 font-bold">{item.collectionOrderId || '-'}</td>
                 <td className="px-3 py-2 border-r text-slate-700">{item.neoRefNo || '-'}</td>
                 <td className="px-3 py-2 border-r font-mono text-blue-700 font-bold">
-                    {isNCR ? '-' : (item.documentNo || item.refNo || '-')}
+                    {item.documentNo || item.refNo || '-'}
                 </td>
                 <td className="px-3 py-2 border-r font-mono text-slate-700">{item.tmNo || '-'}</td>
                 <td className="px-3 py-2 border-r font-mono text-slate-700">{item.invoiceNo || '-'}</td>
@@ -304,10 +304,10 @@ export const Step8Closure: React.FC = () => {
                                 <th className="px-3 py-3 border-r min-w-[200px]">สินค้า</th>
                                 <th className="px-3 py-3 border-r text-center min-w-[80px]">จำนวน</th>
                                 <th className="px-3 py-3 border-r min-w-[100px]">วันที่แจ้ง</th>
-                                <th className="px-3 py-3 border-r min-w-[100px]">NCR No.</th>
-                                <th className="px-3 py-3 border-r min-w-[100px]">COL No.</th>
+                                <th className="px-3 py-3 border-r min-w-[100px]">รายการ NCR</th>
+                                <th className="px-3 py-3 border-r min-w-[100px]">เลขที่ COL</th>
                                 <th className="px-3 py-3 border-r min-w-[100px]">Neo Doc</th>
-                                <th className="px-3 py-3 border-r min-w-[100px]">เลขที่เอกสาร (R)</th>
+                                <th className="px-3 py-3 border-r min-w-[100px]">เลขที่เอกสาร (R) / Ref No.</th>
                                 <th className="px-3 py-3 border-r min-w-[100px]">เลขที่ใบคุม (TM)</th>
                                 <th className="px-3 py-3 border-r min-w-[100px]">เลข Invoice</th>
                                 <th className="px-3 py-3 border-r min-w-[150px]">ลูกค้า</th>
@@ -359,7 +359,7 @@ export const Step8Closure: React.FC = () => {
                                 <th className="px-3 py-3 border-r min-w-[100px]">NCR No.</th>
                                 <th className="px-3 py-3 border-r min-w-[100px]">COL No.</th>
                                 <th className="px-3 py-3 border-r min-w-[100px]">Neo Doc</th>
-                                <th className="px-3 py-3 border-r min-w-[100px]">เลขที่เอกสาร (R)</th>
+                                <th className="px-3 py-3 border-r min-w-[100px]">เลขที่เอกสาร (R / Ref)</th>
                                 <th className="px-3 py-3 border-r min-w-[100px]">เลขที่ใบคุม (TM)</th>
                                 <th className="px-3 py-3 border-r min-w-[100px]">เลข Invoice</th>
                                 <th className="px-3 py-3 border-r min-w-[150px]">ลูกค้า</th>
@@ -384,7 +384,7 @@ export const Step8Closure: React.FC = () => {
                                     <td className="px-3 py-2 border-r text-indigo-600 font-bold">{item.collectionOrderId || '-'}</td>
                                     <td className="px-3 py-2 border-r text-slate-600">{item.neoRefNo || '-'}</td>
                                     <td className="px-3 py-2 border-r font-mono text-blue-600 font-bold">
-                                        {(item.documentType === 'NCR' || !!item.ncrNumber || (item.id && item.id.startsWith('NCR'))) ? '-' : (item.documentNo || item.refNo || '-')}
+                                        {item.documentNo || (item.refNo && item.refNo !== '-' ? item.refNo : '-') || '-'}
                                     </td>
                                     <td className="px-3 py-2 border-r font-mono text-slate-600">{item.tmNo || '-'}</td>
                                     <td className="px-3 py-2 border-r font-mono text-slate-600">{item.invoiceNo || '-'}</td>

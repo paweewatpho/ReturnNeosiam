@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { CheckCircle, Search, Calendar, MapPin, FileCheck, XCircle } from 'lucide-react';
 import { useData } from '../../../DataContext';
-import { ReturnRecord } from '../../../types';
 import { DispositionBadge } from './DispositionBadge';
 
 export const StepCompleted: React.FC = () => {
@@ -102,7 +101,7 @@ export const StepCompleted: React.FC = () => {
                     <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 sticky top-0 shadow-sm z-10">
                         <tr>
                             <th className="p-4">Status</th>
-                            <th className="p-4">ID / NCR No.</th>
+                            <th className="p-4">IDs (NCR / R / Ref)</th>
                             <th className="p-4">สินค้า (Product)</th>
                             <th className="p-4 text-center">จำนวน</th>
                             <th className="p-4">สาขา (Branch)</th>
@@ -134,9 +133,28 @@ export const StepCompleted: React.FC = () => {
                                             </span>
                                         )}
                                     </td>
-                                    <td className="p-4">
-                                        <div className="font-bold text-slate-800">{item.ncrNumber || item.id}</div>
-                                        <div className="text-xs text-slate-400 font-mono">{item.id}</div>
+                                    <td className="p-4 space-y-1">
+                                        {item.documentNo && (
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-1 rounded">R No.</span>
+                                                <span className="font-mono text-xs font-bold text-emerald-700">{item.documentNo}</span>
+                                            </div>
+                                        )}
+                                        {item.refNo && item.refNo !== '-' && (
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-1 rounded">Ref (บิล)</span>
+                                                <span className="font-mono text-xs font-bold text-blue-600">{item.refNo}</span>
+                                            </div>
+                                        )}
+                                        {item.ncrNumber && (
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-[10px] font-bold bg-red-100 text-red-800 px-1 rounded">รายการ NCR</span>
+                                                <span className="font-mono text-xs font-bold text-red-600">{item.ncrNumber}</span>
+                                            </div>
+                                        )}
+                                        {!item.documentNo && (!item.refNo || item.refNo === '-') && !item.ncrNumber && (
+                                            <div className="text-xs text-slate-400 font-mono">{item.id}</div>
+                                        )}
                                     </td>
                                     <td className="p-4">
                                         <div className="font-medium text-slate-800">{item.productName}</div>
