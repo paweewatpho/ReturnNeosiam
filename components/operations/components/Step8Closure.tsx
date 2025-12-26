@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { FileText, MapPin, CheckCircle, RotateCcw, PlusSquare, MinusSquare } from 'lucide-react';
+import { FileText, MapPin, CheckCircle, RotateCcw, PlusSquare, MinusSquare, X, Search } from 'lucide-react';
 import { useData } from '../../../DataContext';
 import { DispositionBadge } from './DispositionBadge';
 import { ReturnRecord } from '../../../types';
@@ -14,9 +15,10 @@ export const Step8Closure: React.FC = () => {
     // UI State
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
     const [filterMode, setFilterMode] = useState<FilterMode>('ALL');
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Filter Items: Status 'DocsCompleted', 'COL_Documented', 'NCR_Documented', 'DirectReturn', 'ReturnToSupplier'
-    // AND apply NCR/COL Filter
+    // AND apply NCR/COL Filter + Search
     const documentedItems = React.useMemo(() => {
         return items.filter(item => {
             // Check for verification (If NCR Report is Canceled, hide it) -> Only for NCR
@@ -40,12 +42,25 @@ export const Step8Closure: React.FC = () => {
 
             // 2. Filter Mode Check
             const isNCR = item.documentType === 'NCR' || !!item.ncrNumber || (item.id && item.id.startsWith('NCR'));
+            if (filterMode === 'NCR' && !isNCR) return false;
+            if (filterMode === 'COL' && isNCR) return false;
 
-            if (filterMode === 'NCR') return isNCR;
-            if (filterMode === 'COL') return !isNCR; // Assume if not NCR, it's COL/Standard
-            return true; // ALL
+            // 3. Search Filter
+            const q = searchQuery.toLowerCase().trim();
+            if (q) {
+                const matchesSearch =
+                    (item.refNo?.toLowerCase().includes(q)) ||
+                    (item.ncrNumber?.toLowerCase().includes(q)) ||
+                    (item.documentNo?.toLowerCase().includes(q)) ||
+                    (item.collectionOrderId?.toLowerCase().includes(q)) ||
+                    (item.productName?.toLowerCase().includes(q)) ||
+                    (item.productCode?.toLowerCase().includes(q));
+                if (!matchesSearch) return false;
+            }
+
+            return true;
         });
-    }, [items, filterMode, ncrReports]);
+    }, [items, filterMode, ncrReports, searchQuery]);
 
     // Grouping Logic
     const groupedItems = React.useMemo(() => {
@@ -273,7 +288,7 @@ export const Step8Closure: React.FC = () => {
 
             {/* Pending Items Table */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col mb-6 max-h-[60%]">
-                <div className="p-4 bg-purple-50 border-b border-purple-100 flex justify-between items-center">
+                <div className="p-4 bg-purple-50 border-b border-purple-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div className="flex items-center gap-3">
                         <span className="font-bold text-purple-800">รายการที่ต้องดำเนินการ ({documentedItems.length})</span>
 
@@ -292,6 +307,27 @@ export const Step8Closure: React.FC = () => {
                                 </button>
                             ))}
                         </div>
+                    </div>
+
+                    <div className="relative w-full md:w-64">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="ค้นหาเลขบิล / NCR / สินค้า / R..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-9 pr-8 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                aria-label="ล้างการค้นหา"
+                                title="ล้างการค้นหา"
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -399,6 +435,6 @@ export const Step8Closure: React.FC = () => {
                     </table>
                 </div>
             </div>
-        </div >
+        </div>
     );
 };

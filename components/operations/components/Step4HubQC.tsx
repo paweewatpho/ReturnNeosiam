@@ -1,7 +1,7 @@
 
 
 import React, { useState } from 'react';
-import { Activity, ClipboardList, GitFork, Save, Truck, Undo, PlusSquare, MinusSquare, Layers } from 'lucide-react';
+import { Activity, ClipboardList, GitFork, Save, Truck, Undo, PlusSquare, MinusSquare, Layers, X } from 'lucide-react';
 import { useData } from '../../../DataContext';
 import Swal from 'sweetalert2';
 import { ReturnRecord, ItemCondition, DispositionAction } from '../../../types';
@@ -26,6 +26,7 @@ export const Step4HubQC: React.FC = () => {
     });
     const [isCustomRoute, setIsCustomRoute] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Split State
     const [showSplitMode, setShowSplitMode] = useState(false);
@@ -50,10 +51,22 @@ export const Step4HubQC: React.FC = () => {
             }
 
             // Filter by status: Items waiting for QC at Hub
-            // We include both NCR specific status and generic Hub Received status
-            return item.status === 'NCR_HubReceived' || item.status === 'ReceivedAtHub';
+            const matchesStatus = item.status === 'NCR_HubReceived' || item.status === 'ReceivedAtHub';
+            if (!matchesStatus) return false;
+
+            // Search Filter
+            const q = searchQuery.toLowerCase().trim();
+            if (!q) return true;
+
+            return (
+                (item.refNo?.toLowerCase().includes(q)) ||
+                (item.ncrNumber?.toLowerCase().includes(q)) ||
+                (item.documentNo?.toLowerCase().includes(q)) ||
+                (item.productName?.toLowerCase().includes(q)) ||
+                (item.productCode?.toLowerCase().includes(q))
+            );
         });
-    }, [items, ncrReports]);
+    }, [items, ncrReports, searchQuery]);
 
     // Grouping Logic for Sidebar
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -289,6 +302,27 @@ export const Step4HubQC: React.FC = () => {
                 <div className="p-4 border-b border-slate-100 font-bold text-slate-700 flex justify-between items-center">
                     <span>คิวรอตรวจสอบ ({receivedItems.length})</span>
                     <Activity className="w-4 h-4 text-blue-500" />
+                </div>
+                <div className="p-2 border-b border-slate-50 bg-slate-50/50">
+                    <div className="relative group">
+                        <input
+                            type="text"
+                            placeholder="ค้นหาเลขบิล / NCR / สินค้า..."
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                            className="w-full pl-3 pr-8 py-1.5 text-xs bg-white border border-slate-200 rounded focus:ring-1 focus:ring-blue-400 outline-none transition-all"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                aria-label="ล้างคำค้นหา"
+                                title="ล้างคำค้นหา"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                            >
+                                <X className="w-3 h-3" />
+                            </button>
+                        )}
+                    </div>
                 </div>
                 <div className="flex-1 overflow-y-auto p-2 space-y-2">
                     {groupedItems.length === 0 ? (
