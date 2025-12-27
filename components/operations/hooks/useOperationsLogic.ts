@@ -3,10 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { useData } from '../../../DataContext';
 import { ReturnRecord, ItemCondition, DispositionAction, TransportInfo } from '../../../types';
 import { getISODetails, RESPONSIBLE_MAPPING } from '../utils';
+import { sendTelegramMessage } from '../../../utils/telegramService';
 import Swal from 'sweetalert2';
 
 export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, onClearInitialData?: () => void) => {
-    const { items, addReturnRecord, updateReturnRecord, addNCRReport, getNextNCRNumber, getNextReturnNumber, getNextCollectionNumber } = useData();
+    const { items, addReturnRecord, updateReturnRecord, addNCRReport, getNextNCRNumber, getNextReturnNumber, getNextCollectionNumber, systemConfig } = useData();
 
     // Workflow State
     const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8>(1);
@@ -515,7 +516,22 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                 setCustomProblemType('');
                 setCustomRootCause('');
                 setIsCustomBranch(false);
+                setIsCustomBranch(false);
                 setActiveStep(2);
+
+                // TELEGRAM NOTIFICATION
+                if (systemConfig.telegram?.enabled && systemConfig.telegram.chatId) {
+                    const isNCR = itemsToProcess.some(i => i.documentType === 'NCR' || !!i.ncrNumber);
+
+                    if (isNCR) {
+                        const ncrNo = itemsToProcess[0].ncrNumber || 'NCR-NEW';
+                        const summary = `🔔 <b>แจ้งเตือน NCR ใหม่ (แจ้งคืนสินค้า)</b>\n----------------------------------\nจำนวนรายการ: ${itemsToProcess.length} รายการ\nสาขา: ${itemsToProcess[0].branch}\nเลขที่ NCR: ${ncrNo}\nผู้แจ้ง: ${itemsToProcess[0].founder}\n----------------------------------\n📅 ${new Date().toLocaleString('th-TH')}`;
+                        await sendTelegramMessage(systemConfig.telegram.botToken, systemConfig.telegram.chatId, summary);
+                    } else {
+                        const summary = `📦 <b>มีรายการขอคืนสินค้าใหม่ (Collection)</b>\n----------------------------------\nจำนวนรายการ: ${itemsToProcess.length} รายการ\nสาขา: ${itemsToProcess[0].branch}\nบิลเลขที่: ${itemsToProcess[0].invoiceNo || '-'}\nลูกค้า: ${itemsToProcess[0].customerName}\n----------------------------------\n📅 ${new Date().toLocaleString('th-TH')}`;
+                        await sendTelegramMessage(systemConfig.telegram.botToken, systemConfig.telegram.chatId, summary);
+                    }
+                }
             }
         } catch (error) {
             console.error("Submission error:", error);
