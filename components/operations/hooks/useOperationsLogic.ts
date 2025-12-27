@@ -594,12 +594,10 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                 };
 
             // Force finding items from current state
-            // Use rigorous string comparison
             const selectedItems = items.filter(i => selectedIds.includes(String(i.id)));
 
             if (!selectedItems || selectedItems.length === 0) {
                 console.error("Critical Error: Items not found for IDs:", selectedIds);
-                console.log("Current Items:", items.map(i => i.id));
                 Swal.fire({
                     icon: 'error',
                     title: 'เกิดข้อผิดพลาด',
@@ -607,6 +605,8 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                 });
                 return;
             }
+
+            // Set Pending State & Open Doc Modal for Confirmation
 
             // Set Pending State & Open Doc Modal for Confirmation
             setPendingLogisticsTx({
@@ -878,7 +878,7 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
             // Logistics Pending Check
             if (pendingLogisticsTx) {
                 let successCount = 0;
-                // No need to redeclare today
+                const affectedItems = items.filter(i => pendingLogisticsTx.ids.includes(i.id));
 
                 for (const id of pendingLogisticsTx.ids) {
                     const success = await updateReturnRecord(id, {
@@ -886,7 +886,30 @@ export const useOperationsLogic = (initialData?: Partial<ReturnRecord> | null, o
                     });
                     if (success) successCount++;
                 }
+
                 if (successCount > 0) {
+                    // Send Notification
+                    if (systemConfig.telegram?.enabled && systemConfig.telegram.chatId && affectedItems.length > 0) {
+                        const ncrCount = affectedItems.filter(i => i.documentType === 'NCR' || !!i.ncrNumber).length;
+                        const colCount = affectedItems.length - ncrCount;
+
+                        let typeTag = '';
+                        if (ncrCount > 0 && colCount > 0) typeTag = `[NCR: ${ncrCount}, COL: ${colCount}]`;
+                        else if (ncrCount > 0) typeTag = `[NCR: ${ncrCount}]`;
+                        else typeTag = `[COL: ${colCount}]`;
+
+                        const head = affectedItems[0];
+                        const route = pendingLogisticsTx.updatePayload.dispositionRoute || '-';
+                        const isDirect = pendingLogisticsTx.updatePayload.status === 'DirectReturn';
+                        const typeLabel = isDirect ? '🚛 ส่งคืนตรง (Direct Return)' : '🚚 ส่งเข้า HUB (นครสวรรค์)';
+                        const plate = pendingLogisticsTx.updatePayload.transportPlate || '-';
+                        const driver = pendingLogisticsTx.updatePayload.transportDriver || '-';
+
+                        const message = `<b>${typeLabel} ${typeTag}</b>\n----------------------------------\n📍 ต้นทาง: ${head.branch}\n🏁 ปลายทาง: ${route}\n📦 จำนวน: ${successCount} รายการ\n🚛 ทะเบียน: ${plate}\n👤 คนขับ: ${driver}\n----------------------------------\n📅 ${new Date().toLocaleString('th-TH')}`;
+
+                        sendTelegramMessage(systemConfig.telegram.botToken, systemConfig.telegram.chatId, message);
+                    }
+
                     Swal.fire({
                         icon: 'success',
                         title: 'ดำเนินการสำเร็จ',
